@@ -17,7 +17,8 @@ mcp = FastMCP(
     "perplexity-web-mcp",
     instructions=(
         "Search the web with Perplexity AI using premium models. "
-        "Each tool uses a specific AI model - enable only the ones you need. "
+        "Use pplx_query for flexible model selection with thinking toggle. "
+        "Or use model-specific tools like pplx_gpt52, pplx_claude_sonnet, etc. "
         "All tools support source_focus: web, academic, social, finance, all."
     ),
 )
@@ -30,7 +31,23 @@ SOURCE_FOCUS_MAP = {
     "all": [SourceFocus.WEB, SourceFocus.ACADEMIC, SourceFocus.SOCIAL],
 }
 
+# Model name to Model mapping (supports thinking toggle)
+MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
+    # (base_model, thinking_model) - None if no thinking variant
+    "auto": (Models.BEST, None),
+    "sonar": (Models.SONAR, None),
+    "deep_research": (Models.DEEP_RESEARCH, None),
+    "gpt52": (Models.GPT_52, Models.GPT_52_THINKING),
+    "claude_sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
+    "claude_opus": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
+    "gemini_flash": (Models.GEMINI_3_FLASH, Models.GEMINI_3_FLASH_THINKING),
+    "gemini_pro": (Models.GEMINI_3_PRO_THINKING, Models.GEMINI_3_PRO_THINKING),  # Only thinking variant
+    "grok": (Models.GROK_41, Models.GROK_41_THINKING),
+    "kimi": (Models.KIMI_K25_THINKING, Models.KIMI_K25_THINKING),  # Only thinking variant
+}
+
 SourceFocusName = Literal["web", "academic", "social", "finance", "all"]
+ModelName = Literal["auto", "sonar", "deep_research", "gpt52", "claude_sonnet", "claude_opus", "gemini_flash", "gemini_pro", "grok", "kimi"]
 
 _client: Perplexity | None = None
 
@@ -86,6 +103,32 @@ def _ask(query: str, model: Model, source_focus: SourceFocusName = "web") -> str
 
     except Exception as error:
         return f"Error: {error!s}"
+
+
+@mcp.tool
+def pplx_query(
+    query: str,
+    model: ModelName = "auto",
+    thinking: bool = False,
+    source_focus: SourceFocusName = "web",
+) -> str:
+    """Query Perplexity AI with model selection and thinking toggle.
+    
+    Args:
+        query: The question to ask
+        model: Model to use - auto, sonar, deep_research, gpt52, claude_sonnet, 
+               claude_opus, gemini_flash, gemini_pro, grok, kimi
+        thinking: Enable extended thinking mode (available for gpt52, claude_sonnet, 
+                  claude_opus, gemini_flash, grok)
+        source_focus: Source type - web, academic, social, finance, all
+    """
+    model_tuple = MODEL_MAP.get(model, (Models.BEST, None))
+    base_model, thinking_model = model_tuple
+    
+    # Use thinking model if requested and available
+    selected_model = thinking_model if thinking and thinking_model else base_model
+    
+    return _ask(query, selected_model, source_focus)
 
 
 @mcp.tool

@@ -64,7 +64,12 @@ def _get_client() -> Perplexity:
     3. MCP server processes may restart between calls
     """
     token = get_token_or_raise()
-    return Perplexity(token, config=ClientConfig())
+    # Use minimal config to avoid session issues
+    config = ClientConfig(
+        rotate_fingerprint=False,  # Don't rotate to avoid state issues
+        requests_per_second=0,     # Disable rate limiting (MCP handles this)
+    )
+    return Perplexity(token, config=config)
 
 
 def _ask(query: str, model: Model, source_focus: SourceFocusName = "web") -> str:
@@ -99,16 +104,32 @@ def _ask(query: str, model: Model, source_focus: SourceFocusName = "web") -> str
 
     except Exception as error:
         error_str = str(error)
-        if "403" in error_str or "forbidden" in error_str.lower() or "token" in error_str.lower():
+        error_type = type(error).__name__
+        
+        # Check if token actually exists and is valid
+        from perplexity_web_mcp.cli.auth import get_user_info
+        token = load_token()
+        token_status = "No token found"
+        if token:
+            user_info = get_user_info(token)
+            if user_info:
+                token_status = f"Token valid for {user_info.email}"
+            else:
+                token_status = "Token exists but invalid"
+        
+        if "403" in error_str or "forbidden" in error_str.lower():
             return (
-                f"Error: Session token missing or expired.\n\n"
-                f"USE THESE MCP TOOLS TO AUTHENTICATE:\n"
-                f"1. Call pplx_auth_request_code(email='YOUR_EMAIL') - sends verification code\n"
-                f"2. Check email for 6-digit code from Perplexity\n"
-                f"3. Call pplx_auth_complete(email='YOUR_EMAIL', code='XXXXXX')\n\n"
-                f"Original error: {error_str}"
+                f"Error: Access forbidden (403).\n\n"
+                f"Token status: {token_status}\n"
+                f"Error type: {error_type}\n"
+                f"Error details: {error_str}\n\n"
+                f"This may be a Perplexity API issue. If token shows as valid above, "
+                f"try waiting a few seconds and retry. If persistent, re-authenticate:\n"
+                f"1. Call pplx_auth_request_code(email='YOUR_EMAIL')\n"
+                f"2. Check email for 6-digit code\n"
+                f"3. Call pplx_auth_complete(email='YOUR_EMAIL', code='XXXXXX')"
             )
-        return f"Error: {error_str}"
+        return f"Error ({error_type}): {error_str}"
 
 
 @mcp.tool

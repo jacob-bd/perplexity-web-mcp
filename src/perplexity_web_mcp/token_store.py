@@ -61,6 +61,10 @@ def get_token_or_raise() -> str:
     if not token:
         raise ValueError(
             "No Perplexity session token found. "
-            "Run 'pwm-auth' to authenticate, or set PERPLEXITY_SESSION_TOKEN environment variable."
+            "To authenticate via MCP tools: "
+            "1) Call pplx_auth_request_code with your email, "
+            "2) Check email for 6-digit code, "
+            "3) Call pplx_auth_complete with email and code. "
+            "Or run 'pwm-auth' CLI command."
         )
     return token

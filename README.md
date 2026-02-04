@@ -19,7 +19,7 @@ Use your Perplexity Pro/Max subscription to access premium models (GPT-5.2, Clau
 
 ```bash
 # Install directly from GitHub (no clone needed)
-pipx install "git+https://github.com/jacob-bd/perplexity-web-mcp.git#egg=perplexity-web-mcp[all]"
+pipx install "perplexity-web-mcp[all] @ git+https://github.com/jacob-bd/perplexity-web-mcp.git"
 ```
 
 This installs `pwm-auth`, `pwm-mcp`, and `pwm-api` as global commands.
@@ -27,7 +27,7 @@ This installs `pwm-auth`, `pwm-mcp`, and `pwm-api` as global commands.
 ### Option B: pip (Global or in existing venv)
 
 ```bash
-pip install "git+https://github.com/jacob-bd/perplexity-web-mcp.git#egg=perplexity-web-mcp[all]"
+pip install "perplexity-web-mcp[all] @ git+https://github.com/jacob-bd/perplexity-web-mcp.git"
 ```
 
 ### Option C: Clone + venv (For development)

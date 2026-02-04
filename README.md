@@ -79,7 +79,11 @@ After running `pwm-auth`, add the MCP server to your client:
 
 #### Claude Code CLI
 
-Create or edit `~/.mcp.json`:
+```bash
+claude mcp add perplexity pwm-mcp
+```
+
+Or manually create/edit `~/.mcp.json`:
 ```json
 {
   "mcpServers": {

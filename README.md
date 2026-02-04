@@ -245,6 +245,8 @@ Models.KIMI_K25_THINKING         # Kimi K2.5 (thinking only)
 | Command | Description |
 |---------|-------------|
 | `pwm-auth` | Authenticate and save session token |
+| `pwm-auth --email EMAIL` | Request verification code (non-interactive) |
+| `pwm-auth --email EMAIL --code CODE` | Complete auth with code (non-interactive) |
 | `pwm-mcp` | Start MCP server |
 | `pwm-api` | Start Anthropic/OpenAI API server |
 
@@ -252,8 +254,37 @@ Models.KIMI_K25_THINKING         # Kimi K2.5 (thinking only)
 
 ## Troubleshooting
 
-### Authentication Errors
-Re-run `pwm-auth` to refresh your session token.
+### Authentication Errors (403)
+
+**Error**: `Access forbidden (403). Session token invalid or expired.`
+
+Session tokens typically last ~30 days. When expired, re-authenticate:
+
+**Interactive (human)**:
+```bash
+pwm-auth
+```
+
+**Non-interactive (AI agents)**:
+```bash
+# Step 1: Request verification code
+pwm-auth --email your@email.com
+
+# Step 2: Check email for 6-digit code, then complete auth
+pwm-auth --email your@email.com --code 123456
+```
+
+### AI-Assisted Token Recovery
+
+For AI agents with email access (like OpenClaw), the recovery flow is:
+
+1. **Detect 403 error** in response
+2. **Run**: `pwm-auth --email YOUR_PERPLEXITY_EMAIL`
+3. **Check email** for 6-digit verification code from Perplexity
+4. **Run**: `pwm-auth --email YOUR_PERPLEXITY_EMAIL --code XXXXXX`
+5. **Restart** the `pwm-api` server to load the new token
+
+The token is automatically saved to `.env` file. Output includes `TOKEN=...` for capture if needed.
 
 ### Rate Limiting
 The API server enforces a 5-second minimum between requests to respect Perplexity's rate limits.

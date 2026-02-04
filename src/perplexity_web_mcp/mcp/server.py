@@ -102,7 +102,17 @@ def _ask(query: str, model: Model, source_focus: SourceFocusName = "web") -> str
         return "".join(response_parts)
 
     except Exception as error:
-        return f"Error: {error!s}"
+        error_str = str(error)
+        if "403" in error_str or "forbidden" in error_str.lower():
+            return (
+                f"Error: Session token expired or invalid (403 Forbidden).\n\n"
+                f"To re-authenticate:\n"
+                f"1. Run: pwm-auth --email YOUR_EMAIL\n"
+                f"2. Check email for 6-digit code\n"
+                f"3. Run: pwm-auth --email YOUR_EMAIL --code XXXXXX\n"
+                f"4. Restart the MCP server"
+            )
+        return f"Error: {error_str}"
 
 
 @mcp.tool

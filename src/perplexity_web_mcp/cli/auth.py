@@ -271,39 +271,114 @@ def _show_exit_message() -> None:
     console.input()
 
 
-def main() -> NoReturn:
-    """Executes the authentication flow within an ephemeral terminal screen."""
-
-    with console.screen():
-        try:
-            _show_header()
-
-            session, csrf = _initialize_session()
-
-            console.print("\n[bold cyan]Step 1: Email[/bold cyan]")
-            email = Prompt.ask("  Enter your Perplexity email", console=console)
+def auth_non_interactive(email: str, code: str | None = None, auto_save: bool = True) -> str | None:
+    """Non-interactive authentication for AI agents.
+    
+    Args:
+        email: Perplexity account email
+        code: 6-digit verification code (if None, sends code and returns None)
+        auto_save: Whether to automatically save token to .env
+        
+    Returns:
+        Session token if code provided, None if code was sent
+        
+    Usage:
+        # Step 1: Request verification code
+        pwm-auth --email user@example.com
+        
+        # Step 2: Complete auth with code from email
+        pwm-auth --email user@example.com --code 123456
+    """
+    try:
+        session, csrf = _initialize_session()
+        
+        if code is None:
+            # Step 1: Send verification code
             _request_verification_code(session, csrf, email)
+            print(f"Verification code sent to {email}")
+            print("Check email and run: pwm-auth --email EMAIL --code CODE")
+            return None
+        
+        # Step 2: Complete authentication
+        redirect_url = _validate_and_get_redirect_url(session, email, code)
+        token = _extract_session_token(session, redirect_url)
+        
+        # Verify token works
+        user_info = get_user_info(token)
+        if user_info:
+            print(f"Authenticated as: {user_info.email} ({user_info.tier_display})")
+        
+        if auto_save:
+            if update_env(token):
+                print("Token saved to .env")
+            else:
+                print("Warning: Failed to save to .env")
+        
+        # Output token for capture
+        print(f"TOKEN={token}")
+        return token
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
-            console.print("\n[bold cyan]Step 2: Verification[/bold cyan]")
-            console.print("  Check your email for a [bold]6-digit code[/bold] or [bold]magic link[/bold].")
-            user_input = Prompt.ask("  Enter code or paste link", console=console).strip()
-            redirect_url = _validate_and_get_redirect_url(session, email, user_input)
 
-            token = _extract_session_token(session, redirect_url)
-
-            _display_and_save_token(token)
-
-            _show_exit_message()
-
-            exit(0)
-
-        except KeyboardInterrupt:
-            exit(0)
-
-        except Exception as error:
-            console.print(f"\n[bold red]Error:[/bold red] {error}")
-            console.input("[dim]Press ENTER to exit...[/dim]")
+def main() -> NoReturn:
+    """Executes the authentication flow."""
+    import sys
+    
+    # Check for non-interactive mode (CLI args)
+    args = sys.argv[1:]
+    
+    if "--email" in args:
+        # Non-interactive mode for AI agents
+        email_idx = args.index("--email")
+        email = args[email_idx + 1] if email_idx + 1 < len(args) else None
+        
+        code = None
+        if "--code" in args:
+            code_idx = args.index("--code")
+            code = args[code_idx + 1] if code_idx + 1 < len(args) else None
+        
+        no_save = "--no-save" in args
+        
+        if not email:
+            print("Error: --email requires an email address")
             exit(1)
+        
+        result = auth_non_interactive(email, code, auto_save=not no_save)
+        exit(0 if result or code is None else 1)
+    
+    # Interactive mode (original behavior)
+    try:
+        _show_header()
+
+        session, csrf = _initialize_session()
+
+        console.print("\n[bold cyan]Step 1: Email[/bold cyan]")
+        email = Prompt.ask("  Enter your Perplexity email", console=console)
+        _request_verification_code(session, csrf, email)
+
+        console.print("\n[bold cyan]Step 2: Verification[/bold cyan]")
+        console.print("  Check your email for a [bold]6-digit code[/bold] or [bold]magic link[/bold].")
+        user_input = Prompt.ask("  Enter code or paste link", console=console).strip()
+        redirect_url = _validate_and_get_redirect_url(session, email, user_input)
+
+        token = _extract_session_token(session, redirect_url)
+
+        _display_and_save_token(token)
+
+        _show_exit_message()
+
+        exit(0)
+
+    except KeyboardInterrupt:
+        exit(0)
+
+    except Exception as error:
+        console.print(f"\n[bold red]Error:[/bold red] {error}")
+        console.input("[dim]Press ENTER to exit...[/dim]")
+        exit(1)
 
 
 if __name__ == "__main__":

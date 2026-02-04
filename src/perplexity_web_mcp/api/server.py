@@ -1004,10 +1004,17 @@ async def stream_response(
                 
         elif kind == "error":
             logging.error(f"Stream error: {payload}")
+            # Add recovery instructions for 403 errors
+            error_msg = payload
+            if "403" in payload or "forbidden" in payload.lower():
+                error_msg = (
+                    "Session token expired (403). "
+                    "Re-authenticate: pwm-auth --email EMAIL, then pwm-auth --email EMAIL --code CODE"
+                )
             error_delta = {
                 "type": "content_block_delta",
                 "index": 0,
-                "delta": {"type": "text_delta", "text": f"\n\n[Error: {payload}]"},
+                "delta": {"type": "text_delta", "text": f"\n\n[Error: {error_msg}]"},
             }
             yield f"event: content_block_delta\ndata: {json.dumps(error_delta)}\n\n"
             break

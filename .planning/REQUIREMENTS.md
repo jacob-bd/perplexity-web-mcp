@@ -64,22 +64,23 @@ Given the fundamental limitation (training objective mismatch), success is defin
 
 ## Traceability
 
-| Requirement | Phase | Notes |
-|-------------|-------|-------|
-| TC-01 | TBD | Prompt injection |
-| TC-02 | TBD | Response parser |
-| TC-03 | TBD | Confidence scoring |
-| TC-04 | TBD | Result injection |
-| FMT-01 | TBD | Python format |
-| FMT-02 | TBD | Key-value format |
-| FMT-03 | TBD | Inline code format |
-| API-01 | TBD | Tools in request |
-| API-02 | TBD | Tool_use response |
-| API-03 | TBD | Tool_result handling |
-| REL-01 | TBD | Fallback behavior |
-| REL-02 | TBD | Logging |
-| REL-03 | TBD | Error messages |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| TC-01 | Phase 1 - Prompt Injection Foundation | Pending |
+| TC-02 | Phase 2 - Multi-Strategy Response Parser | Pending |
+| TC-03 | Phase 4 - Tool Execution & Result Injection | Pending |
+| TC-04 | Phase 4 - Tool Execution & Result Injection | Pending |
+| FMT-01 | Phase 2 - Multi-Strategy Response Parser | Pending |
+| FMT-02 | Phase 2 - Multi-Strategy Response Parser | Pending |
+| FMT-03 | Phase 2 - Multi-Strategy Response Parser | Pending |
+| API-01 | Phase 3 - API Tool Integration | Pending |
+| API-02 | Phase 3 - API Tool Integration | Pending |
+| API-03 | Phase 3 - API Tool Integration | Pending |
+| REL-01 | Phase 5 - Reliability & Observability | Pending |
+| REL-02 | Phase 5 - Reliability & Observability | Pending |
+| REL-03 | Phase 5 - Reliability & Observability | Pending |
 
 ---
 *Requirements defined: 2026-02-04*
+*Traceability updated: 2026-02-04*
 *Expected outcome: 40-60% reliability for simple tool calls*

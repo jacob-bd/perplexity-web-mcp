@@ -659,6 +659,116 @@ class TestAPIIntegration(unittest.TestCase):
         finally:
             loop.close()
 
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.build_prompt_with_tools')
+    @patch('perplexity_web_mcp.api.server.logging')
+    def test_tool_result_injection(self, mock_logging, mock_prompt_builder, mock_client, mock_to_thread):
+        """Test that tool results are injected into the prompt."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Mock the Perplexity client
+        mock_conversation = MagicMock()
+        mock_conversation.answer = "Based on the search results, here's the summary"
+        mock_conversation.search_results = []
+        mock_conversation.ask = MagicMock(return_value=None)
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.create_conversation.return_value = mock_conversation
+        mock_client_instance.close = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock asyncio.to_thread
+        async def mock_thread_executor(func, *args):
+            return func(*args)
+        mock_to_thread.side_effect = mock_thread_executor
+
+        # Mock build_prompt_with_tools to return a test prompt
+        mock_prompt_builder.return_value = "Enhanced prompt with tool results"
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with tool use and tool result
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[
+                MessageParam(role="user", content="Search for Python tutorials"),
+                MessageParam(
+                    role="assistant",
+                    content=[{
+                        "type": "tool_use",
+                        "id": "toolu_search1",
+                        "name": "search",
+                        "input": {"query": "Python tutorials"}
+                    }]
+                ),
+                MessageParam(
+                    role="user",
+                    content=[{
+                        "type": "tool_result",
+                        "tool_use_id": "toolu_search1",
+                        "content": "Found 10 Python tutorials on various topics",
+                        "is_error": False
+                    }]
+                ),
+                MessageParam(role="user", content="Summarize the top 3")
+            ],
+            tools=[{
+                "name": "search",
+                "description": "Search the web",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {"query": {"type": "string"}},
+                    "required": ["query"]
+                }
+            }]
+        )
+
+        # Call the endpoint
+        async def run_test():
+            result = await create_message(mock_request, request_body)
+            return result
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(run_test())
+
+            # Verify build_prompt_with_tools was called with tool_results
+            self.assertTrue(mock_prompt_builder.called, "build_prompt_with_tools should be called")
+
+            # Get the call arguments
+            call_args = mock_prompt_builder.call_args
+            self.assertIsNotNone(call_args, "Should have call arguments")
+
+            # Verify tool_results parameter was passed
+            # call_args is a tuple: (args, kwargs)
+            kwargs = call_args[1] if len(call_args) > 1 else {}
+            self.assertIn("tool_results", kwargs, "Should pass tool_results to prompt builder")
+
+            # Verify the tool_results dict contains the expected result
+            tool_results = kwargs["tool_results"]
+            self.assertIsNotNone(tool_results, "tool_results should not be None")
+            self.assertIn("toolu_search1", tool_results, "Should include toolu_search1")
+
+            # Verify the result is a tuple with (content, is_error)
+            result_tuple = tool_results["toolu_search1"]
+            self.assertIsInstance(result_tuple, tuple, "Result should be a tuple")
+            self.assertEqual(len(result_tuple), 2, "Result tuple should have 2 elements")
+            self.assertEqual(result_tuple[0], "Found 10 Python tutorials on various topics")
+            self.assertEqual(result_tuple[1], False)
+
+            # Verify injection logging
+            injection_logs = [c for c in mock_logging.info.call_args_list
+                            if "Tool result injection: Injected 1 results" in str(c)]
+            self.assertGreater(len(injection_logs), 0, "Should log tool result injection")
+        finally:
+            loop.close()
+
 
 if __name__ == "__main__":
     unittest.main()

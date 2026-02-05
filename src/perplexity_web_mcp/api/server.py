@@ -55,7 +55,7 @@ from perplexity_web_mcp.api.session_manager import (
     ConversationManager,
     distill_system_prompt,
 )
-from perplexity_web_mcp.api.prompt_builder import build_prompt_with_tools
+from perplexity_web_mcp.api.prompt_builder import build_prompt_with_tools, format_tool_results
 from perplexity_web_mcp.api.response_parser import parse_response
 from perplexity_web_mcp.api.tool_validation import validate_tool_pairing
 
@@ -719,14 +719,14 @@ async def count_tokens(request: Request, body: CountTokensRequest):
     }
 
 
-def extract_tool_results(messages: list[MessageParam]) -> dict[str, str]:
+def extract_tool_results(messages: list[MessageParam]) -> dict[str, tuple[str, bool]]:
     """Extract tool results from message history.
 
     Args:
         messages: Message history
 
     Returns:
-        Dict mapping tool_use_id -> result content
+        Dict mapping tool_use_id -> (content, is_error) tuples
     """
     results = {}
     for msg in messages:
@@ -735,8 +735,9 @@ def extract_tool_results(messages: list[MessageParam]) -> dict[str, str]:
                 if isinstance(block, dict) and block.get("type") == "tool_result":
                     tool_use_id = block.get("tool_use_id")
                     content = block.get("content", "")
+                    is_error = block.get("is_error", False)
                     if tool_use_id:
-                        results[tool_use_id] = content
+                        results[tool_use_id] = (content, is_error)
     return results
 
 
@@ -903,10 +904,21 @@ async def create_message(request: Request, body: MessagesRequest):
     # Check if tools are provided and inject them into the prompt
     if body.tools:
         logging.info(f"Tool injection: Processing {len(body.tools)} tools from request")
-        # Use build_prompt_with_tools to construct the enhanced prompt
-        query = build_prompt_with_tools(query, body.tools, system_text)
+        # Pass tool_results if available
+        query = build_prompt_with_tools(
+            query,
+            body.tools,
+            system_text,
+            tool_results=tool_results if tool_results else None
+        )
         # System is now included in the prompt, don't apply it separately
         system_text = None
+
+        # Log tool result injection
+        if tool_results:
+            logging.info(f"Tool result injection: Injected {len(tool_results)} results into prompt")
+            logging.debug(f"Tool result injection: IDs: {list(tool_results.keys())}")
+
         logging.debug(f"Tool injection: Prompt preview: {query[:200]}...")
         logging.info("Tool injection: Successfully injected tools into prompt")
 

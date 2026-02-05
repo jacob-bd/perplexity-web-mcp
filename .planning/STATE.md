@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 3 of 5 (API Tool Integration)
-**Plan:** 1 of ? completed
+**Plan:** 2 of ? completed
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 03-01-PLAN.md (Tool Use Content Blocks)
-**Progress:** ████▓░░░░░ 45%
+**Last activity:** 2026-02-05 - Completed 03-02-PLAN.md (Streaming Tool Use Blocks)
+**Progress:** █████░░░░░ 47%
 
 ### This Phase Success Criteria
 1. ✓ User can pass tools array in API request and see formatted tool definitions in model prompt
@@ -32,7 +32,7 @@
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
-- **Phase 3:** Plan 1 complete (2m)
+- **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m)
 - **Phase 4:** Not started
 - **Phase 5:** Not started
 
@@ -81,6 +81,10 @@
 | 2026-02-05 | Generate tool_use IDs with toolu_{24 hex} format | Matches Anthropic API specification |
 | 2026-02-05 | Append citations to last text block | Avoids polluting tool_use block input |
 | 2026-02-05 | Set stop_reason to tool_use when tool blocks present | Signals to clients that tool execution is required |
+| 2026-02-05 | Stream complete tool input JSON in single event | Simpler than streaming chunks, Anthropic spec allows both |
+| 2026-02-05 | Parse response in producer thread for streaming | Producer has full text, avoids passing raw text through queue |
+| 2026-02-05 | Graceful fallback to end_turn on streaming parse error | Don't crash stream if tool parsing fails |
+| 2026-02-05 | Stream tool_use blocks before message_delta | Follows Anthropic SSE protocol - all content before message_delta |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -114,17 +118,17 @@
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 18:05 UTC
-- **Stopped at:** Completed 03-01-PLAN.md
+- **Date:** 2026-02-05 18:10 UTC
+- **Stopped at:** Completed 03-02-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
-1. Implement streaming tool_use blocks (Phase 3 Plan 2)
-2. Handle tool_result messages for conversation continuation (Phase 3 Plan 3)
-3. Begin Phase 4: Tool Execution Integration
+1. Handle tool_result messages for conversation continuation (Phase 3 Plan 3)
+2. Begin Phase 4: Tool Execution Integration
+3. End-to-end testing with Claude Code
 
 ### Context for Next Session
-Phase 3 Plan 1 complete. Non-streaming API responses now return tool_use content blocks when parser detects tool calls with confidence >= 0.7. ToolUseBlock/ToolResultBlock Pydantic models added. Ready for streaming tool_use blocks implementation.
+Phase 3 Plan 2 complete. SSE streaming now emits tool_use content blocks with proper Anthropic API event sequencing. Text content uses index 0, tool_use blocks start at index 1. Tool input streamed via input_json_delta events. stop_reason dynamically computed based on tool detection. Ready for tool_result message handling.
 
 ---
 *State initialized: 2026-02-04*

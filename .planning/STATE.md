@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 3 of 5 (API Tool Integration)
-**Plan:** 2 of ? completed
+**Plan:** 3 of ? completed
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 03-02-PLAN.md (Streaming Tool Use Blocks)
-**Progress:** █████░░░░░ 47%
+**Last activity:** 2026-02-05 - Completed 03-03-PLAN.md (Tool Result Validation)
+**Progress:** █████▓░░░░ 48%
 
 ### This Phase Success Criteria
 1. ✓ User can pass tools array in API request and see formatted tool definitions in model prompt
@@ -32,7 +32,7 @@
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
-- **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m)
+- **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m), Plan 3 complete (3m)
 - **Phase 4:** Not started
 - **Phase 5:** Not started
 
@@ -85,6 +85,9 @@
 | 2026-02-05 | Parse response in producer thread for streaming | Producer has full text, avoids passing raw text through queue |
 | 2026-02-05 | Graceful fallback to end_turn on streaming parse error | Don't crash stream if tool parsing fails |
 | 2026-02-05 | Stream tool_use blocks before message_delta | Follows Anthropic SSE protocol - all content before message_delta |
+| 2026-02-05 | Validate tool pairing before processing | Fail fast on invalid requests before expensive Perplexity calls |
+| 2026-02-05 | Allow pending tool_use without results | Conversation can end awaiting tool execution |
+| 2026-02-05 | Extract tool results early, inject later | Validation and logging in Phase 3, prompt injection in Phase 4 |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -115,20 +118,21 @@
 - Python AST strategy: `src/perplexity_web_mcp/api/strategies/python_ast.py` (AST-based extraction)
 - Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (Simple pattern extraction)
 - Inline code strategy: `src/perplexity_web_mcp/api/strategies/inline_code.py` (Backtick function extraction)
+- Tool validation: `src/perplexity_web_mcp/api/tool_validation.py` (Tool use/result pairing validation)
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 18:10 UTC
-- **Stopped at:** Completed 03-02-PLAN.md
+- **Date:** 2026-02-05 18:11 UTC
+- **Stopped at:** Completed 03-03-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
-1. Handle tool_result messages for conversation continuation (Phase 3 Plan 3)
+1. Continue Phase 3 with additional tool integration tasks
 2. Begin Phase 4: Tool Execution Integration
 3. End-to-end testing with Claude Code
 
 ### Context for Next Session
-Phase 3 Plan 2 complete. SSE streaming now emits tool_use content blocks with proper Anthropic API event sequencing. Text content uses index 0, tool_use blocks start at index 1. Tool input streamed via input_json_delta events. stop_reason dynamically computed based on tool detection. Ready for tool_result message handling.
+Phase 3 Plan 3 complete. API now validates tool_use/tool_result pairing before processing requests, rejects orphaned tool_result blocks with 400 errors, and extracts/logs received tool results. Tool result validation ensures conversation integrity. Tool results available for future prompt injection (Phase 4). Ready for Phase 4: Tool Execution Integration.
 
 ---
 *State initialized: 2026-02-04*

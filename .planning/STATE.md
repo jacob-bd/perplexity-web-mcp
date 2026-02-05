@@ -11,21 +11,24 @@
 ## Current Position
 
 **Phase:** 4 of 5 (Tool Execution & Result Injection)
-**Plan:** 2 of 3 completed
-**Status:** In progress
-**Last activity:** 2026-02-05 - Completed 04-02-PLAN.md
-**Progress:** ███████░░░ 70%
+**Plan:** 3 of 3 completed
+**Status:** Phase complete
+**Last activity:** 2026-02-05 - Completed 04-03-PLAN.md
+**Progress:** ████████░░ 80%
 
 ### This Phase Success Criteria
 1. ✓ User can send tools array in POST /v1/messages request body
 2. ✓ User receives tool_use content blocks in response when tool calls detected
 3. ✓ User can send tool_result messages to continue conversation after tool execution
 4. ✓ API maintains conversation state across tool calling cycles
+5. ✓ Low-confidence tool calls (< 0.7) filtered
+6. ✓ Confidence scores visible in logs (TC-03)
+7. ✓ Tool results injected into prompts (TC-04)
 
 ### Overall Project Progress
-- **Phases Completed:** 3/5
-- **Requirements Delivered:** 8/13 (TC-01, TC-02, FMT-01, FMT-02, FMT-03, API-01, API-02, API-03)
-- **Current Confidence:** API integration complete, ready for Phase 4
+- **Phases Completed:** 4/5
+- **Requirements Delivered:** 10/13 (TC-01, TC-02, TC-03, TC-04, FMT-01, FMT-02, FMT-03, API-01, API-02, API-03)
+- **Current Confidence:** Tool calling cycle complete with observability, ready for Phase 5
 
 ## Performance Metrics
 
@@ -33,7 +36,7 @@
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
 - **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m), Plan 3 complete (3m)
-- **Phase 4:** Plan 1 complete (2m), Plan 2 complete (3m)
+- **Phase 4:** Plan 1 complete (2m), Plan 2 complete (3m), Plan 3 complete (3m 29s)
 - **Phase 5:** Not started
 
 ### Quality Indicators
@@ -97,6 +100,9 @@
 | 2026-02-05 | extract_tool_results returns (content, is_error) tuples | Enables error distinction in formatted output |
 | 2026-02-05 | Tool results parameter optional with None default | Maintains backward compatibility with existing code |
 | 2026-02-05 | Log at INFO for injection count, DEBUG for IDs | Balances observability with log noise |
+| 2026-02-05 | Log confidence scores at INFO level when tool calls detected | Provides visibility into tool detection quality (TC-03) |
+| 2026-02-05 | Log context size in chars for tool results | Helps monitor prompt bloat, aids debugging |
+| 2026-02-05 | Use WARNING for error tool results | Makes error conditions visible in production logs |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -109,8 +115,10 @@
 - [x] ~~Define exact prompt injection format~~ (Python in markdown)
 - [x] ~~Implement multi-strategy response parser~~ (Phase 2 complete)
 - [x] ~~Add tool_use content blocks to API~~ (Phase 3 complete)
-- [ ] Decide on confidence threshold for tool execution (Phase 4)
-- [ ] Implement tool result injection into prompts (Phase 4)
+- [x] ~~Decide on confidence threshold for tool execution~~ (0.7 threshold in Phase 4)
+- [x] ~~Implement tool result injection into prompts~~ (Phase 4 complete)
+- [ ] Test with real Perplexity models (Phase 5)
+- [ ] Production error handling and monitoring (Phase 5)
 
 ### Active Blockers
 - None currently
@@ -119,7 +127,7 @@
 
 ### Entry Points
 - MCP server: `src/perplexity_web_mcp/mcp/server.py`
-- API server: `src/perplexity_web_mcp/api/server.py`
+- API server: `src/perplexity_web_mcp/api/server.py` (Tool calling endpoints with observability logging)
 - Core logic: `src/perplexity_web_mcp/core.py`
 - Tool injection: `src/perplexity_web_mcp/api/tool_injection.py` (Python function formatter)
 - Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction, tool result formatting)
@@ -129,20 +137,21 @@
 - Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (Simple pattern extraction)
 - Inline code strategy: `src/perplexity_web_mcp/api/strategies/inline_code.py` (Backtick function extraction)
 - Tool validation: `src/perplexity_web_mcp/api/tool_validation.py` (Tool use/result pairing validation)
+- End-to-end tests: `tests/test_tool_result_flow.py` (Complete tool calling cycle tests)
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
 - **Date:** 2026-02-05
-- **Stopped at:** Completed 04-02-PLAN.md
+- **Stopped at:** Completed 04-03-PLAN.md (Phase 4 complete)
 - **Resume file:** None
 
 ### Next Actions
-1. Execute Plan 04-03: Streaming mode integration for tool results
-2. Verify Phase 4 success criteria
-3. Begin Phase 5 planning
+1. Begin Phase 5 planning: Production Hardening
+2. Test with real Perplexity models (GPT-5.2, Claude 4.5, etc.)
+3. Add error handling and monitoring
 
 ### Context for Next Session
-Phase 4 Plan 2 complete (3m). Extended build_prompt_with_tools to accept optional tool_results parameter and inject formatted results between tools and user message. Updated extract_tool_results to return (content, is_error) tuples. Integrated result injection into create_message endpoint with logging. All 36 tests pass (25 prompt builder + 11 API integration). Tool results now flow back into Perplexity prompts, completing the multi-turn tool calling cycle.
+Phase 4 complete (3m 29s). Created 6 comprehensive end-to-end tests demonstrating complete tool calling cycles (query -> tool_use -> tool_result -> continuation). Added observability logging for confidence scores (TC-03), context size tracking, and error detection. All 100 tests pass. Tool calling system fully functional with streaming/non-streaming support, validation, result injection, and operational visibility. Ready for production hardening in Phase 5.
 
 ---
 *State initialized: 2026-02-04*

@@ -1063,8 +1063,32 @@ async def create_message(request: Request, body: MessagesRequest):
         # Parse response for tool calls and transform to content blocks
         if body.tools:
             try:
+                start_time = time.perf_counter()
                 parse_result = parse_response(answer)
+                parse_duration.labels(strategy=parse_result['strategy']).observe(
+                    time.perf_counter() - start_time
+                )
                 content_blocks, stop_reason = transform_to_tool_use_blocks(parse_result, answer)
+
+                # Track metrics for this parse attempt
+                strategy = parse_result['strategy']
+                confidence = parse_result['confidence']
+                tool_calls = parse_result['tool_calls']
+
+                # Record confidence distribution
+                parse_confidence.labels(strategy=strategy).observe(confidence)
+
+                # Track success/failure based on confidence threshold
+                if tool_calls and confidence >= 0.7:
+                    parse_attempts.labels(strategy=strategy, success='true').inc()
+
+                    # Track individual tool calls
+                    for tool_call in tool_calls:
+                        tool_name = tool_call.get('name', 'unknown')
+                        tool_calls_detected.labels(strategy=strategy, tool_name=tool_name).inc()
+                else:
+                    # Low confidence or no tools - count as unsuccessful parse
+                    parse_attempts.labels(strategy=strategy, success='false').inc()
 
                 # Log parsing results
                 if parse_result["tool_calls"]:
@@ -1078,6 +1102,9 @@ async def create_message(request: Request, body: MessagesRequest):
                     logging.debug(f"No tool calls found in response (strategy: {parse_result['strategy']})")
 
             except Exception as parse_error:
+                # Track parse failure
+                parse_attempts.labels(strategy='error', success='false').inc()
+
                 # Determine context - parse_result may not exist if exception occurred early
                 try:
                     context = f"parsing response for {parse_result.get('strategy', 'unknown')} strategy"

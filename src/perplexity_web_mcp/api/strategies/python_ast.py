@@ -1,7 +1,7 @@
 """Python AST-based strategy for extracting function calls from code blocks."""
 
 import ast
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 
 
 def extract_python_calls(code: str) -> List[Dict[str, Any]]:
@@ -40,7 +40,7 @@ def extract_python_calls(code: str) -> List[Dict[str, Any]]:
     return calls
 
 
-def _extract_call_info(node: ast.Call) -> Dict[str, Any]:
+def _extract_call_info(node: ast.Call) -> Optional[Dict[str, Any]]:
     """Extract information from a single Call node.
 
     Args:
@@ -77,7 +77,7 @@ def _extract_call_info(node: ast.Call) -> Dict[str, Any]:
     }
 
 
-def _get_func_name(func_node) -> str:
+def _get_func_name(func_node) -> Optional[str]:
     """Extract function name from various node types.
 
     Args:
@@ -97,7 +97,7 @@ def _get_func_name(func_node) -> str:
         return None
 
 
-def _safe_eval_with_flag(node):
+def _safe_eval_with_flag(node) -> Tuple[Any, bool]:
     """Safely evaluate an AST node to a Python value with success flag.
 
     Args:
@@ -113,7 +113,7 @@ def _safe_eval_with_flag(node):
     try:
         # Use literal_eval for safe evaluation of literals
         return ast.literal_eval(node), True
-    except:
+    except (ValueError, SyntaxError):
         # For nodes that aren't literals, try to handle special cases
         if isinstance(node, ast.Name):
             # Handle special constants

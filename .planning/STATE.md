@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 2 of 5 (Multi-Strategy Response Parser)
-**Plan:** 2 of 5 completed
+**Plan:** 3 of 5 completed
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 02-02-PLAN.md
-**Progress:** ████████░░ 40%
+**Last activity:** 2026-02-05 - Completed 02-03-PLAN.md
+**Progress:** ████████░░ 46%
 
 ### This Phase Success Criteria
 1. ✓ User can pass tools array in API request and see formatted tool definitions in model prompt
@@ -31,7 +31,7 @@
 
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
-- **Phase 2:** Plan 2 complete (2m)
+- **Phase 2:** Plan 2 complete (2m), Plan 3 complete (4m)
 - **Phase 3:** Not started
 - **Phase 4:** Not started
 - **Phase 5:** Not started
@@ -67,6 +67,8 @@
 | 2026-02-05 | Use dual regex patterns for key-value extraction | Strict uppercase primary with case-insensitive fallback |
 | 2026-02-05 | Process key-value patterns line-by-line | Simplifies regex and handles mixed content |
 | 2026-02-05 | Silently ignore empty values in patterns | More robust to malformed input |
+| 2026-02-05 | Exclude code blocks from inline extraction | Prevent false positives from example code |
+| 2026-02-05 | Preserve raw arguments in inline code | Let higher-level parser handle argument parsing |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -92,21 +94,22 @@
 - Core logic: `src/perplexity_web_mcp/core.py`
 - Tool injection: `src/perplexity_web_mcp/api/tool_injection.py` (Python function formatter)
 - Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction)
-- Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (NEW - Simple pattern extraction)
+- Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (Simple pattern extraction)
+- Inline code strategy: `src/perplexity_web_mcp/api/strategies/inline_code.py` (NEW - Backtick function extraction)
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 17:01 UTC
-- **Stopped at:** Completed 02-02-PLAN.md
+- **Date:** 2026-02-05 17:03 UTC
+- **Stopped at:** Completed 02-03-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
 1. Continue Phase 2: Response Parsing Strategies
-2. Complete remaining plans (02-03, 02-04, 02-05)
+2. Complete remaining plans (02-04, 02-05)
 3. Begin testing with actual Perplexity models
 
 ### Context for Next Session
-Phase 2 in progress. Key-value extraction strategy complete with comprehensive tests. Simple pattern matching for KEY: value formats working. Ready to build more sophisticated parsing strategies (Python code blocks, inline code patterns) and the orchestrator to coordinate them.
+Phase 2 in progress. Three parsing strategies complete: key-value extraction, inline code detection. Both have comprehensive test coverage. Inline code strategy extracts function calls from backticks while avoiding false positives from code blocks. Ready to build Python AST strategy (likely complete) and the orchestrator to coordinate all strategies.
 
 ---
 *State initialized: 2026-02-04*

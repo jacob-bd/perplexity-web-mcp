@@ -9,8 +9,8 @@
 
 - [x] **TC-01**: User can provide tool definitions that are injected into prompts using training-data-familiar formats (Python/markdown code blocks)
 - [x] **TC-02**: System parses responses with multi-strategy fallback chain (JSON extraction → regex patterns → fuzzy matching)
-- [ ] **TC-03**: System scores extracted tool calls with confidence threshold before execution
-- [ ] **TC-04**: User receives tool execution results injected back into conversation for continuation
+- [x] **TC-03**: System scores extracted tool calls with confidence threshold before execution
+- [x] **TC-04**: User receives tool execution results injected back into conversation for continuation
 
 ### Format Support
 
@@ -68,8 +68,8 @@ Given the fundamental limitation (training objective mismatch), success is defin
 |-------------|-------|--------|
 | TC-01 | Phase 1 - Prompt Injection Foundation | Complete |
 | TC-02 | Phase 2 - Multi-Strategy Response Parser | Complete |
-| TC-03 | Phase 4 - Tool Execution & Result Injection | Pending |
-| TC-04 | Phase 4 - Tool Execution & Result Injection | Pending |
+| TC-03 | Phase 4 - Tool Execution & Result Injection | Complete |
+| TC-04 | Phase 4 - Tool Execution & Result Injection | Complete |
 | FMT-01 | Phase 2 - Multi-Strategy Response Parser | Complete |
 | FMT-02 | Phase 2 - Multi-Strategy Response Parser | Complete |
 | FMT-03 | Phase 2 - Multi-Strategy Response Parser | Complete |

@@ -6,24 +6,22 @@
 
 **Core Value:** Enable Perplexity web models to execute local tools (Read, Write, Bash) through Claude Code, unlocking agentic workflows without requiring the official Perplexity API.
 
-**Current Focus:** Phase 4 - Tool Execution & Result Injection
+**Current Focus:** Phase 5 - Reliability & Observability
 
 ## Current Position
 
-**Phase:** 4 of 5 (Tool Execution & Result Injection)
-**Plan:** 3 of 3 completed
-**Status:** Phase complete
-**Last activity:** 2026-02-05 - Completed 04-03-PLAN.md
+**Phase:** 5 of 5 (Reliability & Observability)
+**Plan:** 0 of ? completed
+**Status:** Ready to plan
+**Last activity:** 2026-02-05 - Completed Phase 4 (Tool Execution & Result Injection)
 **Progress:** ████████░░ 80%
 
 ### This Phase Success Criteria
-1. ✓ User can send tools array in POST /v1/messages request body
-2. ✓ User receives tool_use content blocks in response when tool calls detected
-3. ✓ User can send tool_result messages to continue conversation after tool execution
-4. ✓ API maintains conversation state across tool calling cycles
-5. ✓ Low-confidence tool calls (< 0.7) filtered
-6. ✓ Confidence scores visible in logs (TC-03)
-7. ✓ Tool results injected into prompts (TC-04)
+1. User receives conversational response when tool parsing fails completely
+2. User can view success/failure rates per format type in logs
+3. User sees clear error messages explaining why tool parsing failed
+4. System continues operating normally after parsing failures
+5. Performance metrics show which models and formats work best
 
 ### Overall Project Progress
 - **Phases Completed:** 4/5
@@ -146,12 +144,12 @@
 - **Resume file:** None
 
 ### Next Actions
-1. Begin Phase 5 planning: Production Hardening
-2. Test with real Perplexity models (GPT-5.2, Claude 4.5, etc.)
-3. Add error handling and monitoring
+1. Plan Phase 5: Reliability & Observability
+2. Implement graceful fallback to conversational response
+3. Add success/failure rate logging
 
 ### Context for Next Session
-Phase 4 complete (3m 29s). Created 6 comprehensive end-to-end tests demonstrating complete tool calling cycles (query -> tool_use -> tool_result -> continuation). Added observability logging for confidence scores (TC-03), context size tracking, and error detection. All 100 tests pass. Tool calling system fully functional with streaming/non-streaming support, validation, result injection, and operational visibility. Ready for production hardening in Phase 5.
+Phase 4 complete and verified. Tool calling system fully operational: format_tool_results creates structured markdown, build_prompt_with_tools injects results, 6 end-to-end tests verify complete cycles, enhanced logging provides observability. All 100 tests pass. Requirements TC-03 and TC-04 complete. Ready for Phase 5: Reliability & Observability.
 
 ---
 *State initialized: 2026-02-04*

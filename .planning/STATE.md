@@ -24,7 +24,7 @@
 
 ### Overall Project Progress
 - **Phases Completed:** 1/5
-- **Requirements Delivered:** 3/13
+- **Requirements Delivered:** 1/13 (TC-01)
 - **Current Confidence:** Foundation working, ready for Phase 2
 
 ## Performance Metrics
@@ -72,10 +72,11 @@
 - Models default to explaining rather than executing
 
 ### Open TODOs
-- [ ] Create plan for Phase 1
-- [ ] Decide on confidence threshold for tool execution
-- [ ] Define exact prompt injection format
-- [ ] Determine which tools to support initially
+- [x] ~~Create plan for Phase 1~~ (Complete)
+- [x] ~~Define exact prompt injection format~~ (Python in markdown)
+- [ ] Decide on confidence threshold for tool execution (Phase 4)
+- [ ] Implement multi-strategy response parser (Phase 2)
+- [ ] Add tool_use content blocks to API (Phase 3)
 
 ### Active Blockers
 - None currently

@@ -57,6 +57,7 @@ from perplexity_web_mcp.api.session_manager import (
 )
 from perplexity_web_mcp.api.prompt_builder import build_prompt_with_tools
 from perplexity_web_mcp.api.response_parser import parse_response
+from perplexity_web_mcp.api.tool_validation import validate_tool_pairing
 
 # Supported Anthropic API version
 ANTHROPIC_API_VERSION = "2023-06-01"
@@ -718,6 +719,27 @@ async def count_tokens(request: Request, body: CountTokensRequest):
     }
 
 
+def extract_tool_results(messages: list[MessageParam]) -> dict[str, str]:
+    """Extract tool results from message history.
+
+    Args:
+        messages: Message history
+
+    Returns:
+        Dict mapping tool_use_id -> result content
+    """
+    results = {}
+    for msg in messages:
+        if msg.role == "user" and isinstance(msg.content, list):
+            for block in msg.content:
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    tool_use_id = block.get("tool_use_id")
+                    content = block.get("content", "")
+                    if tool_use_id:
+                        results[tool_use_id] = content
+    return results
+
+
 def transform_to_tool_use_blocks(
     parse_result: dict,
     answer: str,
@@ -1087,6 +1109,8 @@ async def stream_response(
                         loop.call_soon_threadsafe(queue.put_nowait, ("delta", delta))
                 
                 # Parse response for tool calls if tools were provided
+                # Send accumulated response and parse_result to consumer
+                parse_result = None
                 if tools:
                     try:
                         parse_result = parse_response(last)
@@ -1099,14 +1123,14 @@ async def stream_response(
                                 logging.debug(f"Tool call: {tool_call['name']} with args {tool_call['arguments']}")
                         else:
                             logging.info(f"No tool calls found in response (strategy: {parse_result['strategy']})")
-                        # TODO: Phase 3 - Convert to tool_use content blocks
                     except Exception as parse_error:
                         logging.warning(f"Response parsing failed: {parse_error}")
+                        parse_result = None
                         # Continue without tool extraction - don't break the response flow
 
                 # Get citations from search results
                 citations = format_citations(conversation.search_results)
-                loop.call_soon_threadsafe(queue.put_nowait, ("done", (last, citations)))
+                loop.call_soon_threadsafe(queue.put_nowait, ("done", (last, citations, parse_result)))
                 fresh_client.close()
                 # Update last_request_time AFTER completion
                 last_request_time = time_module.time()
@@ -1130,25 +1154,26 @@ async def stream_response(
     # 3. content_block_delta events
     total_output = ""
     citations_text = ""
+    parse_result = None
     delta_count = 0
-    
+
     while True:
         kind, payload = await queue.get()
         if kind == "delta":
             total_output += payload
             delta_count += 1
-            
+
             delta_event = {
                 "type": "content_block_delta",
                 "index": 0,
                 "delta": {"type": "text_delta", "text": payload},
             }
             yield f"event: content_block_delta\ndata: {json.dumps(delta_event)}\n\n"
-            
+
             # 4. Send periodic ping events for keepalive
             if delta_count % 10 == 0:
                 yield f"event: ping\ndata: {json.dumps({'type': 'ping'})}\n\n"
-                
+
         elif kind == "error":
             logging.error(f"Stream error: {payload}")
             # Add recovery instructions for 403 errors
@@ -1165,8 +1190,8 @@ async def stream_response(
             }
             yield f"event: content_block_delta\ndata: {json.dumps(error_delta)}\n\n"
             break
-        else:  # done - payload is (answer, citations)
-            total_output, citations_text = payload
+        else:  # done - payload is (answer, citations, parse_result)
+            total_output, citations_text, parse_result = payload
             break
     
     # Stream citations if available
@@ -1178,15 +1203,70 @@ async def stream_response(
         }
         yield f"event: content_block_delta\ndata: {json.dumps(citation_delta)}\n\n"
         total_output += citations_text
-    
-    # 5. content_block_stop event
+
+    # 5. content_block_stop event for text (index 0)
     yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': 0})}\n\n"
-    
-    # 6. message_delta event (final usage)
+
+    # Stream tool_use blocks if tools were provided and detected
+    content_index = 1  # Text was index 0, tools start at 1
+    stop_reason = "end_turn"
+
+    if tools and parse_result:
+        try:
+            # Transform parse result to tool_use blocks
+            content_blocks, stop_reason = transform_to_tool_use_blocks(
+                parse_result, total_output, confidence_threshold=0.7
+            )
+
+            # Stream tool_use blocks (skip the text block at index 0 since already streamed)
+            for block in content_blocks:
+                if block.get("type") == "tool_use":
+                    # content_block_start for tool_use
+                    yield f"event: content_block_start\ndata: {json.dumps({
+                        'type': 'content_block_start',
+                        'index': content_index,
+                        'content_block': {
+                            'type': 'tool_use',
+                            'id': block['id'],
+                            'name': block['name'],
+                            'input': {}
+                        }
+                    })}\n\n"
+
+                    # content_block_delta with input_json_delta
+                    input_json = json.dumps(block['input'])
+                    yield f"event: content_block_delta\ndata: {json.dumps({
+                        'type': 'content_block_delta',
+                        'index': content_index,
+                        'delta': {
+                            'type': 'input_json_delta',
+                            'partial_json': input_json
+                        }
+                    })}\n\n"
+
+                    # content_block_stop
+                    yield f"event: content_block_stop\ndata: {json.dumps({
+                        'type': 'content_block_stop',
+                        'index': content_index
+                    })}\n\n"
+
+                    content_index += 1
+
+            if stop_reason == "tool_use":
+                tool_count = len([b for b in content_blocks if b.get('type') == 'tool_use'])
+                logging.info(
+                    f"Streamed {tool_count} tool_use blocks "
+                    f"(confidence: {parse_result.get('confidence', 0):.1f})"
+                )
+        except Exception as parse_error:
+            logging.warning(f"Streaming tool parsing failed: {parse_error}")
+            stop_reason = "end_turn"
+
+    # 6. message_delta event (final usage with computed stop_reason)
     output_tokens = estimate_tokens(total_output)
     message_delta = {
         "type": "message_delta",
-        "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+        "delta": {"stop_reason": stop_reason, "stop_sequence": None},
         "usage": {"output_tokens": output_tokens},
     }
     yield f"event: message_delta\ndata: {json.dumps(message_delta)}\n\n"

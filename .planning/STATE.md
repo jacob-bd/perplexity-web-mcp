@@ -11,9 +11,9 @@
 ## Current Position
 
 **Phase:** 2 of 5 (Multi-Strategy Response Parser)
-**Plan:** 3 of 5 completed
+**Plan:** 3 of 5 completed (02-01, 02-02, 02-03 done)
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 02-03-PLAN.md
+**Last activity:** 2026-02-05 - Completed 02-01-PLAN.md (Python AST strategy)
 **Progress:** ████████░░ 46%
 
 ### This Phase Success Criteria
@@ -31,7 +31,7 @@
 
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
-- **Phase 2:** Plan 2 complete (2m), Plan 3 complete (4m)
+- **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m)
 - **Phase 3:** Not started
 - **Phase 4:** Not started
 - **Phase 5:** Not started
@@ -69,6 +69,9 @@
 | 2026-02-05 | Silently ignore empty values in patterns | More robust to malformed input |
 | 2026-02-05 | Exclude code blocks from inline extraction | Prevent false positives from example code |
 | 2026-02-05 | Preserve raw arguments in inline code | Let higher-level parser handle argument parsing |
+| 2026-02-05 | Use ast.walk() for comprehensive extraction | Finds all calls regardless of control flow |
+| 2026-02-05 | Return empty list on syntax errors | Graceful degradation for invalid Python |
+| 2026-02-05 | Use success flag for None disambiguation | Distinguish actual None from evaluation failure |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -94,13 +97,14 @@
 - Core logic: `src/perplexity_web_mcp/core.py`
 - Tool injection: `src/perplexity_web_mcp/api/tool_injection.py` (Python function formatter)
 - Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction)
+- Python AST strategy: `src/perplexity_web_mcp/api/strategies/python_ast.py` (AST-based extraction)
 - Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (Simple pattern extraction)
-- Inline code strategy: `src/perplexity_web_mcp/api/strategies/inline_code.py` (NEW - Backtick function extraction)
+- Inline code strategy: `src/perplexity_web_mcp/api/strategies/inline_code.py` (Backtick function extraction)
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 17:03 UTC
-- **Stopped at:** Completed 02-03-PLAN.md
+- **Date:** 2026-02-05 17:08 UTC
+- **Stopped at:** Completed 02-01-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
@@ -109,7 +113,7 @@
 3. Begin testing with actual Perplexity models
 
 ### Context for Next Session
-Phase 2 in progress. Three parsing strategies complete: key-value extraction, inline code detection. Both have comprehensive test coverage. Inline code strategy extracts function calls from backticks while avoiding false positives from code blocks. Ready to build Python AST strategy (likely complete) and the orchestrator to coordinate all strategies.
+Phase 2 in progress. Three parsing strategies complete: Python AST extraction, key-value patterns, and inline code detection. All have comprehensive test coverage with TDD approach. Python AST strategy uses ast.parse for strictest parsing. Ready to build markdown extraction strategy (02-04) and the orchestrator to coordinate all strategies (02-05).
 
 ---
 *State initialized: 2026-02-04*

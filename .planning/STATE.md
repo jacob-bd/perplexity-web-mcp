@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 5 of 5 (Reliability & Observability)
-**Plan:** 0 of ? completed
-**Status:** Ready to plan
-**Last activity:** 2026-02-05 - Completed Phase 4 (Tool Execution & Result Injection)
-**Progress:** ████████░░ 80%
+**Plan:** 1 of ? completed
+**Status:** In progress
+**Last activity:** 2026-02-05 - Completed 05-01-PLAN.md (Graceful Degradation)
+**Progress:** ████████░░ 82%
 
 ### This Phase Success Criteria
 1. User receives conversational response when tool parsing fails completely
@@ -35,7 +35,7 @@
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
 - **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m), Plan 3 complete (3m)
 - **Phase 4:** Plan 1 complete (2m), Plan 2 complete (3m), Plan 3 complete (3m 29s)
-- **Phase 5:** Not started
+- **Phase 5:** Plan 1 complete (6m 14s)
 
 ### Quality Indicators
 - **Tool Call Success Rate:** Not yet measured
@@ -99,6 +99,10 @@
 | 2026-02-05 | Tool results parameter optional with None default | Maintains backward compatibility with existing code |
 | 2026-02-05 | Log at INFO for injection count, DEBUG for IDs | Balances observability with log noise |
 | 2026-02-05 | Log confidence scores at INFO level when tool calls detected | Provides visibility into tool detection quality (TC-03) |
+| 2026-02-05 | Map exception types to user-friendly messages (SyntaxError, JSONDecodeError, etc.) | Separates user-facing errors from internal debugging details |
+| 2026-02-05 | Log internal details at ERROR level with exc_info=True for debugging | Enables debugging without exposing stack traces to users |
+| 2026-02-05 | Return strategy='error' with empty tool_calls on catastrophic parser failures | Distinguishes actual errors from normal "no tool calls" operation |
+| 2026-02-05 | Three-tier error handling: strategy try/except, parser defensive wrapper, server fallback | Defense-in-depth prevents API crashes on parse failures |
 | 2026-02-05 | Log context size in chars for tool results | Helps monitor prompt bloat, aids debugging |
 | 2026-02-05 | Use WARNING for error tool results | Makes error conditions visible in production logs |
 
@@ -115,8 +119,9 @@
 - [x] ~~Add tool_use content blocks to API~~ (Phase 3 complete)
 - [x] ~~Decide on confidence threshold for tool execution~~ (0.7 threshold in Phase 4)
 - [x] ~~Implement tool result injection into prompts~~ (Phase 4 complete)
+- [x] ~~Production error handling and monitoring~~ (Phase 5 Plan 1 complete)
+- [ ] Success/failure rate metrics (Phase 5 Plan 2)
 - [ ] Test with real Perplexity models (Phase 5)
-- [ ] Production error handling and monitoring (Phase 5)
 
 ### Active Blockers
 - None currently
@@ -140,16 +145,16 @@
 
 ### Last Session
 - **Date:** 2026-02-05
-- **Stopped at:** Completed 04-03-PLAN.md (Phase 4 complete)
+- **Stopped at:** Completed 05-01-PLAN.md (Graceful Degradation)
 - **Resume file:** None
 
 ### Next Actions
-1. Plan Phase 5: Reliability & Observability
-2. Implement graceful fallback to conversational response
-3. Add success/failure rate logging
+1. Continue Phase 5: Implement success/failure rate metrics
+2. Add format performance tracking
+3. Test with real Perplexity models
 
 ### Context for Next Session
-Phase 4 complete and verified. Tool calling system fully operational: format_tool_results creates structured markdown, build_prompt_with_tools injects results, 6 end-to-end tests verify complete cycles, enhanced logging provides observability. All 100 tests pass. Requirements TC-03 and TC-04 complete. Ready for Phase 5: Reliability & Observability.
+Phase 5 Plan 1 complete. Graceful degradation implemented with classify_parse_error function, defensive exception handling in response_parser, and 3 new error scenario tests. All 103 tests pass. API maintains Anthropic compliance even on parse failures with user-friendly error messages. Error handling pattern: three-tier defense (strategy → parser → server) with separation of user messages from internal debugging details. Ready for Phase 5 Plan 2: metrics and observability.
 
 ---
 *State initialized: 2026-02-04*

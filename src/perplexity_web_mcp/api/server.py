@@ -718,6 +718,58 @@ async def count_tokens(request: Request, body: CountTokensRequest):
     }
 
 
+def transform_to_tool_use_blocks(
+    parse_result: dict,
+    answer: str,
+    confidence_threshold: float = 0.7
+) -> tuple[list[dict], str]:
+    """Transform parser output to tool_use content blocks.
+
+    Args:
+        parse_result: Output from parse_response containing tool_calls, confidence, strategy
+        answer: Original model answer text
+        confidence_threshold: Minimum confidence to return tool_use blocks (default 0.7)
+
+    Returns:
+        Tuple of (content_blocks, stop_reason):
+        - content_blocks: List of content block dicts (text and/or tool_use)
+        - stop_reason: "tool_use" if tool blocks present, "end_turn" otherwise
+    """
+    tool_calls = parse_result.get("tool_calls", [])
+    confidence = parse_result.get("confidence", 0.0)
+
+    # No tool calls detected
+    if not tool_calls:
+        return ([{"type": "text", "text": answer}], "end_turn")
+
+    # Tool calls detected but confidence too low
+    if confidence < confidence_threshold:
+        logging.info(
+            f"Tool calls detected but confidence {confidence:.2f} < threshold {confidence_threshold:.2f}, "
+            "returning text-only response"
+        )
+        return ([{"type": "text", "text": answer}], "end_turn")
+
+    # High-confidence tool calls - build content blocks
+    content_blocks = []
+
+    # If there's answer text, add it first
+    if answer.strip():
+        content_blocks.append({"type": "text", "text": answer})
+
+    # Add tool_use blocks for each tool call
+    for tool_call in tool_calls:
+        tool_use_id = f"toolu_{uuid.uuid4().hex[:24]}"
+        tool_use_block = ToolUseBlock(
+            id=tool_use_id,
+            name=tool_call["name"],
+            input=tool_call["arguments"]
+        )
+        content_blocks.append(tool_use_block.model_dump())
+
+    return (content_blocks, "tool_use")
+
+
 @app.get("/health")
 async def health():
     """Health check."""
@@ -869,10 +921,13 @@ async def create_message(request: Request, body: MessagesRequest):
             fresh_client.close()
         answer = conversation.answer or ""
 
-        # Parse response for tool calls
+        # Parse response for tool calls and transform to content blocks
         if body.tools:
             try:
                 parse_result = parse_response(answer)
+                content_blocks, stop_reason = transform_to_tool_use_blocks(parse_result, answer)
+
+                # Log parsing results
                 if parse_result["tool_calls"]:
                     logging.info(
                         f"Parsed {len(parse_result['tool_calls'])} tool calls using "
@@ -882,26 +937,44 @@ async def create_message(request: Request, body: MessagesRequest):
                         logging.debug(f"Tool call: {tool_call['name']} with args {tool_call['arguments']}")
                 else:
                     logging.info(f"No tool calls found in response (strategy: {parse_result['strategy']})")
-                # TODO: Phase 3 - Convert to tool_use content blocks
+
             except Exception as parse_error:
                 logging.warning(f"Response parsing failed: {parse_error}")
-                # Continue without tool extraction - don't break the response flow
+                # Fallback to text-only response
+                content_blocks = [{"type": "text", "text": answer}]
+                stop_reason = "end_turn"
+        else:
+            # No tools provided - return text-only
+            content_blocks = [{"type": "text", "text": answer}]
+            stop_reason = "end_turn"
 
-        # Append citations if available
+        # Append citations to the last text block if present
         citations = format_citations(conversation.search_results)
+        if citations:
+            # Find the last text block and append citations
+            for i in range(len(content_blocks) - 1, -1, -1):
+                if content_blocks[i].get("type") == "text":
+                    content_blocks[i]["text"] += citations
+                    break
+            else:
+                # No text block found (all tool_use blocks), add as new text block
+                content_blocks.append({"type": "text", "text": citations})
+
+        # Calculate output tokens from all content
         full_response = answer + citations
+        output_tokens = estimate_tokens(full_response)
 
         return {
             "id": response_id,
             "type": "message",
             "role": "assistant",
-            "content": [{"type": "text", "text": full_response}],
+            "content": content_blocks,
             "model": body.model,
-            "stop_reason": "end_turn",
+            "stop_reason": stop_reason,
             "stop_sequence": None,
             "usage": {
                 "input_tokens": input_tokens,
-                "output_tokens": estimate_tokens(full_response),
+                "output_tokens": output_tokens,
             },
         }
     

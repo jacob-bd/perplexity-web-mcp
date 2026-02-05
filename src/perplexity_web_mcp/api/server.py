@@ -40,9 +40,10 @@ from datetime import datetime
 from typing import Any, AsyncGenerator
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from prometheus_client import Counter, Histogram, generate_latest
 from pydantic import BaseModel, ConfigDict, Field
 
 from perplexity_web_mcp import Perplexity, ConversationConfig, Models
@@ -61,6 +62,32 @@ from perplexity_web_mcp.api.tool_validation import validate_tool_pairing
 
 # Supported Anthropic API version
 ANTHROPIC_API_VERSION = "2023-06-01"
+
+# Prometheus metrics
+parse_attempts = Counter(
+    'tool_parse_attempts_total',
+    'Total tool parsing attempts by strategy and outcome',
+    ['strategy', 'success']
+)
+
+parse_confidence = Histogram(
+    'tool_parse_confidence',
+    'Confidence scores of parsing attempts by strategy',
+    ['strategy'],
+    buckets=[0.0, 0.3, 0.5, 0.7, 0.9, 1.0]
+)
+
+tool_calls_detected = Counter(
+    'tool_calls_detected_total',
+    'Number of individual tool calls detected',
+    ['strategy', 'tool_name']
+)
+
+parse_duration = Histogram(
+    'tool_parse_duration_seconds',
+    'Tool parsing duration by strategy',
+    ['strategy']
+)
 
 
 # =============================================================================
@@ -843,6 +870,19 @@ async def health():
         "backend": "perplexity",
         "sessions": conversation_manager.get_stats(),
     }
+
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint.
+
+    Returns metrics in Prometheus exposition format.
+    Compatible with Prometheus scraping and Grafana dashboards.
+    """
+    return Response(
+        content=generate_latest(),
+        media_type="text/plain; version=0.0.4; charset=utf-8"
+    )
 
 
 @app.get("/v1/models")

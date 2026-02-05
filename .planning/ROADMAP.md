@@ -126,6 +126,13 @@ Plans:
 4. System continues operating normally after parsing failures
 5. Performance metrics show which models and formats work best
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Graceful degradation and error handling
+- [ ] 05-02-PLAN.md — Prometheus metrics collection
+- [ ] 05-03-PLAN.md — Integration testing and documentation
+
 ## Progress
 
 | Phase | Goal | Requirements | Status | Progress |

@@ -77,6 +77,13 @@ Plans:
 3. User can send tool_result messages to continue conversation after tool execution
 4. API maintains conversation state across tool calling cycles
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Tool Use Content Blocks (Non-Streaming)
+- [ ] 03-02-PLAN.md — Streaming Tool Use Implementation
+- [ ] 03-03-PLAN.md — Tool Result Handling & Validation
+
 ### Phase 4: Tool Execution & Result Injection
 
 **Goal:** Detected tool calls execute and their results feed back into the conversation
@@ -118,7 +125,7 @@ Plans:
 |-------|------|--------------|--------|----------|
 | 1 - Prompt Injection Foundation | Tool definitions in prompts | TC-01 | Complete | ██████████ 100% |
 | 2 - Multi-Strategy Response Parser | Extract calls from responses | TC-02, FMT-01, FMT-02, FMT-03 | Complete | ██████████ 100% |
-| 3 - API Tool Integration | Tool flow through API | API-01, API-02, API-03 | Pending | ░░░░░░░░░░ 0% |
+| 3 - API Tool Integration | Tool flow through API | API-01, API-02, API-03 | Planned | ░░░░░░░░░░ 0% |
 | 4 - Tool Execution & Result Injection | Execute and inject results | TC-03, TC-04 | Pending | ░░░░░░░░░░ 0% |
 | 5 - Reliability & Observability | Graceful failures and metrics | REL-01, REL-02, REL-03 | Pending | ░░░░░░░░░░ 0% |
 

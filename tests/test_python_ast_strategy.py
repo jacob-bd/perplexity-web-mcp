@@ -143,9 +143,9 @@ for i in range(3):
     process(i)
 """
         result = extract_python_calls(code)
-        assert len(result) == 2  # range() and process() - search depends on runtime
-        # Note: search won't be extracted as it's inside an if block that's not executed
-        # Only process and range will be found by ast.walk
+        assert len(result) == 3  # range(), search(), and process()
+        # Note: ast.walk finds all calls regardless of control flow
         names = [call['name'] for call in result]
+        assert 'range' in names
         assert 'search' in names
         assert 'process' in names

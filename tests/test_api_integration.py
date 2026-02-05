@@ -141,10 +141,13 @@ class TestAPIIntegration(unittest.TestCase):
             # Verify the response was returned despite parse error
             self.assertIsNotNone(result)
             self.assertIn("content", result)
-            # Verify warning was logged
-            warning_calls = [c for c in mock_logging.warning.call_args_list
-                            if "Response parsing failed" in str(c)]
-            self.assertGreater(len(warning_calls), 0, "Should log parsing failure")
+            # Verify response is text-only (graceful fallback)
+            self.assertEqual(result["content"][0]["type"], "text")
+            self.assertEqual(result["stop_reason"], "end_turn")
+            # Verify error was logged (classify_parse_error logs at ERROR level)
+            error_calls = [c for c in mock_logging.error.call_args_list
+                          if "Parse error" in str(c)]
+            self.assertGreater(len(error_calls), 0, "Should log parsing error")
         finally:
             loop.close()
 

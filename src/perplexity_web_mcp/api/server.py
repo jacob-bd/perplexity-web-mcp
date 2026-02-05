@@ -1035,11 +1035,20 @@ async def create_message(request: Request, body: MessagesRequest):
                     for tool_call in parse_result["tool_calls"]:
                         logging.debug(f"Tool call: {tool_call['name']} with args {tool_call['arguments']}")
                 else:
-                    logging.info(f"No tool calls found in response (strategy: {parse_result['strategy']})")
+                    logging.debug(f"No tool calls found in response (strategy: {parse_result['strategy']})")
 
             except Exception as parse_error:
-                logging.warning(f"Response parsing failed: {parse_error}")
-                # Fallback to text-only response
+                # Determine context - parse_result may not exist if exception occurred early
+                try:
+                    context = f"parsing response for {parse_result.get('strategy', 'unknown')} strategy"
+                except NameError:
+                    context = "parsing response"
+
+                user_message, internal_details = classify_parse_error(parse_error, context)
+                # Internal logging already handled in classify_parse_error
+                logging.debug(f"Falling back to text-only response due to: {user_message}")
+
+                # Fallback to text-only response (maintain existing contract)
                 content_blocks = [{"type": "text", "text": answer}]
                 stop_reason = "end_turn"
         else:

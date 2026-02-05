@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 from perplexity_web_mcp.api.server import MessagesRequest, MessageParam
 import perplexity_web_mcp.api.server as server_module
+from fastapi import HTTPException
 
 
 class TestAPIIntegration(unittest.TestCase):
@@ -480,6 +481,181 @@ class TestAPIIntegration(unittest.TestCase):
             tool_block = result["content"][1]
             self.assertEqual(tool_block["type"], "tool_use")
             self.assertNotIn("Citations", str(tool_block.get("input", {})))
+        finally:
+            loop.close()
+
+    def test_valid_tool_result_accepted(self):
+        """Test that valid tool_use/tool_result pairing is accepted."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with valid tool_use -> tool_result sequence
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[
+                MessageParam(role="user", content="Search for Python"),
+                MessageParam(
+                    role="assistant",
+                    content=[{
+                        "type": "tool_use",
+                        "id": "toolu_123abc",
+                        "name": "search",
+                        "input": {"query": "Python"}
+                    }]
+                ),
+                MessageParam(
+                    role="user",
+                    content=[{
+                        "type": "tool_result",
+                        "tool_use_id": "toolu_123abc",
+                        "content": "Found Python tutorials"
+                    }]
+                ),
+                MessageParam(role="user", content="Summarize those")
+            ]
+        )
+
+        # Validation should pass - test it doesn't raise HTTPException
+        # We can't mock Perplexity easily without full setup, but validation runs first
+        async def run_test():
+            # This will fail at Perplexity call, but validation should pass
+            try:
+                result = await create_message(mock_request, request_body)
+            except HTTPException as e:
+                # If it's a validation error (400), fail the test
+                if e.status_code == 400 and "Invalid tool pairing" in str(e.detail):
+                    raise AssertionError(f"Validation should have passed: {e.detail}")
+                # Other errors (like missing Perplexity setup) are expected
+            except Exception:
+                # Other exceptions are expected (Perplexity not set up)
+                pass
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(run_test())
+        finally:
+            loop.close()
+
+    def test_orphaned_tool_result_rejected(self):
+        """Test that orphaned tool_result (no matching tool_use) is rejected."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with orphaned tool_result
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[
+                MessageParam(
+                    role="user",
+                    content=[{
+                        "type": "tool_result",
+                        "tool_use_id": "toolu_nonexistent",
+                        "content": "Some results"
+                    }]
+                )
+            ]
+        )
+
+        # Should raise HTTPException with 400 status
+        async def run_test():
+            with self.assertRaises(HTTPException) as context:
+                await create_message(mock_request, request_body)
+            self.assertEqual(context.exception.status_code, 400)
+            self.assertIn("Invalid tool pairing", str(context.exception.detail))
+            self.assertIn("toolu_nonexistent", str(context.exception.detail))
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(run_test())
+        finally:
+            loop.close()
+
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.logging')
+    def test_tool_results_extracted_and_logged(self, mock_logging, mock_client, mock_to_thread):
+        """Test that tool results are extracted and logged."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Mock the Perplexity client
+        mock_conversation = MagicMock()
+        mock_conversation.answer = "Here's the summary"
+        mock_conversation.search_results = []
+        mock_conversation.ask = MagicMock(return_value=None)
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.create_conversation.return_value = mock_conversation
+        mock_client_instance.close = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock asyncio.to_thread
+        async def mock_thread_executor(func, *args):
+            return func(*args)
+        mock_to_thread.side_effect = mock_thread_executor
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with tool results
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[
+                MessageParam(role="user", content="Search for Python"),
+                MessageParam(
+                    role="assistant",
+                    content=[{
+                        "type": "tool_use",
+                        "id": "toolu_abc",
+                        "name": "search",
+                        "input": {"query": "Python"}
+                    }]
+                ),
+                MessageParam(
+                    role="user",
+                    content=[{
+                        "type": "tool_result",
+                        "tool_use_id": "toolu_abc",
+                        "content": "Found Python tutorials"
+                    }]
+                ),
+                MessageParam(role="user", content="Summarize")
+            ]
+        )
+
+        # Call the endpoint
+        async def run_test():
+            result = await create_message(mock_request, request_body)
+            return result
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(run_test())
+
+            # Verify INFO log for tool results count
+            info_calls = [c for c in mock_logging.info.call_args_list
+                         if "Received 1 tool results" in str(c)]
+            self.assertGreater(len(info_calls), 0, "Should log tool results count")
+
+            # Verify DEBUG log for tool result IDs
+            debug_calls = [c for c in mock_logging.debug.call_args_list
+                          if "toolu_abc" in str(c) and "Tool results:" in str(c)]
+            self.assertGreater(len(debug_calls), 0, "Should log tool result IDs")
         finally:
             loop.close()
 

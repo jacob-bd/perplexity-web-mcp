@@ -872,7 +872,22 @@ async def create_message(request: Request, body: MessagesRequest):
             status_code=400,
             detail={"type": "invalid_request_error", "message": "messages is required"}
         )
-    
+
+    # Validate tool_use/tool_result pairing
+    is_valid, error_msg = validate_tool_pairing([msg.model_dump() for msg in body.messages])
+    if not is_valid:
+        logging.error(f"Tool pairing validation failed: {error_msg}")
+        raise HTTPException(
+            status_code=400,
+            detail={"type": "invalid_request_error", "message": f"Invalid tool pairing: {error_msg}"}
+        )
+
+    # Extract and log tool results
+    tool_results = extract_tool_results(body.messages)
+    if tool_results:
+        logging.info(f"Received {len(tool_results)} tool results")
+        logging.debug(f"Tool results: {list(tool_results.keys())}")
+
     # Determine if thinking mode is requested
     thinking_enabled = body.thinking is not None and body.thinking.get("type") == "enabled"
     

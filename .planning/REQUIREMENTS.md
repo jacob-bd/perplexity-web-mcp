@@ -8,15 +8,15 @@
 ### Tool Calling Infrastructure
 
 - [x] **TC-01**: User can provide tool definitions that are injected into prompts using training-data-familiar formats (Python/markdown code blocks)
-- [ ] **TC-02**: System parses responses with multi-strategy fallback chain (JSON extraction → regex patterns → fuzzy matching)
+- [x] **TC-02**: System parses responses with multi-strategy fallback chain (JSON extraction → regex patterns → fuzzy matching)
 - [ ] **TC-03**: System scores extracted tool calls with confidence threshold before execution
 - [ ] **TC-04**: User receives tool execution results injected back into conversation for continuation
 
 ### Format Support
 
-- [ ] **FMT-01**: System recognizes Python function call format in markdown code blocks (e.g., `search("query")`)
-- [ ] **FMT-02**: System recognizes simple key-value format (e.g., `SEARCH: query`)
-- [ ] **FMT-03**: System detects inline code patterns mentioning tool calls
+- [x] **FMT-01**: System recognizes Python function call format in markdown code blocks (e.g., `search("query")`)
+- [x] **FMT-02**: System recognizes simple key-value format (e.g., `SEARCH: query`)
+- [x] **FMT-03**: System detects inline code patterns mentioning tool calls
 
 ### API Compatibility
 
@@ -67,12 +67,12 @@ Given the fundamental limitation (training objective mismatch), success is defin
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | TC-01 | Phase 1 - Prompt Injection Foundation | Complete |
-| TC-02 | Phase 2 - Multi-Strategy Response Parser | Pending |
+| TC-02 | Phase 2 - Multi-Strategy Response Parser | Complete |
 | TC-03 | Phase 4 - Tool Execution & Result Injection | Pending |
 | TC-04 | Phase 4 - Tool Execution & Result Injection | Pending |
-| FMT-01 | Phase 2 - Multi-Strategy Response Parser | Pending |
-| FMT-02 | Phase 2 - Multi-Strategy Response Parser | Pending |
-| FMT-03 | Phase 2 - Multi-Strategy Response Parser | Pending |
+| FMT-01 | Phase 2 - Multi-Strategy Response Parser | Complete |
+| FMT-02 | Phase 2 - Multi-Strategy Response Parser | Complete |
+| FMT-03 | Phase 2 - Multi-Strategy Response Parser | Complete |
 | API-01 | Phase 3 - API Tool Integration | Pending |
 | API-02 | Phase 3 - API Tool Integration | Pending |
 | API-03 | Phase 3 - API Tool Integration | Pending |
@@ -82,5 +82,5 @@ Given the fundamental limitation (training objective mismatch), success is defin
 
 ---
 *Requirements defined: 2026-02-04*
-*Traceability updated: 2026-02-04*
+*Traceability updated: 2026-02-05*
 *Expected outcome: 40-60% reliability for simple tool calls*

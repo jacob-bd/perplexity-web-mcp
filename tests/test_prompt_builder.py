@@ -5,7 +5,7 @@ injected before user messages, including proper formatting and positioning.
 """
 
 import pytest
-from src.perplexity_web_mcp.api.prompt_builder import (
+from perplexity_web_mcp.api.prompt_builder import (
     build_prompt_with_tools,
     inject_tools_minimal,
     format_tool_results,

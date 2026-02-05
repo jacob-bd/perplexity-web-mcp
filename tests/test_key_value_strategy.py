@@ -1,7 +1,7 @@
 """Tests for key-value pattern extraction strategy."""
 
 import pytest
-from src.perplexity_web_mcp.api.strategies.key_value import extract_key_value_patterns
+from perplexity_web_mcp.api.strategies.key_value import extract_key_value_patterns
 
 
 class TestKeyValuePatternExtraction:

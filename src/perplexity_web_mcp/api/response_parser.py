@@ -81,6 +81,9 @@ def parse_response(text: str) -> ParseResult:
     Applies strategies in order of confidence, returning the first successful result.
     Extracts markdown code blocks first, then tries each strategy.
 
+    Returns a parse result even if all strategies fail - confidence will be 0.0.
+    This function uses defensive exception handling to ensure it never crashes.
+
     Args:
         text: Response text from model that may contain tool calls
 
@@ -124,99 +127,110 @@ def parse_response(text: str) -> ParseResult:
         >>> result['confidence']
         0.0
     """
-    start_time = time.time()
-    logger.debug(f"Starting response parsing for {len(text)} character text")
-
-    # Strategy 1: Python AST parsing on extracted code blocks
-    strategy_start = time.time()
     try:
-        logger.debug("Attempting Python AST strategy on markdown blocks")
-        # Extract Python code blocks first
-        python_blocks = extract_python_blocks(text)
+        start_time = time.time()
+        logger.debug(f"Starting response parsing for {len(text)} character text")
 
-        if python_blocks:
-            logger.debug(f"Found {len(python_blocks)} Python code blocks")
-            all_calls = []
+        # Strategy 1: Python AST parsing on extracted code blocks
+        strategy_start = time.time()
+        try:
+            logger.debug("Attempting Python AST strategy on markdown blocks")
+            # Extract Python code blocks first
+            python_blocks = extract_python_blocks(text)
 
-            for i, block in enumerate(python_blocks):
-                # Try to parse each block
-                try:
-                    calls = extract_python_calls(block)
-                    if calls:
-                        all_calls.extend(calls)
-                        logger.debug(f"Block {i+1}: extracted {len(calls)} calls")
-                except Exception as block_e:
-                    logger.debug(f"Block {i+1}: parse failed - {block_e}")
+            if python_blocks:
+                logger.debug(f"Found {len(python_blocks)} Python code blocks")
+                all_calls = []
 
-            if all_calls:
+                for i, block in enumerate(python_blocks):
+                    # Try to parse each block
+                    try:
+                        calls = extract_python_calls(block)
+                        if calls:
+                            all_calls.extend(calls)
+                            logger.debug(f"Block {i+1}: extracted {len(calls)} calls")
+                    except Exception as block_e:
+                        logger.debug(f"Block {i+1}: parse failed - {block_e}")
+
+                if all_calls:
+                    strategy_time = time.time() - strategy_start
+                    logger.debug(f"Python AST strategy succeeded with {len(all_calls)} calls in {strategy_time:.3f}s")
+                    elapsed = time.time() - start_time
+                    logger.info(f"Parse completed in {elapsed:.3f}s using python_ast strategy")
+                    return ParseResult(
+                        strategy="python_ast",
+                        tool_calls=normalize_tool_calls(all_calls),
+                        confidence=0.9
+                    )
+                else:
+                    logger.debug("Python AST found blocks but no valid function calls")
+            else:
+                logger.debug("No Python code blocks found in text")
+
+        except Exception as e:
+            logger.warning(f"Python AST strategy failed after {time.time() - strategy_start:.3f}s: {type(e).__name__}: {e}")
+
+        # Strategy 2: Key-value patterns on full text
+        strategy_start = time.time()
+        try:
+            logger.debug("Attempting key-value pattern strategy")
+            calls = extract_key_value_patterns(text)
+
+            if calls:
                 strategy_time = time.time() - strategy_start
-                logger.debug(f"Python AST strategy succeeded with {len(all_calls)} calls in {strategy_time:.3f}s")
+                logger.debug(f"Key-value strategy succeeded with {len(calls)} calls in {strategy_time:.3f}s")
                 elapsed = time.time() - start_time
-                logger.info(f"Parse completed in {elapsed:.3f}s using python_ast strategy")
+                logger.info(f"Parse completed in {elapsed:.3f}s using key_value strategy")
                 return ParseResult(
-                    strategy="python_ast",
-                    tool_calls=normalize_tool_calls(all_calls),
-                    confidence=0.9
+                    strategy="key_value",
+                    tool_calls=normalize_tool_calls(calls),
+                    confidence=0.7
                 )
             else:
-                logger.debug("Python AST found blocks but no valid function calls")
-        else:
-            logger.debug("No Python code blocks found in text")
+                logger.debug("Key-value strategy found no patterns")
+
+        except Exception as e:
+            logger.warning(f"Key-value strategy failed after {time.time() - strategy_start:.3f}s: {type(e).__name__}: {e}")
+
+        # Strategy 3: Inline code mentions on full text
+        strategy_start = time.time()
+        try:
+            logger.debug("Attempting inline code mentions strategy")
+            calls = extract_inline_code_mentions(text)
+
+            if calls:
+                strategy_time = time.time() - strategy_start
+                logger.debug(f"Inline code strategy succeeded with {len(calls)} calls in {strategy_time:.3f}s")
+                elapsed = time.time() - start_time
+                logger.info(f"Parse completed in {elapsed:.3f}s using inline_code strategy")
+                return ParseResult(
+                    strategy="inline_code",
+                    tool_calls=normalize_tool_calls(calls),
+                    confidence=0.5
+                )
+            else:
+                logger.debug("Inline code strategy found no mentions")
+
+        except Exception as e:
+            logger.warning(f"Inline code strategy failed after {time.time() - strategy_start:.3f}s: {type(e).__name__}: {e}")
+
+        # All strategies failed
+        elapsed = time.time() - start_time
+        logger.info(f"Parse completed in {elapsed:.3f}s with no tool calls found")
+        logger.debug("All parsing strategies failed to extract tool calls")
+
+        return ParseResult(
+            strategy="none",
+            tool_calls=[],
+            confidence=0.0
+        )
 
     except Exception as e:
-        logger.warning(f"Python AST strategy failed after {time.time() - strategy_start:.3f}s: {type(e).__name__}: {e}")
-
-    # Strategy 2: Key-value patterns on full text
-    strategy_start = time.time()
-    try:
-        logger.debug("Attempting key-value pattern strategy")
-        calls = extract_key_value_patterns(text)
-
-        if calls:
-            strategy_time = time.time() - strategy_start
-            logger.debug(f"Key-value strategy succeeded with {len(calls)} calls in {strategy_time:.3f}s")
-            elapsed = time.time() - start_time
-            logger.info(f"Parse completed in {elapsed:.3f}s using key_value strategy")
-            return ParseResult(
-                strategy="key_value",
-                tool_calls=normalize_tool_calls(calls),
-                confidence=0.7
-            )
-        else:
-            logger.debug("Key-value strategy found no patterns")
-
-    except Exception as e:
-        logger.warning(f"Key-value strategy failed after {time.time() - strategy_start:.3f}s: {type(e).__name__}: {e}")
-
-    # Strategy 3: Inline code mentions on full text
-    strategy_start = time.time()
-    try:
-        logger.debug("Attempting inline code mentions strategy")
-        calls = extract_inline_code_mentions(text)
-
-        if calls:
-            strategy_time = time.time() - strategy_start
-            logger.debug(f"Inline code strategy succeeded with {len(calls)} calls in {strategy_time:.3f}s")
-            elapsed = time.time() - start_time
-            logger.info(f"Parse completed in {elapsed:.3f}s using inline_code strategy")
-            return ParseResult(
-                strategy="inline_code",
-                tool_calls=normalize_tool_calls(calls),
-                confidence=0.5
-            )
-        else:
-            logger.debug("Inline code strategy found no mentions")
-
-    except Exception as e:
-        logger.warning(f"Inline code strategy failed after {time.time() - strategy_start:.3f}s: {type(e).__name__}: {e}")
-
-    # All strategies failed
-    elapsed = time.time() - start_time
-    logger.info(f"Parse completed in {elapsed:.3f}s with no tool calls found")
-    logger.debug("All parsing strategies failed to extract tool calls")
-
-    return ParseResult(
-        strategy="none",
-        tool_calls=[],
-        confidence=0.0
-    )
+        # Critical parsing failure - defensive fallback
+        logger.error(f"Critical parsing failure: {type(e).__name__}: {e}", exc_info=True)
+        # Return empty result rather than crashing
+        return ParseResult(
+            strategy="error",
+            tool_calls=[],
+            confidence=0.0
+        )

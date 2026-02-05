@@ -1,7 +1,7 @@
 """Unit tests for tool injection module."""
 
 import pytest
-from src.perplexity_web_mcp.api.tool_injection import (
+from perplexity_web_mcp.api.tool_injection import (
     format_tool_as_python,
     format_tools_list
 )

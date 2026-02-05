@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 4 of 5 (Tool Execution & Result Injection)
-**Plan:** 1 of 3 completed
+**Plan:** 2 of 3 completed
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 04-01-PLAN.md
-**Progress:** ██████▓░░░ 65%
+**Last activity:** 2026-02-05 - Completed 04-02-PLAN.md
+**Progress:** ███████░░░ 70%
 
 ### This Phase Success Criteria
 1. ✓ User can send tools array in POST /v1/messages request body
@@ -33,7 +33,7 @@
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
 - **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m), Plan 3 complete (3m)
-- **Phase 4:** Plan 1 complete (2m)
+- **Phase 4:** Plan 1 complete (2m), Plan 2 complete (3m)
 - **Phase 5:** Not started
 
 ### Quality Indicators
@@ -93,6 +93,10 @@
 | 2026-02-05 | Limit to 3 most recent results by default | Maintains focus, prevents context bloat |
 | 2026-02-05 | Truncate individual results to 1000 chars | Prevents context bloat with marker for clarity |
 | 2026-02-05 | Use --- separators for result distinction | Visual clarity in markdown format |
+| 2026-02-05 | Tool results injected after tool definitions, before user message | Ensures model sees execution results in context before responding |
+| 2026-02-05 | extract_tool_results returns (content, is_error) tuples | Enables error distinction in formatted output |
+| 2026-02-05 | Tool results parameter optional with None default | Maintains backward compatibility with existing code |
+| 2026-02-05 | Log at INFO for injection count, DEBUG for IDs | Balances observability with log noise |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -129,16 +133,16 @@
 
 ### Last Session
 - **Date:** 2026-02-05
-- **Stopped at:** Completed 04-01-PLAN.md
+- **Stopped at:** Completed 04-02-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
-1. Execute Plan 04-02: Prompt injection logic for tool results
-2. Execute Plan 04-03: Result injection integration with API
-3. Verify Phase 4 success criteria
+1. Execute Plan 04-03: Streaming mode integration for tool results
+2. Verify Phase 4 success criteria
+3. Begin Phase 5 planning
 
 ### Context for Next Session
-Phase 4 Plan 1 complete (2m). Created format_tool_results function in prompt_builder.py that transforms tool execution results into structured markdown. Function handles empty results, success/error distinction, truncation, and limiting. 8 comprehensive tests pass. Ready to implement prompt injection logic in Plan 04-02.
+Phase 4 Plan 2 complete (3m). Extended build_prompt_with_tools to accept optional tool_results parameter and inject formatted results between tools and user message. Updated extract_tool_results to return (content, is_error) tuples. Integrated result injection into create_message endpoint with logging. All 36 tests pass (25 prompt builder + 11 API integration). Tool results now flow back into Perplexity prompts, completing the multi-turn tool calling cycle.
 
 ---
 *State initialized: 2026-02-04*

@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 5 of 5 (Reliability & Observability)
-**Plan:** 1 of ? completed
+**Plan:** 2 of ? completed
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 05-01-PLAN.md (Graceful Degradation)
-**Progress:** ████████░░ 82%
+**Last activity:** 2026-02-05 - Completed 05-02-PLAN.md (Prometheus Metrics)
+**Progress:** ████████░░ 84%
 
 ### This Phase Success Criteria
 1. User receives conversational response when tool parsing fails completely
@@ -35,7 +35,7 @@
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
 - **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m), Plan 3 complete (3m)
 - **Phase 4:** Plan 1 complete (2m), Plan 2 complete (3m), Plan 3 complete (3m 29s)
-- **Phase 5:** Plan 1 complete (6m 14s)
+- **Phase 5:** Plan 1 complete (6m 14s), Plan 2 complete (3m 41s)
 
 ### Quality Indicators
 - **Tool Call Success Rate:** Not yet measured
@@ -105,6 +105,13 @@
 | 2026-02-05 | Three-tier error handling: strategy try/except, parser defensive wrapper, server fallback | Defense-in-depth prevents API crashes on parse failures |
 | 2026-02-05 | Log context size in chars for tool results | Helps monitor prompt bloat, aids debugging |
 | 2026-02-05 | Use WARNING for error tool results | Makes error conditions visible in production logs |
+| 2026-02-05 | Use prometheus-client for metrics collection | Industry standard, FastAPI compatible, pull-based model works well with containers |
+| 2026-02-05 | Track parse_attempts with success/failure labels by strategy | Satisfies REL-02 requirement for success/failure rate visibility |
+| 2026-02-05 | Use 0.7 confidence threshold to classify success vs failure | Consistent with Phase 3 decision for tool_use block generation |
+| 2026-02-05 | Track confidence distribution with histogram buckets [0.0, 0.3, 0.5, 0.7, 0.9, 1.0] | Enables analysis of confidence patterns, 0.7 boundary aligns with success threshold |
+| 2026-02-05 | Record individual tool calls per strategy for usage analysis | Reveals which tools are actually being used in production |
+| 2026-02-05 | Measure parse duration with histogram for performance monitoring | Enables identification of slow strategies requiring optimization |
+| 2026-02-05 | Return Prometheus exposition format at GET /metrics endpoint | Compatible with Prometheus scraping and Grafana dashboards |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -120,7 +127,7 @@
 - [x] ~~Decide on confidence threshold for tool execution~~ (0.7 threshold in Phase 4)
 - [x] ~~Implement tool result injection into prompts~~ (Phase 4 complete)
 - [x] ~~Production error handling and monitoring~~ (Phase 5 Plan 1 complete)
-- [ ] Success/failure rate metrics (Phase 5 Plan 2)
+- [x] ~~Success/failure rate metrics~~ (Phase 5 Plan 2 complete)
 - [ ] Test with real Perplexity models (Phase 5)
 
 ### Active Blockers
@@ -145,16 +152,16 @@
 
 ### Last Session
 - **Date:** 2026-02-05
-- **Stopped at:** Completed 05-01-PLAN.md (Graceful Degradation)
+- **Stopped at:** Completed 05-02-PLAN.md (Prometheus Metrics)
 - **Resume file:** None
 
 ### Next Actions
-1. Continue Phase 5: Implement success/failure rate metrics
-2. Add format performance tracking
-3. Test with real Perplexity models
+1. Test with real Perplexity models to validate tool calling
+2. Set up Grafana dashboards for metric visualization
+3. Establish alerting thresholds based on observed success rates
 
 ### Context for Next Session
-Phase 5 Plan 1 complete. Graceful degradation implemented with classify_parse_error function, defensive exception handling in response_parser, and 3 new error scenario tests. All 103 tests pass. API maintains Anthropic compliance even on parse failures with user-friendly error messages. Error handling pattern: three-tier defense (strategy → parser → server) with separation of user messages from internal debugging details. Ready for Phase 5 Plan 2: metrics and observability.
+Phase 5 Plan 2 complete. Prometheus metrics collection implemented with 4 metrics (parse_attempts, parse_confidence, tool_calls_detected, parse_duration) exposed via GET /metrics endpoint. Success/failure tracked by strategy with 0.7 confidence threshold. Complete parsing flow instrumentation with timing. 3 new tests verify metrics collection (106 tests total, all pass). REL-02 requirement satisfied: success/failure rates visible in production. Ready for real model testing with full observability.
 
 ---
 *State initialized: 2026-02-04*

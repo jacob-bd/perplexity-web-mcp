@@ -6,15 +6,14 @@
 
 **Core Value:** Enable Perplexity web models to execute local tools (Read, Write, Bash) through Claude Code, unlocking agentic workflows without requiring the official Perplexity API.
 
-**Current Focus:** Phase 5 - Reliability & Observability
+**Current Focus:** Planning next milestone (v1.0 shipped)
 
 ## Current Position
 
-**Phase:** 5 of 5 (Reliability & Observability)
-**Plan:** 3 of 3 completed
-**Status:** Complete
-**Last activity:** 2026-02-05 - Completed 05-03-PLAN.md (Reliability Tests & Documentation)
-**Progress:** ██████████ 100%
+**Milestone:** v1.0 Best-Effort Tool Calling — SHIPPED
+**Status:** Milestone complete — ready for next milestone planning
+**Last activity:** 2026-02-05 - v1.0 milestone archived and tagged
+**Progress:** ██████████ 100% (v1.0)
 
 ### This Phase Success Criteria
 1. User receives conversational response when tool parsing fails completely
@@ -23,10 +22,11 @@
 4. System continues operating normally after parsing failures
 5. Performance metrics show which models and formats work best
 
-### Overall Project Progress
-- **Phases Completed:** 5/5
-- **Requirements Delivered:** 13/13 (TC-01, TC-02, TC-03, TC-04, FMT-01, FMT-02, FMT-03, API-01, API-02, API-03, REL-01, REL-02, REL-03)
-- **Current Confidence:** Production ready with full observability
+### v1.0 Milestone Summary
+- **Phases Shipped:** 5 phases (17 plans)
+- **Requirements Delivered:** 13/13 (100%)
+- **Test Coverage:** 111 tests passing
+- **Status:** ✅ SHIPPED 2026-02-05
 
 ## Performance Metrics
 

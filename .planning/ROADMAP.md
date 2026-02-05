@@ -25,6 +25,13 @@ Transform Perplexity web models into tool-executing agents through prompt engine
 3. Prompt structure preserves tool context alongside user message
 4. System logs show tool injection happening for all requests with tools
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Tool definition formatting module
+- [ ] 01-02-PLAN.md — Prompt construction with injection
+- [ ] 01-03-PLAN.md — API integration and verification
+
 ### Phase 2: Multi-Strategy Response Parser
 
 **Goal:** System reliably extracts tool calls from model responses using multiple parsing strategies
@@ -100,7 +107,7 @@ Transform Perplexity web models into tool-executing agents through prompt engine
 
 | Phase | Goal | Requirements | Status | Progress |
 |-------|------|--------------|--------|----------|
-| 1 - Prompt Injection Foundation | Tool definitions in prompts | TC-01 | Pending | ░░░░░░░░░░ 0% |
+| 1 - Prompt Injection Foundation | Tool definitions in prompts | TC-01 | Planned | ░░░░░░░░░░ 0% |
 | 2 - Multi-Strategy Response Parser | Extract calls from responses | TC-02, FMT-01, FMT-02, FMT-03 | Pending | ░░░░░░░░░░ 0% |
 | 3 - API Tool Integration | Tool flow through API | API-01, API-02, API-03 | Pending | ░░░░░░░░░░ 0% |
 | 4 - Tool Execution & Result Injection | Execute and inject results | TC-03, TC-04 | Pending | ░░░░░░░░░░ 0% |

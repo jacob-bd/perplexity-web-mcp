@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 3 of 5 (API Tool Integration)
-**Plan:** 0 of ? completed (Phase 3 not yet planned)
-**Status:** Ready for planning
-**Last activity:** 2026-02-05 - Completed Phase 2 (Multi-Strategy Response Parser)
-**Progress:** ████░░░░░░ 40%
+**Plan:** 1 of ? completed
+**Status:** In progress
+**Last activity:** 2026-02-05 - Completed 03-01-PLAN.md (Tool Use Content Blocks)
+**Progress:** ████▓░░░░░ 45%
 
 ### This Phase Success Criteria
 1. ✓ User can pass tools array in API request and see formatted tool definitions in model prompt
@@ -32,7 +32,7 @@
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
-- **Phase 3:** Not started
+- **Phase 3:** Plan 1 complete (2m)
 - **Phase 4:** Not started
 - **Phase 5:** Not started
 
@@ -77,6 +77,10 @@
 | 2026-02-05 | Apply strategies in confidence order | AST (0.9) -> key-value (0.7) -> inline (0.5) |
 | 2026-02-05 | Extract markdown blocks before AST | Better success rate for Python code |
 | 2026-02-05 | Log timing at INFO, details at DEBUG | Balance observability with log noise |
+| 2026-02-05 | Use confidence threshold of 0.7 for tool_use blocks | Inline_code strategy at 0.5 would return too many false positives |
+| 2026-02-05 | Generate tool_use IDs with toolu_{24 hex} format | Matches Anthropic API specification |
+| 2026-02-05 | Append citations to last text block | Avoids polluting tool_use block input |
+| 2026-02-05 | Set stop_reason to tool_use when tool blocks present | Signals to clients that tool execution is required |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -110,17 +114,17 @@
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 17:11 UTC
-- **Stopped at:** Completed 02-04-PLAN.md
+- **Date:** 2026-02-05 18:05 UTC
+- **Stopped at:** Completed 03-01-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
-1. Plan Phase 3: API Tool Integration
-2. Implement tool_use content blocks in API responses
-3. Handle tool_result messages for conversation continuation
+1. Implement streaming tool_use blocks (Phase 3 Plan 2)
+2. Handle tool_result messages for conversation continuation (Phase 3 Plan 3)
+3. Begin Phase 4: Tool Execution Integration
 
 ### Context for Next Session
-Phase 2 complete and verified. Multi-strategy response parser operational with AST, key-value, and inline code strategies. Parser integrated into API server, logs tool calls. Ready to implement Phase 3 (tool_use content blocks in API responses).
+Phase 3 Plan 1 complete. Non-streaming API responses now return tool_use content blocks when parser detects tool calls with confidence >= 0.7. ToolUseBlock/ToolResultBlock Pydantic models added. Ready for streaming tool_use blocks implementation.
 
 ---
 *State initialized: 2026-02-04*

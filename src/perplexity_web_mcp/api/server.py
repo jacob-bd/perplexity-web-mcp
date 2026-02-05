@@ -55,6 +55,7 @@ from perplexity_web_mcp.api.session_manager import (
     ConversationManager,
     distill_system_prompt,
 )
+from perplexity_web_mcp.api.prompt_builder import build_prompt_with_tools
 
 # Supported Anthropic API version
 ANTHROPIC_API_VERSION = "2023-06-01"
@@ -777,9 +778,20 @@ async def create_message(request: Request, body: MessagesRequest):
     
     # Get system prompt text
     system_text = body.get_system_text()
-    
-    # Convert messages to query (tool calling not supported via web UI)
+
+    # Convert messages to query
     query = messages_to_query(body.messages)
+
+    # Check if tools are provided and inject them into the prompt
+    if body.tools:
+        logging.info(f"Tool injection: Processing {len(body.tools)} tools from request")
+        # Use build_prompt_with_tools to construct the enhanced prompt
+        query = build_prompt_with_tools(query, body.tools, system_text)
+        # System is now included in the prompt, don't apply it separately
+        system_text = None
+        logging.debug(f"Tool injection: Prompt preview: {query[:200]}...")
+        logging.info("Tool injection: Successfully injected tools into prompt")
+
     input_tokens = estimate_tokens(query)
     
     # Generate response ID

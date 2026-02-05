@@ -20,9 +20,9 @@
 
 ### API Compatibility
 
-- [ ] **API-01**: POST /v1/messages accepts `tools` array in request body
-- [ ] **API-02**: Response includes `tool_use` content blocks when tool calls are detected
-- [ ] **API-03**: POST /v1/messages accepts `tool_result` messages for continuation
+- [x] **API-01**: POST /v1/messages accepts `tools` array in request body
+- [x] **API-02**: Response includes `tool_use` content blocks when tool calls are detected
+- [x] **API-03**: POST /v1/messages accepts `tool_result` messages for continuation
 
 ### Reliability & Fallbacks
 
@@ -73,9 +73,9 @@ Given the fundamental limitation (training objective mismatch), success is defin
 | FMT-01 | Phase 2 - Multi-Strategy Response Parser | Complete |
 | FMT-02 | Phase 2 - Multi-Strategy Response Parser | Complete |
 | FMT-03 | Phase 2 - Multi-Strategy Response Parser | Complete |
-| API-01 | Phase 3 - API Tool Integration | Pending |
-| API-02 | Phase 3 - API Tool Integration | Pending |
-| API-03 | Phase 3 - API Tool Integration | Pending |
+| API-01 | Phase 3 - API Tool Integration | Complete |
+| API-02 | Phase 3 - API Tool Integration | Complete |
+| API-03 | Phase 3 - API Tool Integration | Complete |
 | REL-01 | Phase 5 - Reliability & Observability | Pending |
 | REL-02 | Phase 5 - Reliability & Observability | Pending |
 | REL-03 | Phase 5 - Reliability & Observability | Pending |

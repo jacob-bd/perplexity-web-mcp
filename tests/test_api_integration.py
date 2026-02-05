@@ -11,6 +11,8 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from perplexity_web_mcp.api.server import MessagesRequest, MessageParam
 import perplexity_web_mcp.api.server as server_module
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from prometheus_client import REGISTRY
 
 
 class TestAPIIntegration(unittest.TestCase):
@@ -955,6 +957,163 @@ class TestAPIIntegration(unittest.TestCase):
             self.assertEqual(len(result["content"]), 1)
             self.assertEqual(result["content"][0]["type"], "text")
             self.assertEqual(result["stop_reason"], "end_turn")
+        finally:
+            loop.close()
+
+    def test_metrics_endpoint_exists(self):
+        """Verify /metrics endpoint returns Prometheus format."""
+        from perplexity_web_mcp.api.server import app
+
+        # Create a test client
+        with TestClient(app) as client:
+            response = client.get("/metrics")
+
+            # Verify response
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("text/plain", response.headers["content-type"])
+
+            # Verify Prometheus metrics are in response
+            content = response.content.decode('utf-8')
+            self.assertIn("tool_parse_attempts_total", content)
+            self.assertIn("tool_parse_confidence", content)
+            self.assertIn("tool_calls_detected_total", content)
+            self.assertIn("tool_parse_duration_seconds", content)
+
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.parse_response')
+    def test_parse_metrics_recorded(self, mock_parse, mock_client, mock_to_thread):
+        """Verify parsing metrics are recorded."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Mock parse_response to return successful tool calls
+        mock_parse.return_value = {
+            "strategy": "python_ast",
+            "tool_calls": [{"name": "search", "arguments": {"query": "Python"}}],
+            "confidence": 0.9
+        }
+
+        # Mock the Perplexity client
+        mock_conversation = MagicMock()
+        mock_conversation.answer = "Let me search for that."
+        mock_conversation.search_results = []
+        mock_conversation.ask = MagicMock(return_value=None)
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.create_conversation.return_value = mock_conversation
+        mock_client_instance.close = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock asyncio.to_thread
+        async def mock_thread_executor(func, *args):
+            return func(*args)
+        mock_to_thread.side_effect = mock_thread_executor
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with tools
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[MessageParam(role="user", content="Search for Python")],
+            tools=[{"name": "search", "description": "Search"}]
+        )
+
+        # Get initial metric value
+        initial_success = REGISTRY.get_sample_value(
+            'tool_parse_attempts_total',
+            {'strategy': 'python_ast', 'success': 'true'}
+        ) or 0
+
+        # Call the endpoint
+        async def run_test():
+            result = await create_message(mock_request, request_body)
+            return result
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(run_test())
+
+            # Verify metric incremented
+            new_success = REGISTRY.get_sample_value(
+                'tool_parse_attempts_total',
+                {'strategy': 'python_ast', 'success': 'true'}
+            ) or 0
+            self.assertGreater(new_success, initial_success,
+                             "Parse success metric should increment")
+        finally:
+            loop.close()
+
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.parse_response')
+    def test_confidence_histogram_recorded(self, mock_parse, mock_client, mock_to_thread):
+        """Verify confidence histogram has observations."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Mock parse_response to return tool calls with specific confidence
+        mock_parse.return_value = {
+            "strategy": "key_value",
+            "tool_calls": [{"name": "calculator", "arguments": {"expr": "2+2"}}],
+            "confidence": 0.8
+        }
+
+        # Mock the Perplexity client
+        mock_conversation = MagicMock()
+        mock_conversation.answer = "TOOL: calculator\nARGS: expr=2+2"
+        mock_conversation.search_results = []
+        mock_conversation.ask = MagicMock(return_value=None)
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.create_conversation.return_value = mock_conversation
+        mock_client_instance.close = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock asyncio.to_thread
+        async def mock_thread_executor(func, *args):
+            return func(*args)
+        mock_to_thread.side_effect = mock_thread_executor
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with tools
+        request_body = MessagesRequest(
+            model="gpt-5.2",
+            max_tokens=1000,
+            messages=[MessageParam(role="user", content="Calculate 2+2")],
+            tools=[{"name": "calculator", "description": "Calculate"}]
+        )
+
+        # Get initial histogram count for this strategy
+        initial_count = REGISTRY.get_sample_value(
+            'tool_parse_confidence_count',
+            {'strategy': 'key_value'}
+        ) or 0
+
+        # Call the endpoint
+        async def run_test():
+            result = await create_message(mock_request, request_body)
+            return result
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(run_test())
+
+            # Verify histogram recorded the observation
+            new_count = REGISTRY.get_sample_value(
+                'tool_parse_confidence_count',
+                {'strategy': 'key_value'}
+            ) or 0
+            self.assertGreater(new_count, initial_count,
+                             "Confidence histogram should record observation")
         finally:
             loop.close()
 

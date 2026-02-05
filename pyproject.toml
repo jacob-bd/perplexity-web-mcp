@@ -54,6 +54,7 @@ api = [
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
     "httpx>=0.27.0",
+    "prometheus-client>=0.21.0",
 ]
 all = [
     "perplexity-web-mcp[mcp,api]",

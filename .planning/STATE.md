@@ -6,15 +6,15 @@
 
 **Core Value:** Enable Perplexity web models to execute local tools (Read, Write, Bash) through Claude Code, unlocking agentic workflows without requiring the official Perplexity API.
 
-**Current Focus:** Phase 1 - Prompt Injection Foundation
+**Current Focus:** Phase 2 - Multi-Strategy Response Parser
 
 ## Current Position
 
-**Phase:** 1 of 5 (Prompt Injection Foundation)
-**Plan:** 3 of 3 completed
-**Status:** Phase complete
-**Last activity:** 2026-02-05 - Completed 01-03-PLAN.md
-**Progress:** ██████░░░░ 100%
+**Phase:** 2 of 5 (Multi-Strategy Response Parser)
+**Plan:** 2 of 5 completed
+**Status:** In progress
+**Last activity:** 2026-02-05 - Completed 02-02-PLAN.md
+**Progress:** ████████░░ 40%
 
 ### This Phase Success Criteria
 1. ✓ User can pass tools array in API request and see formatted tool definitions in model prompt
@@ -31,7 +31,7 @@
 
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
-- **Phase 2:** Not started
+- **Phase 2:** Plan 2 complete (2m)
 - **Phase 3:** Not started
 - **Phase 4:** Not started
 - **Phase 5:** Not started
@@ -64,6 +64,9 @@
 | 2026-02-05 | Tool injection only when tools array present | Maintains backward compatibility |
 | 2026-02-05 | System prompt included in tool-injected prompt | Avoids duplicate context |
 | 2026-02-05 | Log at INFO for tool count, DEBUG for preview | Balances observability with log noise |
+| 2026-02-05 | Use dual regex patterns for key-value extraction | Strict uppercase primary with case-insensitive fallback |
+| 2026-02-05 | Process key-value patterns line-by-line | Simplifies regex and handles mixed content |
+| 2026-02-05 | Silently ignore empty values in patterns | More robust to malformed input |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -88,21 +91,22 @@
 - API server: `src/perplexity_web_mcp/api/server.py`
 - Core logic: `src/perplexity_web_mcp/core.py`
 - Tool injection: `src/perplexity_web_mcp/api/tool_injection.py` (Python function formatter)
-- Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (NEW - Complete prompt construction)
+- Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction)
+- Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (NEW - Simple pattern extraction)
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 15:01 UTC
-- **Stopped at:** Completed 01-03-PLAN.md (Phase 1 complete)
+- **Date:** 2026-02-05 17:01 UTC
+- **Stopped at:** Completed 02-02-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
-1. Move to Phase 2: Response Parsing Strategies
-2. Create plan for extracting tool calls from model responses
+1. Continue Phase 2: Response Parsing Strategies
+2. Complete remaining plans (02-03, 02-04, 02-05)
 3. Begin testing with actual Perplexity models
 
 ### Context for Next Session
-Phase 1 complete! Tool injection foundation fully operational. API server successfully injects tool definitions from requests into Perplexity prompts. System logs provide clear visibility. Ready to build response parsing to extract tool calls from model outputs.
+Phase 2 in progress. Key-value extraction strategy complete with comprehensive tests. Simple pattern matching for KEY: value formats working. Ready to build more sophisticated parsing strategies (Python code blocks, inline code patterns) and the orchestrator to coordinate them.
 
 ---
 *State initialized: 2026-02-04*

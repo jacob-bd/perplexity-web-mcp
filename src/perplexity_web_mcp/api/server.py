@@ -796,6 +796,44 @@ def transform_to_tool_use_blocks(
     return (content_blocks, "tool_use")
 
 
+def classify_parse_error(error: Exception, context: str) -> tuple[str, str]:
+    """Classify a parsing error and return user-friendly message with internal details.
+
+    Args:
+        error: The exception that occurred during parsing
+        context: Context string describing what was being parsed
+
+    Returns:
+        Tuple of (user_message, internal_details)
+        - user_message: User-friendly error description
+        - internal_details: Technical details for debugging
+    """
+    error_type = type(error).__name__
+    error_msg = str(error)
+
+    # Map exception types to user-friendly messages
+    if isinstance(error, SyntaxError):
+        user_message = "Could not parse tool call format. The model's response contained malformed code."
+    elif isinstance(error, (json.JSONDecodeError, ValueError)):
+        user_message = "Tool arguments were not valid JSON. The model did not provide properly formatted parameters."
+    elif isinstance(error, KeyError):
+        user_message = "Tool call missing required fields. The model's response did not include all necessary information."
+    else:
+        user_message = "Unable to parse tool calls from model response."
+
+    # Create internal details string
+    internal_details = f"{error_type}: {error_msg}"
+
+    # Log with full exception info for debugging
+    logging.error(
+        f"Parse error during {context}: {internal_details}",
+        exc_info=True,
+        extra={"context": context, "error_type": error_type}
+    )
+
+    return (user_message, internal_details)
+
+
 @app.get("/health")
 async def health():
     """Health check."""

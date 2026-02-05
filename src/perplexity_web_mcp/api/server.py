@@ -248,9 +248,12 @@ class ImageContent(BaseModel):
 
 class MessageParam(BaseModel):
     """Input message parameter (Anthropic format).
-    
+
     Supports both simple string content and complex content blocks
-    including text and images.
+    including text, images, and tool_result blocks.
+
+    Tool results should be provided in content blocks as:
+    {"type": "tool_result", "tool_use_id": "...", "content": "..."}
     """
     role: str  # "user" or "assistant"
     content: str | list[dict[str, Any]]
@@ -330,15 +333,40 @@ class TextBlock(BaseModel):
     text: str
 
 
+class ToolUseBlock(BaseModel):
+    """Tool use content block.
+
+    Represents a request from the model to call a tool.
+    Reference: https://docs.anthropic.com/en/api/messages#tool-use
+    """
+    type: str = Field("tool_use", description="Block type")
+    id: str = Field(..., description="Unique tool use ID (format: toolu_{24 hex chars})")
+    name: str = Field(..., description="Tool name to invoke")
+    input: dict[str, Any] = Field(..., description="Tool arguments as JSON object")
+
+
+class ToolResultBlock(BaseModel):
+    """Tool result content block.
+
+    Contains the result of executing a tool use.
+    Sent back by the user in a subsequent request.
+    Reference: https://docs.anthropic.com/en/api/messages#tool-result
+    """
+    type: str = Field("tool_result", description="Block type")
+    tool_use_id: str = Field(..., description="References ToolUseBlock.id")
+    content: str = Field(..., description="Tool execution result")
+    is_error: bool = Field(False, description="Whether execution failed")
+
+
 class MessagesResponse(BaseModel):
     """Anthropic Messages API response.
-    
+
     Reference: https://docs.anthropic.com/en/api/messages
     """
     id: str = Field(..., description="Unique message identifier")
     type: str = Field("message", description="Object type")
     role: str = Field("assistant", description="Message role")
-    content: list[TextBlock] = Field(..., description="Response content blocks")
+    content: list[TextBlock | ToolUseBlock] = Field(..., description="Response content blocks")
     model: str = Field(..., description="Model used")
     stop_reason: str | None = Field("end_turn", description="Reason generation stopped")
     stop_sequence: str | None = Field(None, description="Stop sequence if triggered")

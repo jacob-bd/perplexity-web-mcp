@@ -56,6 +56,7 @@ from perplexity_web_mcp.api.session_manager import (
     distill_system_prompt,
 )
 from perplexity_web_mcp.api.prompt_builder import build_prompt_with_tools
+from perplexity_web_mcp.api.response_parser import parse_response
 
 # Supported Anthropic API version
 ANTHROPIC_API_VERSION = "2023-06-01"
@@ -801,7 +802,7 @@ async def create_message(request: Request, body: MessagesRequest):
     
     if body.stream:
         return StreamingResponse(
-            stream_response(response_id, body.model, model, query, input_tokens, system_text),
+            stream_response(response_id, body.model, model, query, input_tokens, system_text, body.tools),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -839,11 +840,29 @@ async def create_message(request: Request, body: MessagesRequest):
             await asyncio.to_thread(conversation.ask, full_query)
             fresh_client.close()
         answer = conversation.answer or ""
-        
+
+        # Parse response for tool calls
+        if body.tools:
+            try:
+                parse_result = parse_response(answer)
+                if parse_result["tool_calls"]:
+                    logging.info(
+                        f"Parsed {len(parse_result['tool_calls'])} tool calls using "
+                        f"{parse_result['strategy']} strategy (confidence: {parse_result['confidence']:.1f})"
+                    )
+                    for tool_call in parse_result["tool_calls"]:
+                        logging.debug(f"Tool call: {tool_call['name']} with args {tool_call['arguments']}")
+                else:
+                    logging.info(f"No tool calls found in response (strategy: {parse_result['strategy']})")
+                # TODO: Phase 3 - Convert to tool_use content blocks
+            except Exception as parse_error:
+                logging.warning(f"Response parsing failed: {parse_error}")
+                # Continue without tool extraction - don't break the response flow
+
         # Append citations if available
         citations = format_citations(conversation.search_results)
         full_response = answer + citations
-        
+
         return {
             "id": response_id,
             "type": "message",
@@ -873,6 +892,7 @@ async def stream_response(
     query: str,
     input_tokens: int,
     system_text: str | None = None,
+    tools: list[dict[str, Any]] | None = None,
 ) -> AsyncGenerator[str, None]:
     """Stream Anthropic-format SSE response.
     
@@ -965,6 +985,24 @@ async def stream_response(
                         last = current
                         loop.call_soon_threadsafe(queue.put_nowait, ("delta", delta))
                 
+                # Parse response for tool calls if tools were provided
+                if tools:
+                    try:
+                        parse_result = parse_response(last)
+                        if parse_result["tool_calls"]:
+                            logging.info(
+                                f"Parsed {len(parse_result['tool_calls'])} tool calls using "
+                                f"{parse_result['strategy']} strategy (confidence: {parse_result['confidence']:.1f})"
+                            )
+                            for tool_call in parse_result["tool_calls"]:
+                                logging.debug(f"Tool call: {tool_call['name']} with args {tool_call['arguments']}")
+                        else:
+                            logging.info(f"No tool calls found in response (strategy: {parse_result['strategy']})")
+                        # TODO: Phase 3 - Convert to tool_use content blocks
+                    except Exception as parse_error:
+                        logging.warning(f"Response parsing failed: {parse_error}")
+                        # Continue without tool extraction - don't break the response flow
+
                 # Get citations from search results
                 citations = format_citations(conversation.search_results)
                 loop.call_soon_threadsafe(queue.put_nowait, ("done", (last, citations)))

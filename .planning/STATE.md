@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 2 of 5 (Multi-Strategy Response Parser)
-**Plan:** 3 of 5 completed (02-01, 02-02, 02-03 done)
+**Plan:** 4 of 5 completed (02-01, 02-02, 02-03, 02-04 done)
 **Status:** In progress
-**Last activity:** 2026-02-05 - Completed 02-01-PLAN.md (Python AST strategy)
-**Progress:** ████████░░ 46%
+**Last activity:** 2026-02-05 - Completed 02-04-PLAN.md (Response parser orchestrator)
+**Progress:** █████████░ 54%
 
 ### This Phase Success Criteria
 1. ✓ User can pass tools array in API request and see formatted tool definitions in model prompt
@@ -31,7 +31,7 @@
 
 ### Velocity
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
-- **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m)
+- **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
 - **Phase 3:** Not started
 - **Phase 4:** Not started
 - **Phase 5:** Not started
@@ -72,6 +72,11 @@
 | 2026-02-05 | Use ast.walk() for comprehensive extraction | Finds all calls regardless of control flow |
 | 2026-02-05 | Return empty list on syntax errors | Graceful degradation for invalid Python |
 | 2026-02-05 | Use success flag for None disambiguation | Distinguish actual None from evaluation failure |
+| 2026-02-05 | Use regex-based markdown extraction | mdextractor package had installation issues |
+| 2026-02-05 | Normalize all tool call formats | Consistent name/arguments structure across strategies |
+| 2026-02-05 | Apply strategies in confidence order | AST (0.9) -> key-value (0.7) -> inline (0.5) |
+| 2026-02-05 | Extract markdown blocks before AST | Better success rate for Python code |
+| 2026-02-05 | Log timing at INFO, details at DEBUG | Balance observability with log noise |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -97,23 +102,25 @@
 - Core logic: `src/perplexity_web_mcp/core.py`
 - Tool injection: `src/perplexity_web_mcp/api/tool_injection.py` (Python function formatter)
 - Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction)
+- Response parser: `src/perplexity_web_mcp/api/response_parser.py` (Multi-strategy orchestrator)
+- Markdown extractor: `src/perplexity_web_mcp/api/extractors/markdown.py` (Code block extraction)
 - Python AST strategy: `src/perplexity_web_mcp/api/strategies/python_ast.py` (AST-based extraction)
 - Key-value strategy: `src/perplexity_web_mcp/api/strategies/key_value.py` (Simple pattern extraction)
 - Inline code strategy: `src/perplexity_web_mcp/api/strategies/inline_code.py` (Backtick function extraction)
 - Disabled tool calling: `src/perplexity_web_mcp/tool_calling.py` (ReAct format that didn't work)
 
 ### Last Session
-- **Date:** 2026-02-05 17:08 UTC
-- **Stopped at:** Completed 02-01-PLAN.md
+- **Date:** 2026-02-05 17:11 UTC
+- **Stopped at:** Completed 02-04-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
 1. Continue Phase 2: Response Parsing Strategies
-2. Complete remaining plans (02-04, 02-05)
+2. Complete remaining plan (02-05)
 3. Begin testing with actual Perplexity models
 
 ### Context for Next Session
-Phase 2 in progress. Three parsing strategies complete: Python AST extraction, key-value patterns, and inline code detection. All have comprehensive test coverage with TDD approach. Python AST strategy uses ast.parse for strictest parsing. Ready to build markdown extraction strategy (02-04) and the orchestrator to coordinate all strategies (02-05).
+Phase 2 nearly complete. Response parser orchestrator operational with three-strategy fallback chain. Markdown extraction implemented with regex. All strategies integrated and normalized. Parser returns strategy metadata and confidence scores. Ready for integration testing (02-05).
 
 ---
 *State initialized: 2026-02-04*

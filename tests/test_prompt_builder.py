@@ -473,3 +473,203 @@ def test_format_tool_results_order_preservation():
     third_pos = result.find("toolu_third")
     fourth_pos = result.find("toolu_fourth")
     assert third_pos < fourth_pos
+
+
+# Tests for build_prompt_with_tools with tool_results parameter
+
+def test_prompt_with_tool_results():
+    """Test building a prompt with tool results injected."""
+    tools = [
+        {
+            "name": "Read",
+            "description": "Read a file",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "File path"}
+                },
+                "required": ["path"]
+            }
+        }
+    ]
+
+    tool_results = {
+        "toolu_abc123": ("File contents: Hello World", False)
+    }
+
+    user_message = "Summarize the file contents"
+    result = build_prompt_with_tools(user_message, tools, tool_results=tool_results)
+
+    # Tool definitions should appear first
+    assert "Available functions you can call:" in result
+    assert "def Read(path: str):" in result
+
+    # Tool results should appear after tools but before user message
+    assert "TOOL RESULTS:" in result
+    assert "Tool: toolu_abc123" in result
+    assert "Result: File contents: Hello World" in result
+
+    # User message should be at the end
+    assert result.endswith(user_message)
+
+    # Verify order: tools -> results -> user message
+    tools_pos = result.find("Available functions")
+    results_pos = result.find("TOOL RESULTS:")
+    message_pos = result.find(user_message)
+    assert tools_pos < results_pos < message_pos
+
+
+def test_prompt_with_tool_results_and_system():
+    """Test building a prompt with system, tools, and tool results."""
+    tools = [
+        {
+            "name": "Write",
+            "description": "Write a file",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"}
+                },
+                "required": ["path", "content"]
+            }
+        }
+    ]
+
+    tool_results = {
+        "toolu_write1": ("File written successfully", False)
+    }
+
+    system_prompt = "You are a helpful assistant."
+    user_message = "Continue with the next step"
+    result = build_prompt_with_tools(
+        user_message, tools, system=system_prompt, tool_results=tool_results
+    )
+
+    # All components should be present
+    assert "Available functions you can call:" in result
+    assert "TOOL RESULTS:" in result
+    assert result.endswith(user_message)
+
+
+def test_prompt_without_tool_results():
+    """Test that prompt building works without tool_results (backward compatibility)."""
+    tools = [
+        {
+            "name": "Search",
+            "description": "Search",
+            "input_schema": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"]
+            }
+        }
+    ]
+
+    user_message = "Find information"
+    result = build_prompt_with_tools(user_message, tools)
+
+    # Should work without tool_results
+    assert "Available functions you can call:" in result
+    assert "def Search(query: str):" in result
+    assert "TOOL RESULTS:" not in result
+    assert result.endswith(user_message)
+
+
+def test_prompt_with_empty_tool_results():
+    """Test that empty tool_results dict doesn't add results section."""
+    tools = [
+        {
+            "name": "Test",
+            "description": "Test tool",
+            "input_schema": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    ]
+
+    user_message = "Test message"
+    result = build_prompt_with_tools(user_message, tools, tool_results={})
+
+    # Empty dict should not add results section
+    assert "TOOL RESULTS:" not in result
+    assert result.endswith(user_message)
+
+
+def test_prompt_with_multiple_tool_results():
+    """Test building prompt with multiple tool results."""
+    tools = [
+        {
+            "name": "Read",
+            "description": "Read file",
+            "input_schema": {
+                "type": "object",
+                "properties": {"path": {"type": "string"}},
+                "required": ["path"]
+            }
+        },
+        {
+            "name": "Write",
+            "description": "Write file",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"}
+                },
+                "required": ["path", "content"]
+            }
+        }
+    ]
+
+    tool_results = {
+        "toolu_read1": ("File contents here", False),
+        "toolu_write1": ("File written", False),
+        "toolu_read2": ("More contents", False)
+    }
+
+    user_message = "Process the results"
+    result = build_prompt_with_tools(user_message, tools, tool_results=tool_results)
+
+    # All tool results should be present
+    assert "Tool: toolu_read1" in result
+    assert "Result: File contents here" in result
+    assert "Tool: toolu_write1" in result
+    assert "Result: File written" in result
+    assert "Tool: toolu_read2" in result
+    assert "Result: More contents" in result
+
+    # Results should be between tools and message
+    tools_pos = result.find("Available functions")
+    results_start = result.find("TOOL RESULTS:")
+    message_pos = result.find(user_message)
+    assert tools_pos < results_start < message_pos
+
+
+def test_prompt_with_error_tool_results():
+    """Test building prompt with error tool results."""
+    tools = [
+        {
+            "name": "Read",
+            "description": "Read file",
+            "input_schema": {
+                "type": "object",
+                "properties": {"path": {"type": "string"}},
+                "required": ["path"]
+            }
+        }
+    ]
+
+    tool_results = {
+        "toolu_error1": ("FileNotFoundError: File does not exist", True)
+    }
+
+    user_message = "Try again with a different file"
+    result = build_prompt_with_tools(user_message, tools, tool_results=tool_results)
+
+    # Error should be marked appropriately
+    assert "Tool: toolu_error1 (ERROR)" in result
+    assert "Error: FileNotFoundError: File does not exist" in result
+    assert result.endswith(user_message)

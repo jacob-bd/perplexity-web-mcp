@@ -26,18 +26,29 @@ except ImportError:
 def build_prompt_with_tools(
     user_message: str,
     tools: list[dict[str, Any]],
-    system: str | None = None
+    system: str | None = None,
+    tool_results: dict[str, tuple[str, bool]] | None = None
 ) -> str:
     """Build a complete prompt with tool definitions injected before user message.
 
     Constructs a prompt that starts with distilled system context (if provided),
     followed by tool definitions in a Python markdown code block with usage
-    instructions, and finally the user's actual message.
+    instructions, tool execution results (if provided), and finally the user's
+    actual message.
+
+    The prompt structure is:
+    1. System context (distilled, if provided)
+    2. Tool definitions (Python code block with functions)
+    3. Tool results (formatted markdown, if provided)
+    4. User message
 
     Args:
         user_message: The user's query or request
         tools: List of Anthropic tool schema dictionaries to inject
         system: Optional system prompt to distill and include
+        tool_results: Optional dictionary mapping tool_use_id to (content, is_error) tuples.
+                     When provided, formatted tool results are injected between tool
+                     definitions and the user message.
 
     Returns:
         Complete prompt string with tools positioned before user message
@@ -73,7 +84,13 @@ def build_prompt_with_tools(
         # Add usage instructions
         prompt_parts.append("To use a function, write: functionname(param1='value1', param2='value2')")
         prompt_parts.append("Then I'll execute it and show you the result.")
-        prompt_parts.append("")  # Blank line before user message
+        prompt_parts.append("")  # Blank line before tool results or user message
+
+    # Add tool results if provided
+    if tool_results:
+        formatted_results = format_tool_results(tool_results)
+        if formatted_results:
+            prompt_parts.append(formatted_results)
 
     # Finally add the user's actual message
     prompt_parts.append(user_message)

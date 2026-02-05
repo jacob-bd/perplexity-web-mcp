@@ -772,6 +772,192 @@ class TestAPIIntegration(unittest.TestCase):
         finally:
             loop.close()
 
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.parse_response')
+    def test_parse_error_fallback_to_text(self, mock_parse, mock_client, mock_to_thread):
+        """Test that parsing errors cause graceful fallback to text-only response."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Mock parse_response to raise SyntaxError
+        mock_parse.side_effect = SyntaxError("invalid syntax")
+
+        # Mock the Perplexity client
+        mock_conversation = MagicMock()
+        mock_conversation.answer = "Here's what I found about Python."
+        mock_conversation.search_results = []
+        mock_conversation.ask = MagicMock(return_value=None)
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.create_conversation.return_value = mock_conversation
+        mock_client_instance.close = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock asyncio.to_thread
+        async def mock_thread_executor(func, *args):
+            return func(*args)
+        mock_to_thread.side_effect = mock_thread_executor
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with tools
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[MessageParam(role="user", content="Search for Python")],
+            tools=[{"name": "search", "description": "Search"}]
+        )
+
+        # Call the endpoint
+        async def run_test():
+            result = await create_message(mock_request, request_body)
+            return result
+
+        # Run the async function - should not raise an exception
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(run_test())
+
+            # Verify response is text-only (graceful fallback)
+            self.assertIsNotNone(result)
+            self.assertIn("content", result)
+            self.assertEqual(len(result["content"]), 1)
+            self.assertEqual(result["content"][0]["type"], "text")
+            self.assertEqual(result["content"][0]["text"], "Here's what I found about Python.")
+            self.assertEqual(result["stop_reason"], "end_turn")
+        finally:
+            loop.close()
+
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.parse_response')
+    def test_parse_error_logging(self, mock_parse, mock_client, mock_to_thread):
+        """Test that parse errors are logged with appropriate error classification."""
+        from perplexity_web_mcp.api.server import create_message
+        import logging
+
+        # Use real logging to capture calls
+        with self.assertLogs(level=logging.ERROR) as log_context:
+            # Mock parse_response to raise JSONDecodeError
+            import json
+            mock_parse.side_effect = json.JSONDecodeError("Expecting value", "doc", 0)
+
+            # Mock the Perplexity client
+            mock_conversation = MagicMock()
+            mock_conversation.answer = "Response text"
+            mock_conversation.search_results = []
+            mock_conversation.ask = MagicMock(return_value=None)
+
+            mock_client_instance = MagicMock()
+            mock_client_instance.create_conversation.return_value = mock_conversation
+            mock_client_instance.close = MagicMock()
+            mock_client.return_value = mock_client_instance
+
+            # Mock asyncio.to_thread
+            async def mock_thread_executor(func, *args):
+                return func(*args)
+            mock_to_thread.side_effect = mock_thread_executor
+
+            # Create mock request
+            mock_request = MagicMock()
+            mock_request.headers = {}
+
+            # Create request body with tools
+            request_body = MessagesRequest(
+                model="claude-sonnet-4-5",
+                max_tokens=1000,
+                messages=[MessageParam(role="user", content="Search")],
+                tools=[{"name": "search", "description": "Search"}]
+            )
+
+            # Call the endpoint
+            async def run_test():
+                result = await create_message(mock_request, request_body)
+                return result
+
+            # Run the async function
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(run_test())
+
+                # Verify error was logged
+                error_logs = [record for record in log_context.records if "Parse error" in record.message]
+                self.assertGreater(len(error_logs), 0, "Should log parse error at ERROR level")
+
+                # Verify error message contains exception type
+                self.assertTrue(
+                    any("JSONDecodeError" in record.message for record in error_logs),
+                    "Error log should contain exception type"
+                )
+            finally:
+                loop.close()
+
+    @patch('perplexity_web_mcp.api.server.asyncio.to_thread')
+    @patch('perplexity_web_mcp.api.server.Perplexity')
+    @patch('perplexity_web_mcp.api.server.parse_response')
+    def test_low_confidence_fallback(self, mock_parse, mock_client, mock_to_thread):
+        """Test that low confidence parse results cause fallback to text-only."""
+        from perplexity_web_mcp.api.server import create_message
+
+        # Mock parse_response to return low confidence (below 0.7 threshold)
+        mock_parse.return_value = {
+            "strategy": "inline_code",
+            "tool_calls": [{"name": "search", "arguments": {"query": "Python"}}],
+            "confidence": 0.5  # Below threshold
+        }
+
+        # Mock the Perplexity client
+        mock_conversation = MagicMock()
+        mock_conversation.answer = "I would use `search('Python')` to find that."
+        mock_conversation.search_results = []
+        mock_conversation.ask = MagicMock(return_value=None)
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.create_conversation.return_value = mock_conversation
+        mock_client_instance.close = MagicMock()
+        mock_client.return_value = mock_client_instance
+
+        # Mock asyncio.to_thread
+        async def mock_thread_executor(func, *args):
+            return func(*args)
+        mock_to_thread.side_effect = mock_thread_executor
+
+        # Create mock request
+        mock_request = MagicMock()
+        mock_request.headers = {}
+
+        # Create request body with tools
+        request_body = MessagesRequest(
+            model="claude-sonnet-4-5",
+            max_tokens=1000,
+            messages=[MessageParam(role="user", content="Search for Python")],
+            tools=[{"name": "search", "description": "Search"}]
+        )
+
+        # Call the endpoint
+        async def run_test():
+            result = await create_message(mock_request, request_body)
+            return result
+
+        # Run the async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(run_test())
+
+            # Verify response falls back to text-only due to low confidence
+            self.assertIsNotNone(result)
+            self.assertIn("content", result)
+            self.assertEqual(len(result["content"]), 1)
+            self.assertEqual(result["content"][0]["type"], "text")
+            self.assertEqual(result["stop_reason"], "end_turn")
+        finally:
+            loop.close()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,6 +51,15 @@ Plans:
 4. Parser tries all strategies in order and returns first successful match
 5. Failed parsing attempts continue to next strategy without crashing
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — TDD: Python AST strategy
+- [ ] 02-02-PLAN.md — TDD: Key-value strategy
+- [ ] 02-03-PLAN.md — TDD: Inline code strategy
+- [ ] 02-04-PLAN.md — Response parser orchestrator
+- [ ] 02-05-PLAN.md — API integration with verification
+
 ### Phase 3: API Tool Integration
 
 **Goal:** Tool calling flows seamlessly through the Anthropic-compatible API

@@ -11,10 +11,10 @@
 ## Current Position
 
 **Phase:** 4 of 5 (Tool Execution & Result Injection)
-**Plan:** 0 of ? completed
-**Status:** Ready to plan
-**Last activity:** 2026-02-05 - Completed Phase 3 (API Tool Integration)
-**Progress:** ██████▓░░░ 62%
+**Plan:** 1 of 3 completed
+**Status:** In progress
+**Last activity:** 2026-02-05 - Completed 04-01-PLAN.md
+**Progress:** ██████▓░░░ 65%
 
 ### This Phase Success Criteria
 1. ✓ User can send tools array in POST /v1/messages request body
@@ -33,7 +33,7 @@
 - **Phase 1:** Plan 1 complete (3m 15s), Plan 2 complete (5m 2s), Plan 3 complete (16m)
 - **Phase 2:** Plan 1 complete (8m), Plan 2 complete (2m), Plan 3 complete (4m), Plan 4 complete (6m 12s)
 - **Phase 3:** Plan 1 complete (2m), Plan 2 complete (2m), Plan 3 complete (3m)
-- **Phase 4:** Not started
+- **Phase 4:** Plan 1 complete (2m)
 - **Phase 5:** Not started
 
 ### Quality Indicators
@@ -88,6 +88,11 @@
 | 2026-02-05 | Validate tool pairing before processing | Fail fast on invalid requests before expensive Perplexity calls |
 | 2026-02-05 | Allow pending tool_use without results | Conversation can end awaiting tool execution |
 | 2026-02-05 | Extract tool results early, inject later | Validation and logging in Phase 3, prompt injection in Phase 4 |
+| 2026-02-05 | Return empty string for empty tool results | Simpler than None for string concatenation |
+| 2026-02-05 | Default is_error to False for backward compatibility | Support tuples with missing is_error flag |
+| 2026-02-05 | Limit to 3 most recent results by default | Maintains focus, prevents context bloat |
+| 2026-02-05 | Truncate individual results to 1000 chars | Prevents context bloat with marker for clarity |
+| 2026-02-05 | Use --- separators for result distinction | Visual clarity in markdown format |
 
 ### Technical Discoveries
 - Perplexity models optimized for conversational search, not tool execution
@@ -113,7 +118,7 @@
 - API server: `src/perplexity_web_mcp/api/server.py`
 - Core logic: `src/perplexity_web_mcp/core.py`
 - Tool injection: `src/perplexity_web_mcp/api/tool_injection.py` (Python function formatter)
-- Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction)
+- Prompt builder: `src/perplexity_web_mcp/api/prompt_builder.py` (Complete prompt construction, tool result formatting)
 - Response parser: `src/perplexity_web_mcp/api/response_parser.py` (Multi-strategy orchestrator)
 - Markdown extractor: `src/perplexity_web_mcp/api/extractors/markdown.py` (Code block extraction)
 - Python AST strategy: `src/perplexity_web_mcp/api/strategies/python_ast.py` (AST-based extraction)
@@ -124,16 +129,16 @@
 
 ### Last Session
 - **Date:** 2026-02-05
-- **Stopped at:** Completed Phase 3 verification
+- **Stopped at:** Completed 04-01-PLAN.md
 - **Resume file:** None
 
 ### Next Actions
-1. Plan Phase 4: Tool Execution & Result Injection
-2. Implement confidence threshold for tool execution
-3. Inject tool results into model prompts
+1. Execute Plan 04-02: Prompt injection logic for tool results
+2. Execute Plan 04-03: Result injection integration with API
+3. Verify Phase 4 success criteria
 
 ### Context for Next Session
-Phase 3 complete and verified. API now accepts tools array, returns tool_use content blocks with proper SSE streaming, validates tool_use/tool_result pairing, and extracts tool results for continuation. All 4 success criteria verified. Ready for Phase 4: Tool Execution & Result Injection.
+Phase 4 Plan 1 complete (2m). Created format_tool_results function in prompt_builder.py that transforms tool execution results into structured markdown. Function handles empty results, success/error distinction, truncation, and limiting. 8 comprehensive tests pass. Ready to implement prompt injection logic in Plan 04-02.
 
 ---
 *State initialized: 2026-02-04*

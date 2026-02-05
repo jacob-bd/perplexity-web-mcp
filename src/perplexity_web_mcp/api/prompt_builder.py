@@ -7,6 +7,12 @@ Tool definitions are positioned before the user message in markdown code blocks.
 
 from typing import Any
 
+__all__ = [
+    "build_prompt_with_tools",
+    "inject_tools_minimal",
+    "format_tool_results",
+]
+
 # Try relative imports first, fall back to absolute
 try:
     from .tool_injection import format_tool_as_python, format_tools_list
@@ -107,5 +113,127 @@ def inject_tools_minimal(tools: list[dict[str, Any]]) -> str:
     lines.append("")
     lines.append("To use a tool, write its name followed by parameters in parentheses.")
     lines.append("Example: toolname(param='value')")
+
+    return "\n".join(lines)
+
+
+def format_tool_results(
+    tool_results: dict[str, tuple[str, bool]],
+    max_results: int = 3,
+    max_chars_per_result: int = 1000
+) -> str:
+    """Format tool execution results for injection into Perplexity prompts.
+
+    Transforms tool result dictionaries into structured markdown sections that
+    Perplexity models can understand and reference. Results are labeled clearly
+    with tool IDs, and errors are distinguished from successful executions.
+    Large results are truncated to prevent context bloat.
+
+    Args:
+        tool_results: Dictionary mapping tool_use_id to (content, is_error) tuples.
+                     The content is the result string, and is_error indicates whether
+                     the result represents an error. For backward compatibility,
+                     if a tuple contains only a content string without is_error,
+                     it defaults to False (successful execution).
+        max_results: Maximum number of results to include (default: 3).
+                    When there are more results than this limit, only the most
+                    recent (last N) results are included to maintain focus.
+        max_chars_per_result: Maximum characters per result content (default: 1000).
+                             Content exceeding this limit is truncated with a
+                             "... (truncated)" marker appended.
+
+    Returns:
+        Formatted markdown string with tool results, or empty string if no results.
+        The format includes:
+        - "TOOL RESULTS:" header
+        - Separator lines ("---")
+        - For each result:
+          - "Tool: {tool_use_id} (ERROR)" if error, or "Tool: {tool_use_id}" if success
+          - "Error: {content}" if error, or "Result: {content}" if success
+        - Trailing blank line
+
+    Examples:
+        >>> results = {
+        ...     "toolu_123": ("File not found", True),
+        ...     "toolu_456": ("{'status': 'ok'}", False)
+        ... }
+        >>> print(format_tool_results(results))
+        TOOL RESULTS:
+        ---
+        Tool: toolu_123 (ERROR)
+        Error: File not found
+        ---
+        Tool: toolu_456
+        Result: {'status': 'ok'}
+        ---
+        <BLANKLINE>
+
+        >>> # Backward compatibility - tuple with just content string
+        >>> results = {"toolu_789": ("Success",)}
+        >>> print(format_tool_results(results))
+        TOOL RESULTS:
+        ---
+        Tool: toolu_789
+        Result: Success
+        ---
+        <BLANKLINE>
+
+        >>> # Empty dict returns empty string
+        >>> format_tool_results({})
+        ''
+    """
+    # Return empty string if no results
+    if not tool_results:
+        return ""
+
+    # Limit to most recent max_results (last N items from dict)
+    # Python 3.7+ guarantees dict insertion order
+    if len(tool_results) > max_results:
+        # Get the last max_results items
+        items = list(tool_results.items())[-max_results:]
+        tool_results = dict(items)
+
+    # Build the formatted output
+    lines = []
+    lines.append("TOOL RESULTS:")
+    lines.append("---")
+
+    for tool_use_id, result_tuple in tool_results.items():
+        # Validate tuple structure and extract content and error flag
+        # Support both (content, is_error) and (content,) for backward compatibility
+        if isinstance(result_tuple, tuple):
+            if len(result_tuple) >= 2:
+                content, is_error = result_tuple[0], result_tuple[1]
+            elif len(result_tuple) == 1:
+                content, is_error = result_tuple[0], False
+            else:
+                # Empty tuple - skip this result
+                continue
+        else:
+            # Not a tuple - skip this result
+            continue
+
+        # Validate content is a string and is_error is a bool
+        if not isinstance(content, str):
+            continue
+        if not isinstance(is_error, bool):
+            is_error = False  # Default to success if invalid type
+
+        # Truncate content if needed
+        if len(content) > max_chars_per_result:
+            content = content[:max_chars_per_result] + "... (truncated)"
+
+        # Format based on error status
+        if is_error:
+            lines.append(f"Tool: {tool_use_id} (ERROR)")
+            lines.append(f"Error: {content}")
+        else:
+            lines.append(f"Tool: {tool_use_id}")
+            lines.append(f"Result: {content}")
+
+        lines.append("---")
+
+    # Add trailing blank line
+    lines.append("")
 
     return "\n".join(lines)

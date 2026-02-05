@@ -326,6 +326,66 @@ Models.KIMI_K25_THINKING         # Kimi K2.5 (thinking only)
 
 ---
 
+## Observability & Monitoring
+
+The API server includes Prometheus metrics for monitoring tool calling performance.
+
+### Metrics Endpoint
+
+Access metrics at `GET /metrics` in Prometheus exposition format:
+
+```bash
+curl http://localhost:8080/metrics
+```
+
+### Available Metrics
+
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `tool_parse_attempts_total` | Counter | strategy, success | Total parsing attempts by strategy and outcome |
+| `tool_parse_confidence` | Histogram | strategy | Distribution of confidence scores by strategy |
+| `tool_calls_detected_total` | Counter | strategy, tool_name | Individual tool calls detected |
+| `tool_parse_duration_seconds` | Histogram | strategy | Parsing duration by strategy |
+
+### Querying Metrics
+
+**Success rate for Python AST strategy:**
+```promql
+rate(tool_parse_attempts_total{strategy="python_ast",success="true"}[5m])
+/
+rate(tool_parse_attempts_total{strategy="python_ast"}[5m])
+```
+
+**Average confidence by strategy:**
+```promql
+rate(tool_parse_confidence_sum[5m]) / rate(tool_parse_confidence_count[5m])
+```
+
+**Most used tools:**
+```promql
+topk(5, sum by (tool_name) (tool_calls_detected_total))
+```
+
+### Graceful Degradation
+
+The system maintains API compatibility even when tool parsing fails:
+
+- **Parse failures** → Returns text-only response (stop_reason: end_turn)
+- **Low confidence** → Graceful fallback (below 0.7 threshold)
+- **No tools detected** → Continues as conversational response
+
+Error details are logged internally while users receive clear, actionable error messages.
+
+### Integration with Grafana
+
+1. Configure Prometheus to scrape `/metrics` endpoint
+2. Import dashboard using queries above
+3. Set alerts on success rate drops or high parse duration
+
+Recommended alert: `rate(tool_parse_attempts_total{success="false"}[5m]) > 0.5` (>50% failure rate)
+
+---
+
 ## Troubleshooting
 
 ### Authentication Errors (403)

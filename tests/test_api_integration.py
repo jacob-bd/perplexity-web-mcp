@@ -762,10 +762,10 @@ class TestAPIIntegration(unittest.TestCase):
             self.assertEqual(result_tuple[0], "Found 10 Python tutorials on various topics")
             self.assertEqual(result_tuple[1], False)
 
-            # Verify injection logging
+            # Verify injection logging (new format includes context size)
             injection_logs = [c for c in mock_logging.info.call_args_list
-                            if "Tool result injection: Injected 1 results" in str(c)]
-            self.assertGreater(len(injection_logs), 0, "Should log tool result injection")
+                            if "Tool result injection: Estimated context size:" in str(c)]
+            self.assertGreater(len(injection_logs), 0, "Should log tool result injection with context size")
         finally:
             loop.close()
 

@@ -765,6 +765,9 @@ def transform_to_tool_use_blocks(
     if not tool_calls:
         return ([{"type": "text", "text": answer}], "end_turn")
 
+    # Log confidence scores when tool calls detected (TC-03)
+    logging.info(f"Detected tool calls with confidence: {confidence:.2f} (threshold: {confidence_threshold:.2f})")
+
     # Tool calls detected but confidence too low
     if confidence < confidence_threshold:
         logging.info(
@@ -914,15 +917,24 @@ async def create_message(request: Request, body: MessagesRequest):
         # System is now included in the prompt, don't apply it separately
         system_text = None
 
-        # Log tool result injection
+        # Log tool result injection with context size estimate
         if tool_results:
-            logging.info(f"Tool result injection: Injected {len(tool_results)} results into prompt")
+            # Calculate estimated context size from tool results
+            result_chars = sum(len(content) for content, _ in tool_results.values())
+            logging.info(f"Tool result injection: Estimated context size: {result_chars} chars across {len(tool_results)} results")
+
+            # Log if any results were errors
+            error_count = sum(1 for _, is_error in tool_results.values() if is_error)
+            if error_count > 0:
+                logging.warning(f"Tool result injection: {error_count} of {len(tool_results)} results are errors")
+
             logging.debug(f"Tool result injection: IDs: {list(tool_results.keys())}")
 
         logging.debug(f"Tool injection: Prompt preview: {query[:200]}...")
         logging.info("Tool injection: Successfully injected tools into prompt")
 
     input_tokens = estimate_tokens(query)
+    logging.debug(f"Prompt construction: Final prompt length: {len(query)} chars, estimated {input_tokens} tokens")
     
     # Generate response ID
     response_id = f"msg_{uuid.uuid4().hex[:24]}"

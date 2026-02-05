@@ -61,14 +61,15 @@ class TestInlineCodeStrategy:
         assert mentions[1]['name'] == 'func2'
         assert mentions[1]['args_raw'] == "'arg'"
 
-    def test_nested_backticks_ignored(self):
-        """Test that nested backticks don't cause issues."""
-        text = "Code: ```python\nresult = `search('test')`\n```"
+    def test_inline_code_outside_blocks(self):
+        """Test extraction of inline code outside code blocks."""
+        text = "First `search('test')` then ```python\ncode block\n``` and `read_file('data.txt')`"
         mentions = extract_inline_code_mentions(text)
 
-        # Should find the inline code inside the code block
-        assert len(mentions) == 1
+        # Should find both inline codes outside the code block
+        assert len(mentions) == 2
         assert mentions[0]['name'] == 'search'
+        assert mentions[1]['name'] == 'read_file'
 
     def test_mixed_content(self):
         """Test extraction with mixed function and non-function snippets."""

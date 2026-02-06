@@ -6,14 +6,14 @@
 
 MCP server and Anthropic/OpenAI API-compatible interface for Perplexity AI's web interface.
 
-Use your Perplexity Pro/Max subscription to access premium models (GPT-5.2, Claude 4.5, Gemini 3, Grok 4.1, etc.) through MCP tools or as an API endpoint for Claude Code.
+Use your Perplexity Pro/Max subscription to access premium models (GPT-5.2, Claude 4.6 Opus, Claude 4.5 Sonnet, Gemini 3, Grok 4.1, etc.) through MCP tools or as an API endpoint for Claude Code.
 
 ## Features
 
 - **MCP Server**: Use Perplexity models as MCP tools with citations
 - **Anthropic API**: Drop-in replacement for Anthropic's Messages API (works with Claude Code)
 - **OpenAI API**: Compatible with OpenAI Chat Completions API
-- **Multiple Models**: GPT-5.2, Claude 4.5 Sonnet/Opus, Gemini 3, Grok 4.1, Kimi K2.5
+- **Multiple Models**: GPT-5.2, Claude 4.6 Opus, Claude 4.5 Sonnet, Gemini 3, Grok 4.1, Kimi K2.5
 - **Thinking Mode**: Extended thinking support for all compatible models
 - **Deep Research**: Full support for Perplexity's Deep Research mode
 
@@ -233,7 +233,7 @@ Use these model names with Claude Code or any Anthropic API client:
 | `perplexity-research` / `deep-research` | Deep Research | No |
 | `gpt-5.2` / `gpt-52` | GPT-5.2 | Toggle |
 | `claude-sonnet-4-5` / `claude-4-5-sonnet` | Claude 4.5 Sonnet | Toggle |
-| `claude-opus-4-5` / `claude-4-5-opus` | Claude 4.5 Opus (Max tier) | Toggle |
+| `claude-opus-4-6` / `claude-4-6-opus` | Claude 4.6 Opus (Max tier) | Toggle |
 | `gemini-3-flash` / `gemini-flash` | Gemini 3 Flash | Toggle |
 | `gemini-3-pro` / `gemini-pro` | Gemini 3 Pro | Always On |
 | `grok-4.1` / `grok` | Grok 4.1 | Toggle |
@@ -241,7 +241,7 @@ Use these model names with Claude Code or any Anthropic API client:
 
 **Legacy Claude Code aliases** (for compatibility):
 - `claude-3-5-sonnet` → Claude 4.5 Sonnet
-- `claude-3-opus` → Claude 4.5 Opus
+- `claude-3-opus` → Claude 4.6 Opus
 
 **Thinking Mode**: Models with "Toggle" support thinking when enabled via the `thinking` parameter. Models with "Always On" have thinking enabled by default.
 
@@ -306,8 +306,8 @@ Models.GPT_52                    # GPT-5.2
 Models.GPT_52_THINKING           # GPT-5.2 with thinking
 Models.CLAUDE_45_SONNET          # Claude 4.5 Sonnet
 Models.CLAUDE_45_SONNET_THINKING # Claude 4.5 Sonnet with thinking
-Models.CLAUDE_45_OPUS            # Claude 4.5 Opus (Max tier)
-Models.CLAUDE_45_OPUS_THINKING   # Claude 4.5 Opus with thinking
+Models.CLAUDE_46_OPUS            # Claude 4.6 Opus (Max tier)
+Models.CLAUDE_46_OPUS_THINKING   # Claude 4.6 Opus with thinking
 Models.GEMINI_3_FLASH            # Gemini 3 Flash
 Models.GEMINI_3_FLASH_THINKING   # Gemini 3 Flash with thinking
 Models.GEMINI_3_PRO_THINKING     # Gemini 3 Pro (thinking only)
@@ -324,7 +324,7 @@ Models.KIMI_K25_THINKING         # Kimi K2.5 (thinking only)
 |------|------|--------|
 | Free | $0 | All models (limited queries) |
 | Pro | $20/mo | Extended quotas |
-| Max | $200/mo | Unlimited + Claude 4.5 Opus |
+| Max | $200/mo | Unlimited + Claude 4.6 Opus |
 
 ---
 

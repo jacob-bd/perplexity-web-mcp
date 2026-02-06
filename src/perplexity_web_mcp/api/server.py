@@ -118,28 +118,32 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     # ==========================================================================
     # Anthropic Claude Models (via Perplexity)
     # Claude Sonnet 4.5 - supports thinking toggle
-    # Claude Opus 4.5 - supports thinking (requires Max subscription)
+    # Claude Opus 4.6 - supports thinking (requires Max subscription)
     # ==========================================================================
     # Current model names
     "claude-sonnet-4-5": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
     "claude-4-5-sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
     "claude-sonnet-4-5-20250514": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "claude-opus-4-5": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
-    "claude-4-5-opus": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
-    "claude-opus-4-5-20251101": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
+    "claude-opus-4-6": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
+    "claude-4-6-opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
+    "claude-opus-4-6-20260203": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
+    # Legacy Opus 4.5 aliases (map to 4.6)
+    "claude-opus-4-5": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
+    "claude-4-5-opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
+    "claude-opus-4-5-20251101": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     # Claude Code default model aliases (for compatibility)
     # These allow `claude --model claude-3-5-sonnet` to work
     "claude-3-5-sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
     "claude-3-5-sonnet-20241022": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "claude-3-opus": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
-    "claude-3-opus-20240229": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
+    "claude-3-opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
+    "claude-3-opus-20240229": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     "claude-3-5-haiku": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),  # Map to Sonnet
     "claude-haiku-4-5-20251001": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),  # Map Haiku 4.5 to Sonnet
     "claude-haiku": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
     # Generic aliases
     "claude": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
     "sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "opus": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
+    "opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     
     # ==========================================================================
     # OpenAI GPT-5.2 (via Perplexity) - supports thinking toggle
@@ -195,7 +199,7 @@ AVAILABLE_MODELS = [
     {"id": "gpt-5.2", "description": "GPT-5.2 - OpenAI's latest, thinking toggle available"},
     # Anthropic Claude
     {"id": "claude-sonnet-4-5", "description": "Claude Sonnet 4.5 - Fast, thinking toggle available"},
-    {"id": "claude-opus-4-5", "description": "Claude Opus 4.5 - Advanced reasoning, Max tier required"},
+    {"id": "claude-opus-4-6", "description": "Claude Opus 4.6 - Advanced reasoning, Max tier required"},
     # xAI
     {"id": "grok-4.1", "description": "Grok 4.1 - xAI's latest, thinking toggle available"},
     # Moonshot

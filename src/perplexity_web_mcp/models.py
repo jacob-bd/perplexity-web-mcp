@@ -49,11 +49,11 @@ class Models:
     CLAUDE_45_SONNET_THINKING = Model(identifier="claude45sonnetthinking")
     """Claude Sonnet 4.5 Thinking - Anthropic's fast model (thinking)."""
 
-    CLAUDE_45_OPUS = Model(identifier="claude45opus")  # TODO: check correct identifier
-    """Claude Opus 4.5 - Anthropic's Opus reasoning model."""
+    CLAUDE_46_OPUS = Model(identifier="claude46opus")
+    """Claude Opus 4.6 - Anthropic's most advanced reasoning model."""
 
-    CLAUDE_45_OPUS_THINKING = Model(identifier="claude45opusthinking")  # TODO: check correct identifier
-    """Claude Opus 4.5 Thinking - Anthropic's Opus reasoning model (thinking)."""
+    CLAUDE_46_OPUS_THINKING = Model(identifier="claude46opusthinking")
+    """Claude Opus 4.6 Thinking - Anthropic's most advanced reasoning model (thinking)."""
 
     GROK_41 = Model(identifier="grok41nonreasoning")
     """Grok 4.1 - xAI's latest model."""

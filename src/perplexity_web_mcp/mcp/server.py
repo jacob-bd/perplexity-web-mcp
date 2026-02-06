@@ -45,7 +45,7 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "deep_research": (Models.DEEP_RESEARCH, None),
     "gpt52": (Models.GPT_52, Models.GPT_52_THINKING),
     "claude_sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "claude_opus": (Models.CLAUDE_45_OPUS, Models.CLAUDE_45_OPUS_THINKING),
+    "claude_opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     "gemini_flash": (Models.GEMINI_3_FLASH, Models.GEMINI_3_FLASH_THINKING),
     "gemini_pro": (Models.GEMINI_3_PRO_THINKING, Models.GEMINI_3_PRO_THINKING),  # Only thinking variant
     "grok": (Models.GROK_41, Models.GROK_41_THINKING),

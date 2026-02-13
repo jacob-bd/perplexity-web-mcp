@@ -1,6 +1,6 @@
 [project]
 name = "perplexity-web-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server and Anthropic API-compatible interface for Perplexity AI web interface."
 authors = [{ name = "Jacob Ben David" }]
 license = "MIT"

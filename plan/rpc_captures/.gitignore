@@ -1,8 +1,0 @@
-# Ignore all captured RPC data (may contain auth tokens)
-*.json
-
-# Keep this .gitignore
-!.gitignore
-
-# Keep the README
-!README.md

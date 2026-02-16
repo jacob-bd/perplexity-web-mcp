@@ -12,6 +12,9 @@ build/
 *.egg-info/
 .debug/
 tools
+.planning/
+plan/
+docs/
 
 # ─ ─── Files ─── ─ #
 example*.py

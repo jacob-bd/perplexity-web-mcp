@@ -1,6 +1,6 @@
 [project]
 name = "perplexity-web-mcp"
-version = "0.4.0"
+version = "0.4.1"
 description = "MCP server and Anthropic API-compatible interface for Perplexity AI web interface."
 authors = [{ name = "Jacob Ben David" }]
 license = "MIT"
@@ -62,9 +62,9 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jbendavi/perplexity-web-mcp"
-Repository = "https://github.com/jbendavi/perplexity-web-mcp.git"
-Issues = "https://github.com/jbendavi/perplexity-web-mcp/issues"
+Homepage = "https://github.com/jacob-bd/perplexity-web-mcp"
+Repository = "https://github.com/jacob-bd/perplexity-web-mcp.git"
+Issues = "https://github.com/jacob-bd/perplexity-web-mcp/issues"
 
 [tool.ruff]
 line-length = 120

@@ -51,6 +51,12 @@ def _get_tools() -> list[AITool]:
             config_hint=str(home / "Library/Application Support/Claude/claude_desktop_config.json"),
         ),
         AITool(
+            name="gemini",
+            description="Google Gemini CLI",
+            config_path=home / ".gemini" / "settings.json",
+            config_hint=str(home / ".gemini/settings.json"),
+        ),
+        AITool(
             name="cursor",
             description="Cursor AI editor",
             config_path=home / ".cursor" / "mcp.json",
@@ -63,10 +69,16 @@ def _get_tools() -> list[AITool]:
             config_hint=str(home / ".codeium/windsurf/mcp_config.json"),
         ),
         AITool(
-            name="gemini",
-            description="Google Gemini CLI",
-            config_path=home / ".gemini" / "settings.json",
-            config_hint=str(home / ".gemini/settings.json"),
+            name="cline",
+            description="Cline CLI terminal agent",
+            config_path=home / ".cline" / "data" / "settings.json",
+            config_hint=str(home / ".cline/data/settings.json"),
+        ),
+        AITool(
+            name="antigravity",
+            description="Google Antigravity AI IDE",
+            config_path=home / ".gemini" / "antigravity" / "mcp_config.json",
+            config_hint=str(home / ".gemini/antigravity/mcp_config.json"),
         ),
     ]
 
@@ -193,12 +205,13 @@ def cmd_setup(args: list[str]) -> int:
             "  pwm setup add <client>          Add MCP server to a tool\n"
             "  pwm setup remove <client>       Remove MCP server from a tool\n"
             "\n"
-            "Clients: claude-code, claude-desktop, cursor, windsurf, gemini\n"
+            "Clients: claude-code, claude-desktop, gemini, cursor, windsurf, cline, antigravity\n"
             "\n"
             "Examples:\n"
             "  pwm setup list\n"
             "  pwm setup add claude-code\n"
             "  pwm setup add cursor\n"
+            "  pwm setup add antigravity\n"
             "  pwm setup remove windsurf\n"
         )
         return 0

@@ -4,6 +4,16 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.5.3] - 2026-02-16
+
+### Added
+
+- `pwm setup`: Added support for Cline and Antigravity (7 tools total, parity with nlm CLI).
+- `pwm skill`: Added support for OpenCode, Cline, and OpenClaw (8 platforms total, parity with nlm CLI).
+- `pwm doctor`: Now checks all 7 MCP tools and 8 skill platforms.
+
+---
+
 ## [0.5.2] - 2026-02-16
 
 ### Changed

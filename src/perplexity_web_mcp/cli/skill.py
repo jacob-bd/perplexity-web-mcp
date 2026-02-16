@@ -47,22 +47,40 @@ def _get_targets() -> list[SkillTarget]:
             project_dir=".cursor/skills",
         ),
         SkillTarget(
-            name="gemini-cli",
-            description="Google Gemini CLI",
-            user_dir=home / ".gemini" / "skills",
-            project_dir=".gemini/skills",
-        ),
-        SkillTarget(
             name="codex",
             description="OpenAI Codex CLI",
             user_dir=home / ".codex" / "skills",
             project_dir=".codex/skills",
         ),
         SkillTarget(
+            name="opencode",
+            description="OpenCode AI assistant",
+            user_dir=home / ".opencode" / "skills",
+            project_dir=".opencode/skills",
+        ),
+        SkillTarget(
+            name="gemini-cli",
+            description="Google Gemini CLI",
+            user_dir=home / ".gemini" / "skills",
+            project_dir=".gemini/skills",
+        ),
+        SkillTarget(
             name="antigravity",
             description="Google Antigravity IDE",
             user_dir=home / ".gemini" / "antigravity" / "skills",
             project_dir=".gemini/antigravity/skills",
+        ),
+        SkillTarget(
+            name="cline",
+            description="Cline CLI terminal agent",
+            user_dir=home / ".cline" / "skills",
+            project_dir=".cline/skills",
+        ),
+        SkillTarget(
+            name="openclaw",
+            description="OpenClaw AI agent framework",
+            user_dir=home / ".openclaw" / "skills",
+            project_dir=".openclaw/skills",
         ),
     ]
 
@@ -162,7 +180,7 @@ def cmd_skill(args: list[str]) -> int:
             "  pwm skill show                          Display the skill content\n"
             "  pwm skill update                        Update all outdated skills\n"
             "\n"
-            "Tools: claude-code, cursor, gemini-cli, codex, antigravity\n"
+            "Tools: claude-code, cursor, codex, opencode, gemini-cli, antigravity, cline, openclaw\n"
             "\n"
             "Examples:\n"
             "  pwm skill list\n"

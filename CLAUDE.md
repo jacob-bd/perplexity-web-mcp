@@ -73,10 +73,10 @@ pwm --ai                                       # AI reference doc
 uv pip install -e .
 
 # Run tests
-uv run --group tests --extra mcp pytest tests/ -v
+uv run --group tests pytest tests/ -v
 
 # Run just unit tests (no network calls)
-uv run --group tests --extra mcp pytest tests/ -v -k "not Integration"
+uv run --group tests pytest tests/ -v -k "not Integration"
 ```
 
 ## Credits

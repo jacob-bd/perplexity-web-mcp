@@ -79,8 +79,8 @@ def _get_targets() -> list[SkillTarget]:
         SkillTarget(
             name="openclaw",
             description="OpenClaw AI agent framework",
-            user_dir=home / ".openclaw" / "skills",
-            project_dir=".openclaw/skills",
+            user_dir=home / ".openclaw" / "workspace" / "skills",
+            project_dir=".openclaw/workspace/skills",
         ),
     ]
 

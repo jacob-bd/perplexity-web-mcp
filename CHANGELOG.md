@@ -4,6 +4,17 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.5.4] - 2026-02-16
+
+### Fixed
+
+- OpenClaw skill path corrected to `~/.openclaw/workspace/skills/` (verified against live system).
+- OpenCode skill path corrected to `~/.config/opencode/skills/` (verified against nlm source).
+- Cline MCP config path corrected to `~/.cline/data/settings/cline_mcp_settings.json` (verified against nlm source).
+- All platform paths now verified against upstream documentation or source code.
+
+---
+
 ## [0.5.3] - 2026-02-16
 
 ### Added

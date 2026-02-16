@@ -103,19 +103,74 @@ pwm doctor
 
 ### Querying
 
+Ask Perplexity a question. By default, Perplexity auto-selects the best model.
+
 ```bash
-pwm ask "What is quantum computing?"                      # Auto-select best model
-pwm ask "latest AI news" -m gpt52 -s academic             # GPT-5.2 + academic sources
-pwm ask "explain transformers" -m claude_sonnet --thinking # Claude 4.5 + thinking
-pwm ask "query" --json                                    # JSON output
-pwm ask "query" --no-citations                            # No citation URLs
+pwm ask "What is quantum computing?"
+```
+
+**Choose a specific model** with `-m` (see [Models](#models) for the full list):
+
+```bash
+pwm ask "Compare React and Vue" -m gpt52
+```
+
+```bash
+pwm ask "Explain the attention mechanism" -m claude_sonnet
+```
+
+**Enable extended thinking** with `-t` for deeper reasoning (available on models with Toggle thinking):
+
+```bash
+pwm ask "Prove that the square root of 2 is irrational" -m claude_sonnet --thinking
+```
+
+**Focus on specific sources** with `-s` to control where Perplexity searches:
+
+```bash
+# Search only academic papers and scholarly articles
+pwm ask "transformer architecture improvements 2025" -s academic
+
+# Search only social media (Reddit, Twitter, etc.)
+pwm ask "best mechanical keyboard 2026" -s social
+
+# Search SEC EDGAR financial filings
+pwm ask "Apple revenue Q4 2025" -s finance
+
+# Search all source types at once
+pwm ask "latest AI news" -s all
+```
+
+**Output options:**
+
+```bash
+# JSON output (for piping to other tools)
+pwm ask "What is Rust?" --json
+
+# Suppress citation URLs (answer text only)
+pwm ask "What is Rust?" --no-citations
+```
+
+**Combine flags** for full control:
+
+```bash
+pwm ask "recent advances in protein folding" -m gemini_pro -s academic --json
 ```
 
 ### Deep Research
 
+Run Perplexity's Deep Research mode for in-depth reports with extensive sources. Uses a separate **monthly** quota.
+
 ```bash
-pwm research "agentic AI trends 2026"                     # Full research report
-pwm research "climate policy" -s academic --json           # Academic + JSON output
+pwm research "agentic AI trends 2026"
+```
+
+```bash
+pwm research "climate policy impact on renewable energy" -s academic
+```
+
+```bash
+pwm research "NVIDIA competitive landscape" -s finance --json
 ```
 
 ### Authentication
@@ -186,7 +241,17 @@ pwm --ai                   # Print comprehensive AI-optimized reference
 | `grok` | xAI | Toggle | Grok 4.1 |
 | `kimi` | Moonshot | Always | Kimi K2.5 |
 
-**Source focus options:** `web` (default), `academic`, `social`, `finance`, `all`
+### Source Focus
+
+Control where Perplexity searches using `-s` (CLI) or `source_focus` (MCP):
+
+| Option | Description | Example Use Case |
+|--------|-------------|------------------|
+| `web` | General web search (default) | News, general questions |
+| `academic` | Academic papers, journals | Research, citations, scientific topics |
+| `social` | Reddit, Twitter, forums | Opinions, recommendations, community sentiment |
+| `finance` | SEC EDGAR filings | Company financials, regulatory filings |
+| `all` | Web + Academic + Social combined | Broad coverage across all sources |
 
 ---
 

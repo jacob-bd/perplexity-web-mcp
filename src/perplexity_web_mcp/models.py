@@ -43,11 +43,11 @@ class Models:
     GPT_52_THINKING = Model(identifier="gpt52_thinking")
     """GPT-5.2 Thinking - OpenAI's latest model (thinking)."""
 
-    CLAUDE_45_SONNET = Model(identifier="claude45sonnet")
-    """Claude Sonnet 4.5 - Anthropic's fast model."""
+    CLAUDE_46_SONNET = Model(identifier="claude46sonnet")
+    """Claude Sonnet 4.6 - Anthropic's fast model."""
 
-    CLAUDE_45_SONNET_THINKING = Model(identifier="claude45sonnetthinking")
-    """Claude Sonnet 4.5 Thinking - Anthropic's fast model (thinking)."""
+    CLAUDE_46_SONNET_THINKING = Model(identifier="claude46sonnetthinking")
+    """Claude Sonnet 4.6 Thinking - Anthropic's fast model (thinking)."""
 
     CLAUDE_46_OPUS = Model(identifier="claude46opus")
     """Claude Opus 4.6 - Anthropic's most advanced reasoning model."""

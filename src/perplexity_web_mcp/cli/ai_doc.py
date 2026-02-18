@@ -83,7 +83,7 @@ auto            pplx_pro                No         Auto-selects best model
 sonar           experimental            No         Perplexity's latest
 deep_research   pplx_alpha              No         In-depth reports (monthly quota)
 gpt52           gpt52                   Yes        OpenAI GPT-5.2
-claude_sonnet   claude45sonnet          Yes        Anthropic Claude 4.5 Sonnet
+claude_sonnet   claude46sonnet          Yes        Anthropic Claude 4.6 Sonnet
 claude_opus     claude46opus            Yes        Anthropic Claude 4.6 Opus (Max tier)
 gemini_flash    gemini30flash           Yes        Google Gemini 3 Flash
 gemini_pro      gemini30pro             Always     Google Gemini 3 Pro (thinking only)
@@ -135,8 +135,8 @@ QUERY TOOLS (14):
   pplx_sonar(query, source_focus="web")         Perplexity Sonar model
   pplx_gpt52(query, source_focus="web")          GPT-5.2
   pplx_gpt52_thinking(query, source_focus="web") GPT-5.2 + thinking
-  pplx_claude_sonnet(query, source_focus="web")   Claude 4.5 Sonnet
-  pplx_claude_sonnet_think(query, source_focus)   Claude 4.5 Sonnet + thinking
+  pplx_claude_sonnet(query, source_focus="web")   Claude 4.6 Sonnet
+  pplx_claude_sonnet_think(query, source_focus)   Claude 4.6 Sonnet + thinking
   pplx_gemini_flash(query, source_focus="web")    Gemini 3 Flash
   pplx_gemini_flash_think(query, source_focus)    Gemini 3 Flash + thinking
   pplx_gemini_pro_think(query, source_focus)      Gemini 3 Pro (thinking always on)

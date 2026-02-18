@@ -20,10 +20,10 @@ Claude Code Integration:
     export ANTHROPIC_API_KEY=""
   
   Then run Claude Code with any supported model:
-    claude --model claude-sonnet-4-5      # Use Claude 4.5 Sonnet via Perplexity
+    claude --model claude-sonnet-4-6      # Use Claude 4.6 Sonnet via Perplexity
     claude --model gpt-5.2                # Use GPT-5.2 via Perplexity
     claude --model perplexity-auto        # Use Perplexity's auto model selection
-    claude --model claude-3-5-sonnet      # Legacy name, maps to Claude 4.5 Sonnet
+    claude --model claude-3-5-sonnet      # Legacy name, maps to Claude 4.6 Sonnet
 """
 
 from __future__ import annotations
@@ -117,13 +117,16 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     
     # ==========================================================================
     # Anthropic Claude Models (via Perplexity)
-    # Claude Sonnet 4.5 - supports thinking toggle
+    # Claude Sonnet 4.6 - supports thinking toggle
     # Claude Opus 4.6 - supports thinking (requires Max subscription)
     # ==========================================================================
     # Current model names
-    "claude-sonnet-4-5": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "claude-4-5-sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "claude-sonnet-4-5-20250514": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
+    "claude-sonnet-4-6": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
+    "claude-4-6-sonnet": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
+    "claude-sonnet-4-6-20260217": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
+    # Legacy Sonnet 4.5 aliases (map to 4.6)
+    "claude-sonnet-4-5": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
+    "claude-4-5-sonnet": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
     "claude-opus-4-6": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     "claude-4-6-opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     "claude-opus-4-6-20260203": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
@@ -133,16 +136,16 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "claude-opus-4-5-20251101": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     # Claude Code default model aliases (for compatibility)
     # These allow `claude --model claude-3-5-sonnet` to work
-    "claude-3-5-sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "claude-3-5-sonnet-20241022": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
+    "claude-3-5-sonnet": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
+    "claude-3-5-sonnet-20241022": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
     "claude-3-opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     "claude-3-opus-20240229": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
-    "claude-3-5-haiku": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),  # Map to Sonnet
-    "claude-haiku-4-5-20251001": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),  # Map Haiku 4.5 to Sonnet
-    "claude-haiku": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
+    "claude-3-5-haiku": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),  # Map to Sonnet
+    "claude-haiku-4-5-20251001": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),  # Map Haiku to Sonnet
+    "claude-haiku": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
     # Generic aliases
-    "claude": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
-    "sonnet": (Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING),
+    "claude": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
+    "sonnet": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
     "opus": (Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING),
     
     # ==========================================================================
@@ -198,7 +201,7 @@ AVAILABLE_MODELS = [
     # OpenAI
     {"id": "gpt-5.2", "description": "GPT-5.2 - OpenAI's latest, thinking toggle available"},
     # Anthropic Claude
-    {"id": "claude-sonnet-4-5", "description": "Claude Sonnet 4.5 - Fast, thinking toggle available"},
+    {"id": "claude-sonnet-4-6", "description": "Claude Sonnet 4.6 - Fast, thinking toggle available"},
     {"id": "claude-opus-4-6", "description": "Claude Opus 4.6 - Advanced reasoning, Max tier required"},
     # xAI
     {"id": "grok-4.1", "description": "Grok 4.1 - xAI's latest, thinking toggle available"},
@@ -280,7 +283,7 @@ class MessagesRequest(BaseModel):
     
     Reference: https://docs.anthropic.com/en/api/messages
     """
-    model: str = Field(..., description="Model to use (e.g., 'claude-sonnet-4-5')")
+    model: str = Field(..., description="Model to use (e.g., 'claude-sonnet-4-6')")
     max_tokens: int = Field(..., description="Maximum tokens to generate")
     messages: list[MessageParam] = Field(..., description="Conversation messages")
     

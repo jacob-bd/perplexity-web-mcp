@@ -6,14 +6,14 @@
 
 MCP server, CLI, and API-compatible interface for Perplexity AI's web interface.
 
-Use your Perplexity Pro/Max subscription to access premium models (GPT-5.2, Claude 4.6 Opus, Claude 4.5 Sonnet, Gemini 3, Grok 4.1, Kimi K2.5) from the terminal, through MCP tools, or as an API endpoint.
+Use your Perplexity Pro/Max subscription to access premium models (GPT-5.2, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3, Grok 4.1, Kimi K2.5) from the terminal, through MCP tools, or as an API endpoint.
 
 ## Features
 
 - **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm research`)
 - **MCP Server**: 17 MCP tools for AI agents with citations and rate limit checking
 - **API Server**: Drop-in Anthropic Messages API and OpenAI Chat Completions API
-- **10 Models**: GPT-5.2, Claude 4.6 Opus, Claude 4.5 Sonnet, Gemini 3 Flash/Pro, Grok 4.1, Kimi K2.5, Sonar
+- **10 Models**: GPT-5.2, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3 Flash/Pro, Grok 4.1, Kimi K2.5, Sonar
 - **Thinking Mode**: Extended thinking support for all compatible models
 - **Deep Research**: Full support for Perplexity's Deep Research mode
 - **Setup & Skill Management**: Auto-configure MCP for Claude, Cursor, Windsurf, Gemini CLI; install Agent Skills across platforms
@@ -227,7 +227,7 @@ pwm --ai                   # Print comprehensive AI-optimized reference
 | `sonar` | Perplexity | No | Perplexity's latest model |
 | `deep_research` | Perplexity | No | Monthly quota, in-depth reports |
 | `gpt52` | OpenAI | Toggle | GPT-5.2 |
-| `claude_sonnet` | Anthropic | Toggle | Claude 4.5 Sonnet |
+| `claude_sonnet` | Anthropic | Toggle | Claude 4.6 Sonnet |
 | `claude_opus` | Anthropic | Toggle | Claude 4.6 Opus (Max tier required) |
 | `gemini_flash` | Google | Toggle | Gemini 3 Flash |
 | `gemini_pro` | Google | Always | Gemini 3 Pro |
@@ -298,7 +298,7 @@ claude mcp add perplexity pwm-mcp
 | `pplx_deep_research` | In-depth reports with sources |
 | `pplx_sonar` | Perplexity Sonar |
 | `pplx_gpt52` / `pplx_gpt52_thinking` | GPT-5.2 |
-| `pplx_claude_sonnet` / `pplx_claude_sonnet_think` | Claude 4.5 Sonnet |
+| `pplx_claude_sonnet` / `pplx_claude_sonnet_think` | Claude 4.6 Sonnet |
 | `pplx_gemini_flash` / `pplx_gemini_flash_think` | Gemini 3 Flash |
 | `pplx_gemini_pro_think` | Gemini 3 Pro (thinking always on) |
 | `pplx_grok` / `pplx_grok_thinking` | Grok 4.1 |
@@ -348,7 +348,7 @@ export OPENAI_API_KEY=anything
 |----------|------------------|----------|
 | `perplexity-auto` | Best (auto-select) | No |
 | `gpt-5.2` | GPT-5.2 | Toggle |
-| `claude-sonnet-4-5` | Claude 4.5 Sonnet | Toggle |
+| `claude-sonnet-4-6` | Claude 4.6 Sonnet | Toggle |
 | `claude-opus-4-6` | Claude 4.6 Opus | Toggle |
 | `gemini-3-flash` | Gemini 3 Flash | Toggle |
 | `gemini-3-pro` | Gemini 3 Pro | Always |

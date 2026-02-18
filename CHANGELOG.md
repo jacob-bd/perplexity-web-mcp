@@ -4,6 +4,15 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.5.5] - 2026-02-17
+
+### Changed
+
+- **Claude Sonnet 4.5 replaced by Claude Sonnet 4.6** — Perplexity updated the model. Identifiers changed from `claude45sonnet` / `claude45sonnetthinking` to `claude46sonnet` / `claude46sonnetthinking` (verified via Chrome DevTools network capture). CLI name `claude_sonnet` unchanged.
+- API server model mappings updated: `claude-sonnet-4-6` is now the primary name, legacy `claude-sonnet-4-5` aliases still work.
+
+---
+
 ## [0.5.4] - 2026-02-16
 
 ### Fixed

@@ -156,7 +156,7 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_deep_research` | In-depth reports (monthly quota) |
 | `pplx_sonar` | Perplexity Sonar model |
 | `pplx_gpt52` / `_thinking` | OpenAI GPT-5.2 |
-| `pplx_claude_sonnet` / `_think` | Anthropic Claude 4.5 Sonnet |
+| `pplx_claude_sonnet` / `_think` | Anthropic Claude 4.6 Sonnet |
 | `pplx_gemini_flash` / `_think` | Google Gemini 3 Flash |
 | `pplx_gemini_pro_think` | Google Gemini 3 Pro (thinking always on) |
 | `pplx_grok` / `_thinking` | xAI Grok 4.1 |
@@ -176,7 +176,7 @@ For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools
 | sonar | Perplexity | No | Latest Perplexity model |
 | deep_research | Perplexity | No | Monthly quota |
 | gpt52 | OpenAI | Toggle | GPT-5.2 |
-| claude_sonnet | Anthropic | Toggle | Claude 4.5 Sonnet |
+| claude_sonnet | Anthropic | Toggle | Claude 4.6 Sonnet |
 | claude_opus | Anthropic | Toggle | Claude 4.6 Opus (Max tier) |
 | gemini_flash | Google | Toggle | Gemini 3 Flash |
 | gemini_pro | Google | Always | Gemini 3 Pro |

@@ -31,8 +31,8 @@ Complete list of models available through Perplexity Web MCP.
 - **CLI:** `pwm ask "query" -m gpt52` or `pwm ask "query" -m gpt52 -t`
 - **MCP:** `pplx_gpt52(query)` or `pplx_gpt52_thinking(query)`
 
-### claude_sonnet (Anthropic Claude 4.5 Sonnet)
-- **Identifier:** `claude45sonnet` / `claude45sonnetthinking`
+### claude_sonnet (Anthropic Claude 4.6 Sonnet)
+- **Identifier:** `claude46sonnet` / `claude46sonnetthinking`
 - **Thinking:** Toggle
 - **CLI:** `pwm ask "query" -m claude_sonnet` or `pwm ask "query" -m claude_sonnet -t`
 - **MCP:** `pplx_claude_sonnet(query)` or `pplx_claude_sonnet_think(query)`

@@ -600,7 +600,7 @@ class TestMCPServerHelpers:
         assert is_research_model(Models.DEEP_RESEARCH) is True
         assert is_research_model(Models.BEST) is False
         assert is_research_model(Models.GPT_52) is False
-        assert is_research_model(Models.CLAUDE_45_SONNET) is False
+        assert is_research_model(Models.CLAUDE_46_SONNET) is False
         assert is_research_model(Models.GROK_41) is False
         assert is_research_model(Models.SONAR) is False
         assert is_research_model(Models.GEMINI_3_FLASH) is False
@@ -695,7 +695,7 @@ class TestMCPServerHelpers:
 
         pro_models = [
             Models.BEST, Models.SONAR, Models.GPT_52, Models.GPT_52_THINKING,
-            Models.CLAUDE_45_SONNET, Models.CLAUDE_45_SONNET_THINKING,
+            Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING,
             Models.CLAUDE_46_OPUS, Models.CLAUDE_46_OPUS_THINKING,
             Models.GEMINI_3_FLASH, Models.GEMINI_3_FLASH_THINKING,
             Models.GEMINI_3_PRO_THINKING,

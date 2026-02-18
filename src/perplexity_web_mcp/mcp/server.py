@@ -101,14 +101,14 @@ def pplx_gpt52_thinking(query: str, source_focus: SourceFocusName = "web") -> st
 
 @mcp.tool
 def pplx_claude_sonnet(query: str, source_focus: SourceFocusName = "web") -> str:
-    """Claude Sonnet 4.5 - Anthropic's fast model."""
-    return ask(query, Models.CLAUDE_45_SONNET, source_focus)
+    """Claude Sonnet 4.6 - Anthropic's fast model."""
+    return ask(query, Models.CLAUDE_46_SONNET, source_focus)
 
 
 @mcp.tool
 def pplx_claude_sonnet_think(query: str, source_focus: SourceFocusName = "web") -> str:
-    """Claude Sonnet 4.5 Thinking - Anthropic's fast model with extended thinking."""
-    return ask(query, Models.CLAUDE_45_SONNET_THINKING, source_focus)
+    """Claude Sonnet 4.6 Thinking - Anthropic's fast model with extended thinking."""
+    return ask(query, Models.CLAUDE_46_SONNET_THINKING, source_focus)
 
 
 @mcp.tool

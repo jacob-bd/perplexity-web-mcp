@@ -73,10 +73,10 @@ class TestResolveModel:
         assert resolve_model("gpt52", thinking=True) is Models.GPT_52_THINKING
 
     def test_claude_sonnet_base(self) -> None:
-        assert resolve_model("claude_sonnet") is Models.CLAUDE_45_SONNET
+        assert resolve_model("claude_sonnet") is Models.CLAUDE_46_SONNET
 
     def test_claude_sonnet_thinking(self) -> None:
-        assert resolve_model("claude_sonnet", thinking=True) is Models.CLAUDE_45_SONNET_THINKING
+        assert resolve_model("claude_sonnet", thinking=True) is Models.CLAUDE_46_SONNET_THINKING
 
     def test_gemini_pro_always_thinking(self) -> None:
         # gemini_pro has no non-thinking variant

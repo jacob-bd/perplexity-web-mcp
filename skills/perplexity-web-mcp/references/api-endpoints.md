@@ -61,9 +61,9 @@ The API server accepts many model name variants:
 | `perplexity-auto`, `auto`, `best` | Perplexity Best (auto-select) |
 | `perplexity-sonar`, `sonar` | Perplexity Sonar |
 | `perplexity-research`, `deep-research` | Deep Research |
-| `claude-sonnet-4-5`, `claude-4-5-sonnet`, `claude` | Claude 4.5 Sonnet |
+| `claude-sonnet-4-6`, `claude-4-6-sonnet`, `claude` | Claude 4.6 Sonnet |
 | `claude-opus-4-6`, `claude-4-6-opus`, `opus` | Claude 4.6 Opus |
-| `claude-3-5-sonnet` (legacy) | Claude 4.5 Sonnet |
+| `claude-3-5-sonnet` (legacy) | Claude 4.6 Sonnet |
 | `claude-3-opus` (legacy) | Claude 4.6 Opus |
 | `gpt-5.2`, `gpt-52`, `gpt52` | GPT-5.2 |
 | `gemini-3-flash`, `gemini-flash` | Gemini 3 Flash |
@@ -85,7 +85,7 @@ export ANTHROPIC_AUTH_TOKEN=perplexity
 
 # 3. Run Claude Code with any model
 claude --model gpt-5.2
-claude --model claude-sonnet-4-5
+claude --model claude-sonnet-4-6
 claude --model gemini-3-pro
 ```
 

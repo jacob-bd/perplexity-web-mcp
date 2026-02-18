@@ -56,8 +56,8 @@ pplx_<model>(
 | `pplx_sonar` | Perplexity Sonar | No |
 | `pplx_gpt52` | GPT-5.2 | No |
 | `pplx_gpt52_thinking` | GPT-5.2 | Yes |
-| `pplx_claude_sonnet` | Claude 4.5 Sonnet | No |
-| `pplx_claude_sonnet_think` | Claude 4.5 Sonnet | Yes |
+| `pplx_claude_sonnet` | Claude 4.6 Sonnet | No |
+| `pplx_claude_sonnet_think` | Claude 4.6 Sonnet | Yes |
 | `pplx_gemini_flash` | Gemini 3 Flash | No |
 | `pplx_gemini_flash_think` | Gemini 3 Flash | Yes |
 | `pplx_gemini_pro_think` | Gemini 3 Pro | Yes (always) |

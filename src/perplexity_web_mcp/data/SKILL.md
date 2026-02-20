@@ -231,6 +231,11 @@ pwm ask "transformer improvements 2025" -m gemini_pro -s academic
 pwm ask "Apple revenue Q4 2025" -s finance
 ```
 
+### Launch Claude Code seamlessly (Integration)
+```bash
+pwm hack claude
+```
+
 ### Deep research pipeline
 ```bash
 pwm research "quantum computing breakthroughs 2026" --json > research.json

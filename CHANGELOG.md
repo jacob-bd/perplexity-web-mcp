@@ -4,6 +4,17 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.5.7] - 2026-02-20
+
+### Added
+
+- **`pwm hack claude` command** — Seamlessly launch Claude Code connected to the local API server.
+  - Dynamically binds to an ephemeral port to prevent port collisions with other instances.
+  - Automatically isolates Claude Code from existing `ANTHROPIC_` and `CLAUDE_` environment variables (e.g. Vertex configuration) to ensure clean connection.
+  - Removes `ANTHROPIC_AUTH_TOKEN` to prevent Claude Code's "Auth conflict" warnings.
+
+---
+
 ## [0.5.6] - 2026-02-20
 
 ### Changed

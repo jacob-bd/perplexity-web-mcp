@@ -4,6 +4,16 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.5.9] - 2026-02-20
+
+### Added
+
+- **`pwm hack claude --help`** — Added a dynamic help menu that lists all currently available models directly from the API server.
+- **`-m` intercept for `pwm hack claude`** — Added support for using `-m` (e.g., `pwm hack claude -m gpt52`), which is automatically converted to `--model` under the hood since Claude Code doesn't natively support the short flag.
+- **Vibe Coding Alert** — Added a disclaimer to the README emphasizing the project's educational nature.
+
+---
+
 ## [0.5.8] - 2026-02-20
 
 ### Fixed

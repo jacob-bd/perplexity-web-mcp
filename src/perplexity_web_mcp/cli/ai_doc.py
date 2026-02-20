@@ -71,6 +71,7 @@ USAGE & LIMITS
 HACK (INTEGRATION)
   pwm hack claude                     Launch Claude Code using Perplexity models
   pwm hack claude -m gpt52            Launch Claude Code with a specific model
+  pwm hack claude --help              List all available models for Claude Code
 
 OTHER
   pwm --ai                            Print this AI reference document

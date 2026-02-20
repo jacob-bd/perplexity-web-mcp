@@ -116,29 +116,20 @@ def _hack_claude(args: list[str]) -> int:
         env["ANTHROPIC_API_KEY"] = "perplexity"
 
         # 5. Handle model selection
-        # Claude Code validates --model against an internal allowlist of Anthropic models,
-        # rejecting names like "gemini-3.1-pro" or "gpt-5.2". To bypass this, we use the
-        # ANTHROPIC_MODEL env var instead, which sets the model in the API request body
-        # without client-side validation. This is the same approach Ollama uses.
+        # Pass the model to Claude Code via --model. Claude Code validates model names
+        # by querying the /v1/models endpoint on our API server (which is now running).
+        # This also enables mid-session model switching via /model inside Claude Code.
         claude_args = list(args)
-        model_name = None
         
         if "-m" in claude_args:
             idx = claude_args.index("-m")
-            if idx + 1 < len(claude_args):
-                model_name = claude_args[idx + 1]
-                del claude_args[idx:idx + 2]
-        elif "--model" in claude_args:
-            idx = claude_args.index("--model")
-            if idx + 1 < len(claude_args):
-                model_name = claude_args[idx + 1]
-                del claude_args[idx:idx + 2]
-        
-        env["ANTHROPIC_MODEL"] = model_name or "perplexity-auto"
+            claude_args[idx] = "--model"
+            
+        if "--model" not in claude_args:
+            claude_args.extend(["--model", "perplexity-auto"])
 
         # 6. Execute Claude Code interactively
         cmd = [claude_path] + claude_args
-        print(f"Model: {env['ANTHROPIC_MODEL']}", file=sys.stderr)
         result = subprocess.run(cmd, env=env)
         
         return result.returncode

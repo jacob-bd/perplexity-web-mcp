@@ -77,8 +77,8 @@ def _hack_claude(args: list[str]) -> int:
     server_process = subprocess.Popen(
         [sys.executable, "-m", "perplexity_web_mcp.api.server"],
         env=server_env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=sys.stderr,
+        stderr=sys.stderr,
     )
 
     try:
@@ -91,13 +91,14 @@ def _hack_claude(args: list[str]) -> int:
 
         # 4. Prepare environment variables
         env = os.environ.copy()
-        env["ANTHROPIC_BASE_URL"] = f"http://127.0.0.1:{port}"
         
-        # Claude Code prefers ANTHROPIC_API_KEY. Setting both API_KEY and AUTH_TOKEN 
-        # causes a warning about "Auth conflict". We just need one to be "perplexity".
-        if "ANTHROPIC_AUTH_TOKEN" in env:
-            del env["ANTHROPIC_AUTH_TOKEN"]
-            
+        # Clear out any existing Anthropic/Claude/Vertex variables to prevent conflicts
+        # (e.g., CLAUDE_CODE_USE_VERTEX or ANTHROPIC_VERTEX_PROJECT_ID)
+        for key in list(env.keys()):
+            if key.startswith("ANTHROPIC_") or key.startswith("CLAUDE_"):
+                del env[key]
+
+        env["ANTHROPIC_BASE_URL"] = f"http://127.0.0.1:{port}"
         env["ANTHROPIC_API_KEY"] = "perplexity"
 
         # 5. Check/Append model argument

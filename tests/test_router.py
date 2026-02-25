@@ -20,6 +20,7 @@ from perplexity_web_mcp.router import (
     QuotaState,
     RoutingDecision,
     SmartResponse,
+    SmartRouter,
     _classify,
     _classify_research,
 )
@@ -459,3 +460,290 @@ class TestSmartResponseToDict:
         resp = SmartResponse(answer="Test.", citations=[], routing=routing)
         d = resp.to_dict()
         assert d["citations"] == []
+
+
+# ============================================================================
+# 10. SmartRouter — QUICK intent
+# ============================================================================
+
+class TestSmartRouterQuick:
+    """QUICK always routes to Sonar, regardless of quota state."""
+
+    def setup_method(self) -> None:
+        self.router = SmartRouter()
+
+    def test_quick_healthy_quota(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=8)
+        decision = self.router.route(Intent.QUICK, limits)
+        assert decision.model == Models.SONAR
+        assert decision.model_name == "sonar"
+        assert decision.search_type == "standard"
+        assert decision.intent == Intent.QUICK
+        assert decision.was_downgraded is False
+
+    def test_quick_exhausted_pro(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=0)
+        decision = self.router.route(Intent.QUICK, limits)
+        assert decision.model == Models.SONAR
+        assert decision.model_name == "sonar"
+        assert decision.was_downgraded is False
+
+    def test_quick_critical_pro(self) -> None:
+        limits = RateLimits(remaining_pro=5, remaining_research=1)
+        decision = self.router.route(Intent.QUICK, limits)
+        assert decision.model == Models.SONAR
+        assert decision.was_downgraded is False
+
+    def test_quick_has_reason(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=8)
+        decision = self.router.route(Intent.QUICK, limits)
+        assert "Sonar" in decision.reason
+        assert "200" in decision.reason
+
+    def test_quick_has_quota_snapshot(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=8)
+        decision = self.router.route(Intent.QUICK, limits)
+        assert decision.quota_snapshot["pro_remaining"] == 200
+        assert decision.quota_snapshot["research_remaining"] == 8
+
+
+# ============================================================================
+# 11. SmartRouter — STANDARD intent
+# ============================================================================
+
+class TestSmartRouterStandard:
+    """STANDARD routes to auto (BEST) when pro available, Sonar when exhausted."""
+
+    def setup_method(self) -> None:
+        self.router = SmartRouter()
+
+    def test_standard_healthy(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=8)
+        decision = self.router.route(Intent.STANDARD, limits)
+        assert decision.model == Models.BEST
+        assert decision.model_name == "auto"
+        assert decision.search_type == "pro"
+        assert decision.was_downgraded is False
+
+    def test_standard_low(self) -> None:
+        limits = RateLimits(remaining_pro=45, remaining_research=8)
+        decision = self.router.route(Intent.STANDARD, limits)
+        assert decision.model == Models.BEST
+        assert decision.model_name == "auto"
+        assert decision.was_downgraded is False
+
+    def test_standard_critical_still_uses_best(self) -> None:
+        limits = RateLimits(remaining_pro=15, remaining_research=8)
+        decision = self.router.route(Intent.STANDARD, limits)
+        assert decision.model == Models.BEST
+        assert decision.model_name == "auto"
+        assert decision.was_downgraded is False
+
+    def test_standard_exhausted_downgrades_to_sonar(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=8)
+        decision = self.router.route(Intent.STANDARD, limits)
+        assert decision.model == Models.SONAR
+        assert decision.model_name == "sonar"
+        assert decision.search_type == "standard"
+        assert decision.was_downgraded is True
+
+    def test_standard_exhausted_reason(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=8)
+        decision = self.router.route(Intent.STANDARD, limits)
+        assert "exhausted" in decision.reason
+        assert "Sonar" in decision.reason
+
+
+# ============================================================================
+# 12. SmartRouter — DETAILED intent
+# ============================================================================
+
+class TestSmartRouterDetailed:
+    """DETAILED: premium when healthy/low, auto when critical, Sonar when exhausted."""
+
+    def setup_method(self) -> None:
+        self.router = SmartRouter()
+
+    def test_detailed_healthy_uses_premium(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=8)
+        decision = self.router.route(Intent.DETAILED, limits)
+        assert decision.model == Models.CLAUDE_46_SONNET
+        assert decision.model_name == "claude_sonnet"
+        assert decision.search_type == "pro"
+        assert decision.was_downgraded is False
+
+    def test_detailed_low_uses_premium(self) -> None:
+        limits = RateLimits(remaining_pro=45, remaining_research=8)
+        decision = self.router.route(Intent.DETAILED, limits)
+        assert decision.model == Models.CLAUDE_46_SONNET
+        assert decision.model_name == "claude_sonnet"
+        assert decision.was_downgraded is False
+
+    def test_detailed_critical_downgrades_to_auto(self) -> None:
+        limits = RateLimits(remaining_pro=15, remaining_research=8)
+        decision = self.router.route(Intent.DETAILED, limits)
+        assert decision.model == Models.BEST
+        assert decision.model_name == "auto"
+        assert decision.search_type == "pro"
+        assert decision.was_downgraded is True
+
+    def test_detailed_exhausted_downgrades_to_sonar(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=8)
+        decision = self.router.route(Intent.DETAILED, limits)
+        assert decision.model == Models.SONAR
+        assert decision.model_name == "sonar"
+        assert decision.search_type == "standard"
+        assert decision.was_downgraded is True
+
+    def test_detailed_critical_reason(self) -> None:
+        limits = RateLimits(remaining_pro=15, remaining_research=8)
+        decision = self.router.route(Intent.DETAILED, limits)
+        assert "critical" in decision.reason
+        assert "auto" in decision.reason
+
+    def test_detailed_exhausted_reason(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=8)
+        decision = self.router.route(Intent.DETAILED, limits)
+        assert "exhausted" in decision.reason
+        assert "Sonar" in decision.reason
+
+
+# ============================================================================
+# 13. SmartRouter — RESEARCH intent
+# ============================================================================
+
+class TestSmartRouterResearch:
+    """RESEARCH: deep_research when available, premium when research exhausted, Sonar when all exhausted."""
+
+    def setup_method(self) -> None:
+        self.router = SmartRouter()
+
+    def test_research_available(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=5)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.DEEP_RESEARCH
+        assert decision.model_name == "deep_research"
+        assert decision.search_type == "deep_research"
+        assert decision.was_downgraded is False
+
+    def test_research_low_still_uses_deep_research(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=3)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.DEEP_RESEARCH
+        assert decision.was_downgraded is False
+
+    def test_research_critical_still_uses_deep_research(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=1)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.DEEP_RESEARCH
+        assert decision.was_downgraded is False
+
+    def test_research_exhausted_pro_available_uses_premium(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=0)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.CLAUDE_46_SONNET
+        assert decision.model_name == "claude_sonnet"
+        assert decision.search_type == "pro"
+        assert decision.was_downgraded is True
+
+    def test_research_exhausted_pro_critical_uses_premium(self) -> None:
+        limits = RateLimits(remaining_pro=15, remaining_research=0)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.CLAUDE_46_SONNET
+        assert decision.model_name == "claude_sonnet"
+        assert decision.was_downgraded is True
+
+    def test_research_and_pro_exhausted_uses_sonar(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=0)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.SONAR
+        assert decision.model_name == "sonar"
+        assert decision.search_type == "standard"
+        assert decision.was_downgraded is True
+
+    def test_research_available_reason(self) -> None:
+        limits = RateLimits(remaining_pro=200, remaining_research=5)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert "research" in decision.reason.lower()
+        assert "5" in decision.reason
+
+    def test_research_all_exhausted_reason(self) -> None:
+        limits = RateLimits(remaining_pro=0, remaining_research=0)
+        decision = self.router.route(Intent.RESEARCH, limits)
+        assert "exhausted" in decision.reason
+        assert "Sonar" in decision.reason
+
+
+# ============================================================================
+# 14. SmartRouter — limits=None (optimistic routing)
+# ============================================================================
+
+class TestSmartRouterOptimistic:
+    """When limits=None (fetch failed), route optimistically with ideal models."""
+
+    def setup_method(self) -> None:
+        self.router = SmartRouter()
+
+    def test_optimistic_quick(self) -> None:
+        decision = self.router.route(Intent.QUICK, limits=None)
+        assert decision.model == Models.SONAR
+        assert decision.model_name == "sonar"
+        assert decision.search_type == "standard"
+        assert decision.was_downgraded is False
+        assert decision.quota_snapshot == {}
+
+    def test_optimistic_standard(self) -> None:
+        decision = self.router.route(Intent.STANDARD, limits=None)
+        assert decision.model == Models.BEST
+        assert decision.model_name == "auto"
+        assert decision.search_type == "pro"
+        assert decision.was_downgraded is False
+        assert decision.quota_snapshot == {}
+
+    def test_optimistic_detailed(self) -> None:
+        decision = self.router.route(Intent.DETAILED, limits=None)
+        assert decision.model == Models.CLAUDE_46_SONNET
+        assert decision.model_name == "claude_sonnet"
+        assert decision.search_type == "pro"
+        assert decision.was_downgraded is False
+        assert decision.quota_snapshot == {}
+
+    def test_optimistic_research(self) -> None:
+        decision = self.router.route(Intent.RESEARCH, limits=None)
+        assert decision.model == Models.DEEP_RESEARCH
+        assert decision.model_name == "deep_research"
+        assert decision.search_type == "deep_research"
+        assert decision.was_downgraded is False
+        assert decision.quota_snapshot == {}
+
+    def test_optimistic_reason_mentions_no_quota(self) -> None:
+        for intent in Intent:
+            decision = self.router.route(intent, limits=None)
+            assert "no quota data" in decision.reason
+
+    def test_optimistic_never_downgraded(self) -> None:
+        for intent in Intent:
+            decision = self.router.route(intent, limits=None)
+            assert decision.was_downgraded is False
+
+
+# ============================================================================
+# 15. SmartRouter — custom maximums
+# ============================================================================
+
+class TestSmartRouterCustomMax:
+    """Verify custom pro_max/research_max affect classification thresholds."""
+
+    def test_custom_pro_max_changes_threshold(self) -> None:
+        router = SmartRouter(pro_max=100)
+        limits = RateLimits(remaining_pro=15, remaining_research=8)
+        decision = router.route(Intent.DETAILED, limits)
+        assert decision.model == Models.CLAUDE_46_SONNET
+        assert decision.was_downgraded is False
+
+    def test_custom_research_max(self) -> None:
+        router = SmartRouter(research_max=5)
+        limits = RateLimits(remaining_pro=200, remaining_research=2)
+        decision = router.route(Intent.RESEARCH, limits)
+        assert decision.model == Models.DEEP_RESEARCH
+        assert decision.was_downgraded is False

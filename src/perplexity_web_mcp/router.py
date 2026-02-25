@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from .models import Model
+from .models import Model, Models
 from .rate_limits import RateLimits
 
 
@@ -153,3 +153,176 @@ class SmartResponse:
                 "quota_snapshot": self.routing.quota_snapshot,
             },
         }
+
+
+class SmartRouter:
+    """Quota-aware model router.
+
+    Selects the best model for a given intent based on current rate limits,
+    gracefully downgrading when quotas are low or exhausted.
+    """
+
+    __slots__ = ("_pro_max", "_research_max")
+
+    def __init__(self, pro_max: int = 300, research_max: int = 10) -> None:
+        self._pro_max = pro_max
+        self._research_max = research_max
+
+    def route(self, intent: Intent, limits: RateLimits | None = None) -> RoutingDecision:
+        if limits is None:
+            return self._route_optimistic(intent)
+
+        quota = QuotaState.from_rate_limits(limits, self._pro_max, self._research_max)
+        snapshot = quota.to_dict()
+
+        if intent == Intent.QUICK:
+            return self._quick(quota, snapshot)
+        if intent == Intent.STANDARD:
+            return self._standard(quota, snapshot)
+        if intent == Intent.DETAILED:
+            return self._detailed(quota, snapshot)
+        return self._research(quota, snapshot)
+
+    # ------------------------------------------------------------------
+    # Optimistic routing (no quota data available)
+    # ------------------------------------------------------------------
+
+    def _route_optimistic(self, intent: Intent) -> RoutingDecision:
+        ideal_map: dict[Intent, tuple[Model, str, str]] = {
+            Intent.QUICK: (Models.SONAR, "sonar", "standard"),
+            Intent.STANDARD: (Models.BEST, "auto", "pro"),
+            Intent.DETAILED: (Models.CLAUDE_46_SONNET, "claude_sonnet", "pro"),
+            Intent.RESEARCH: (Models.DEEP_RESEARCH, "deep_research", "deep_research"),
+        }
+        model, model_name, search_type = ideal_map[intent]
+        return RoutingDecision(
+            model=model,
+            model_name=model_name,
+            search_type=search_type,
+            intent=intent,
+            reason=f"{intent.value.capitalize()} query — using {model_name} (no quota data)",
+            was_downgraded=False,
+            quota_snapshot={},
+        )
+
+    # ------------------------------------------------------------------
+    # Per-intent routing with quota awareness
+    # ------------------------------------------------------------------
+
+    def _quick(self, quota: QuotaState, snapshot: dict[str, Any]) -> RoutingDecision:
+        return RoutingDecision(
+            model=Models.SONAR,
+            model_name="sonar",
+            search_type="standard",
+            intent=Intent.QUICK,
+            reason=f"Quick lookup — using Sonar (pro: {quota.pro_remaining}/{self._pro_max})",
+            was_downgraded=False,
+            quota_snapshot=snapshot,
+        )
+
+    def _standard(self, quota: QuotaState, snapshot: dict[str, Any]) -> RoutingDecision:
+        if quota.pro_level != QuotaLevel.EXHAUSTED:
+            return RoutingDecision(
+                model=Models.BEST,
+                model_name="auto",
+                search_type="pro",
+                intent=Intent.STANDARD,
+                reason=(
+                    f"Standard query — pro {quota.pro_level.value}"
+                    f" ({quota.pro_remaining}/{self._pro_max})"
+                ),
+                was_downgraded=False,
+                quota_snapshot=snapshot,
+            )
+        return RoutingDecision(
+            model=Models.SONAR,
+            model_name="sonar",
+            search_type="standard",
+            intent=Intent.STANDARD,
+            reason=(
+                f"Standard query — pro exhausted, downgraded to Sonar"
+                f" ({quota.pro_remaining}/{self._pro_max})"
+            ),
+            was_downgraded=True,
+            quota_snapshot=snapshot,
+        )
+
+    def _detailed(self, quota: QuotaState, snapshot: dict[str, Any]) -> RoutingDecision:
+        if quota.pro_level in (QuotaLevel.HEALTHY, QuotaLevel.LOW):
+            return RoutingDecision(
+                model=Models.CLAUDE_46_SONNET,
+                model_name="claude_sonnet",
+                search_type="pro",
+                intent=Intent.DETAILED,
+                reason=(
+                    f"Detailed query — pro {quota.pro_level.value}"
+                    f" ({quota.pro_remaining}/{self._pro_max})"
+                ),
+                was_downgraded=False,
+                quota_snapshot=snapshot,
+            )
+        if quota.pro_level == QuotaLevel.CRITICAL:
+            return RoutingDecision(
+                model=Models.BEST,
+                model_name="auto",
+                search_type="pro",
+                intent=Intent.DETAILED,
+                reason=(
+                    f"Detailed query — pro critical, downgraded to auto"
+                    f" ({quota.pro_remaining}/{self._pro_max})"
+                ),
+                was_downgraded=True,
+                quota_snapshot=snapshot,
+            )
+        return RoutingDecision(
+            model=Models.SONAR,
+            model_name="sonar",
+            search_type="standard",
+            intent=Intent.DETAILED,
+            reason=(
+                f"Detailed query — pro exhausted, downgraded to Sonar"
+                f" ({quota.pro_remaining}/{self._pro_max})"
+            ),
+            was_downgraded=True,
+            quota_snapshot=snapshot,
+        )
+
+    def _research(self, quota: QuotaState, snapshot: dict[str, Any]) -> RoutingDecision:
+        if quota.research_level != QuotaLevel.EXHAUSTED:
+            return RoutingDecision(
+                model=Models.DEEP_RESEARCH,
+                model_name="deep_research",
+                search_type="deep_research",
+                intent=Intent.RESEARCH,
+                reason=(
+                    f"Research query — research {quota.research_level.value}"
+                    f" ({quota.research_remaining}/{self._research_max})"
+                ),
+                was_downgraded=False,
+                quota_snapshot=snapshot,
+            )
+        if quota.pro_level != QuotaLevel.EXHAUSTED:
+            return RoutingDecision(
+                model=Models.CLAUDE_46_SONNET,
+                model_name="claude_sonnet",
+                search_type="pro",
+                intent=Intent.RESEARCH,
+                reason=(
+                    f"Research query — research exhausted, using premium model"
+                    f" (pro: {quota.pro_remaining}/{self._pro_max})"
+                ),
+                was_downgraded=True,
+                quota_snapshot=snapshot,
+            )
+        return RoutingDecision(
+            model=Models.SONAR,
+            model_name="sonar",
+            search_type="standard",
+            intent=Intent.RESEARCH,
+            reason=(
+                f"Research query — research and pro exhausted, downgraded to Sonar"
+                f" ({quota.pro_remaining}/{self._pro_max})"
+            ),
+            was_downgraded=True,
+            quota_snapshot=snapshot,
+        )

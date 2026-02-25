@@ -6,6 +6,7 @@ Subcommands:
     pwm login           Authenticate with Perplexity (interactive or non-interactive)
     pwm ask "query"     Ask a question (web search + AI model)
     pwm research "q"    Deep research on a topic
+    pwm api             Start the Anthropic/OpenAI API-compatible server
     pwm usage           Check remaining rate limits and quotas
     pwm hack claude     Launch Claude Code connected to Perplexity models
     pwm skill           Manage skill installation across AI platforms
@@ -43,6 +44,7 @@ def _print_help() -> None:
         "  pwm research <query> [options]  Deep research on a topic\n"
         "  pwm login [options]             Authenticate with Perplexity\n"
         "  pwm usage [--refresh]           Check remaining rate limits and quotas\n"
+        "  pwm api [options]               Start API server (Anthropic/OpenAI compatible)\n"
         "  pwm setup [add|remove|list]     Configure MCP server for AI tools\n"
         "  pwm hack claude [options]       Launch Claude Code using Perplexity models\n"
         "  pwm skill [install|list|...]    Manage skill across AI platforms\n"
@@ -58,6 +60,12 @@ def _print_help() -> None:
         "  --json                Output as JSON (answer + citations)\n"
         "  --no-citations        Suppress citation URLs\n"
         "  --intent INTENT       Routing intent: quick, standard, detailed, research [default: standard]\n"
+        "\n"
+        "API options:\n"
+        "  --host HOST           Bind address [default: 0.0.0.0]\n"
+        "  -p, --port PORT       Port number [default: 8080]\n"
+        "  --model MODEL         Default model [default: auto]\n"
+        "  --log-level LEVEL     Log level [default: info]\n"
         "\n"
         "Research options:\n"
         f"  -s, --source SOURCE   Source focus ({', '.join(SOURCE_FOCUS_NAMES)}) [default: web]\n"
@@ -90,6 +98,58 @@ def _print_version() -> None:
 
     version = metadata.version("perplexity-web-mcp-cli")
     print(f"perplexity-web-mcp-cli {version}")
+
+
+def _cmd_api(args: list[str]) -> int:
+    """Handle: pwm api [options]"""
+    host = "0.0.0.0"
+    port = 8080
+    log_level = "INFO"
+    default_model = "auto"
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in ("--host",) and i + 1 < len(args):
+            host = args[i + 1]
+            i += 2
+        elif arg in ("-p", "--port") and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif arg in ("--log-level",) and i + 1 < len(args):
+            log_level = args[i + 1]
+            i += 2
+        elif arg in ("--model",) and i + 1 < len(args):
+            default_model = args[i + 1]
+            i += 2
+        elif arg in ("--help", "-h"):
+            print(
+                "pwm api - Start the Anthropic/OpenAI API-compatible server\n"
+                "\n"
+                "Usage: pwm api [options]\n"
+                "\n"
+                "Options:\n"
+                "  --host HOST           Bind address [default: 0.0.0.0]\n"
+                "  -p, --port PORT       Port number [default: 8080]\n"
+                "  --model MODEL         Default model [default: auto]\n"
+                "  --log-level LEVEL     Log level: debug, info, warning, error [default: info]\n"
+            )
+            return 0
+        else:
+            print(f"Unknown option: {arg}", file=sys.stderr)
+            return 1
+
+    import os
+
+    os.environ.setdefault("HOST", host)
+    os.environ.setdefault("PORT", str(port))
+    os.environ.setdefault("LOG_LEVEL", log_level)
+    os.environ.setdefault("DEFAULT_MODEL", default_model)
+
+    from perplexity_web_mcp.api import run_server
+
+    run_server()
+    return 0
 
 
 def _cmd_ask(args: list[str]) -> int:
@@ -304,6 +364,9 @@ def main() -> NoReturn:
 
         print_ai_doc()
         sys.exit(0)
+
+    if first == "api":
+        sys.exit(_cmd_api(args[1:]))
 
     if first == "ask":
         sys.exit(_cmd_ask(args[1:]))

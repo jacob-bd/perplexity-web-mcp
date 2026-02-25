@@ -46,8 +46,12 @@ def cmd_doctor(args: list[str]) -> int:
     pwm_mcp_path = shutil.which("pwm-mcp")
     all_ok = _check("pwm-mcp", pwm_mcp_path is not None, pwm_mcp_path or "not in PATH", "pip install -e '.[mcp]'") and all_ok
 
-    pwm_api_path = shutil.which("pwm-api")
-    _check("pwm-api", pwm_api_path is not None, pwm_api_path or "not in PATH", "pip install -e '.[api]'")
+    try:
+        import perplexity_web_mcp.api.server  # noqa: F401
+
+        _check("pwm api", True, "module available", "")
+    except ImportError:
+        _check("pwm api", False, "module not found", "pip install -e .")
 
     # --- Authentication ---
     print("\nAuthentication")

@@ -83,13 +83,20 @@ def _hack_claude(args: list[str]) -> int:
 
     # 2. Launch API Server
     port = _get_free_port()
-    print(f"Starting local API server (pwm-api) on port {port}...", file=sys.stderr)
-    
+    print(f"Starting local API server on port {port}...", file=sys.stderr)
+
     server_env = os.environ.copy()
     server_env["PORT"] = str(port)
-    
+
+    pwm_path = shutil.which("pwm")
+    if not pwm_path:
+        pwm_path = sys.executable
+        server_cmd = [pwm_path, "-m", "perplexity_web_mcp.api.server"]
+    else:
+        server_cmd = [pwm_path, "api", "--port", str(port)]
+
     server_process = subprocess.Popen(
-        [sys.executable, "-m", "perplexity_web_mcp.api.server"],
+        server_cmd,
         env=server_env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

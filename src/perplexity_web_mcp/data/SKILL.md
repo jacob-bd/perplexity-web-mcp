@@ -115,7 +115,7 @@ User wants to...
 |   +-- pwm-mcp
 |
 +-- Start API server (for Claude Code / OpenAI SDK)
-|   +-- pwm-api
+|   +-- pwm api [--port PORT]
 ```
 
 ## CLI Commands

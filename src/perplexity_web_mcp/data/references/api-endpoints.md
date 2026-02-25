@@ -1,13 +1,13 @@
 # API Server Reference
 
-The API server (`pwm-api`) provides Anthropic Messages API and OpenAI Chat
+The API server (`pwm api`) provides Anthropic Messages API and OpenAI Chat
 Completions API compatible endpoints, allowing Claude Code, OpenAI SDK clients,
 and other tools to use Perplexity models as a backend.
 
 ## Starting the Server
 
 ```bash
-pwm-api
+pwm api
 ```
 
 Default: `http://localhost:8080`
@@ -77,7 +77,7 @@ Unknown model names fall back to `perplexity-auto`.
 
 ```bash
 # 1. Start the API server
-pwm-api
+pwm api
 
 # 2. Configure environment
 export ANTHROPIC_BASE_URL=http://localhost:8080
@@ -93,7 +93,7 @@ claude --model gemini-3-pro
 
 ```bash
 # 1. Start the API server
-pwm-api
+pwm api
 
 # 2. Configure environment
 export OPENAI_BASE_URL=http://localhost:8080/v1

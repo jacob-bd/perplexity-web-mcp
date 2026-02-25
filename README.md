@@ -192,7 +192,7 @@ pwm usage --refresh        # Force-refresh from Perplexity servers
 
 ### Hack
 
-Seamlessly launch external AI tools connected to the Perplexity API server. This automatically starts the local `pwm-api` server in the background, sets the required environment variables, and launches the tool.
+Seamlessly launch external AI tools connected to the Perplexity API server. This automatically starts the local `pwm api` server in the background, sets the required environment variables, and launches the tool.
 
 ```bash
 pwm hack claude            # Launch Claude Code
@@ -341,7 +341,7 @@ Use Perplexity models through Anthropic or OpenAI compatible API endpoints.
 ### Start the server
 
 ```bash
-pwm-api
+pwm api
 ```
 
 ### Anthropic API (Claude Code)

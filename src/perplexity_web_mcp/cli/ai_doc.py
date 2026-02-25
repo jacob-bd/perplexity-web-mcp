@@ -185,10 +185,10 @@ Tokens last ~30 days. Re-authenticate when you get 403 errors.
 Check status: pwm login --check  OR  pplx_auth_status()
 
 ================================================================================
-API SERVER (pwm-api)
+API SERVER (pwm api)
 ================================================================================
 
-Start: pwm-api
+Start: pwm api
 Default: http://localhost:8080
 
 Endpoints:

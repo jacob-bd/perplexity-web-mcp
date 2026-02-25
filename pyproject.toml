@@ -107,7 +107,6 @@ skip-magic-trailing-comma = false
 [project.scripts]
 pwm = "perplexity_web_mcp.cli.main:main"
 pwm-mcp = "perplexity_web_mcp.mcp:run_server"
-pwm-api = "perplexity_web_mcp.api:run_server"
 
 [tool.uv.build-backend]
 module-name = "perplexity_web_mcp"

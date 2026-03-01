@@ -21,6 +21,7 @@ from __future__ import annotations
 import sys
 from typing import NoReturn
 
+from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
 from perplexity_web_mcp.shared import (
     MODEL_MAP,
     MODEL_NAMES,
@@ -198,47 +199,51 @@ def _cmd_ask(args: list[str]) -> int:
         print(f"Error: Unknown source '{source}'. Available: {', '.join(SOURCE_FOCUS_NAMES)}", file=sys.stderr)
         return 1
 
-    if explicit_model:
-        if model_name not in MODEL_MAP:
-            print(f"Error: Unknown model '{model_name}'. Available: {', '.join(MODEL_NAMES)}", file=sys.stderr)
-            return 1
+    try:
+        if explicit_model:
+            if model_name not in MODEL_MAP:
+                print(f"Error: Unknown model '{model_name}'. Available: {', '.join(MODEL_NAMES)}", file=sys.stderr)
+                return 1
 
-        model = resolve_model(model_name, thinking=thinking)
-        result = ask(query, model, source)
+            model = resolve_model(model_name, thinking=thinking)
+            result = ask(query, model, source)
 
-        if json_output:
-            import orjson
+            if json_output:
+                import orjson
 
-            parts = result.split("\n\nCitations:")
-            answer_text = parts[0]
-            citations = []
-            if len(parts) > 1:
-                for line in parts[1].strip().split("\n"):
-                    line = line.strip()
-                    if line.startswith("[") and "]: " in line:
-                        url = line.split("]: ", 1)[1]
-                        citations.append(url)
-            data = {"answer": answer_text, "citations": citations, "model": model_name, "source": source}
-            sys.stdout.buffer.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
-            sys.stdout.buffer.write(b"\n")
-        elif no_citations:
-            parts = result.split("\n\nCitations:")
-            print(parts[0])
+                parts = result.split("\n\nCitations:")
+                answer_text = parts[0]
+                citations = []
+                if len(parts) > 1:
+                    for line in parts[1].strip().split("\n"):
+                        line = line.strip()
+                        if line.startswith("[") and "]: " in line:
+                            url = line.split("]: ", 1)[1]
+                            citations.append(url)
+                data = {"answer": answer_text, "citations": citations, "model": model_name, "source": source}
+                sys.stdout.buffer.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+                sys.stdout.buffer.write(b"\n")
+            elif no_citations:
+                parts = result.split("\n\nCitations:")
+                print(parts[0])
+            else:
+                print(result)
         else:
-            print(result)
-    else:
-        from perplexity_web_mcp.shared import smart_ask
+            from perplexity_web_mcp.shared import smart_ask
 
-        response = smart_ask(query, intent=intent, source_focus=source)
-        if json_output:
-            import orjson
+            response = smart_ask(query, intent=intent, source_focus=source)
+            if json_output:
+                import orjson
 
-            sys.stdout.buffer.write(orjson.dumps(response.to_dict(), option=orjson.OPT_INDENT_2))
-            sys.stdout.buffer.write(b"\n")
-        elif no_citations:
-            print(response.answer)
-        else:
-            print(response.format_response())
+                sys.stdout.buffer.write(orjson.dumps(response.to_dict(), option=orjson.OPT_INDENT_2))
+                sys.stdout.buffer.write(b"\n")
+            elif no_citations:
+                print(response.answer)
+            else:
+                print(response.format_response())
+    except (AuthenticationError, RateLimitError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
 
     return 0
 
@@ -268,7 +273,12 @@ def _cmd_research(args: list[str]) -> int:
             return 1
 
     model = Models.DEEP_RESEARCH
-    result = ask(query, model, source)
+
+    try:
+        result = ask(query, model, source)
+    except (AuthenticationError, RateLimitError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
 
     if json_output:
         import orjson

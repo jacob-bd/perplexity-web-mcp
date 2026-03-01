@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 SOURCE_FOCUS_MAP: dict[str, list[SourceFocus]] = {
+    "none": [],
     "web": [SourceFocus.WEB],
     "academic": [SourceFocus.ACADEMIC],
     "social": [SourceFocus.SOCIAL],
@@ -49,7 +50,7 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "kimi": (Models.KIMI_K25_THINKING, Models.KIMI_K25_THINKING),
 }
 
-SourceFocusName = Literal["web", "academic", "social", "finance", "all"]
+SourceFocusName = Literal["none", "web", "academic", "social", "finance", "all"]
 ModelName = Literal[
     "auto", "sonar", "deep_research", "gpt52", "claude_sonnet",
     "claude_opus", "gemini_flash", "gemini_pro", "grok", "kimi",
@@ -106,6 +107,20 @@ def get_client() -> Perplexity:
             _client = Perplexity(token, config=config)
             _client_token = token
         return _client
+
+
+def reset_client() -> None:
+    """Invalidate the cached client so the next get_client() re-reads the token file."""
+    global _client, _client_token  # noqa: PLW0603
+
+    with _client_lock:
+        if _client is not None:
+            try:
+                _client.close()
+            except Exception:
+                pass
+        _client = None
+        _client_token = None
 
 
 # ---------------------------------------------------------------------------
@@ -189,49 +204,77 @@ def get_limit_context_for_error() -> str:
 # Core ask function (shared by MCP and CLI)
 # ---------------------------------------------------------------------------
 
+def _execute_query(
+    query: str, model: Model, sources: list[SourceFocus],
+    search_focus: SearchFocus = SearchFocus.WEB,
+) -> tuple[str, list[SearchResultItem]]:
+    """Run a single query attempt. Returns (answer_text, search_results).
+
+    Raises AuthenticationError, RateLimitError, or other exceptions on failure.
+    """
+    client = get_client()
+    conversation = client.create_conversation(
+        ConversationConfig(
+            model=model,
+            citation_mode=CitationMode.DEFAULT,
+            search_focus=search_focus,
+            source_focus=sources,
+        )
+    )
+    conversation.ask(query)
+
+    cache = get_limit_cache()
+    if cache:
+        cache.invalidate_rate_limits()
+
+    answer = conversation.answer or "No answer received"
+    return answer, conversation.search_results or []
+
+
 def ask(query: str, model: Model, source_focus: SourceFocusName = "web") -> str:
     """Execute a query with a specific model.
 
-    Returns the answer text with citations appended, or an error message.
-    This is the single implementation used by both MCP tools and CLI commands.
+    Returns the answer text with citations appended.
+    Raises AuthenticationError or RateLimitError on auth/rate-limit failures
+    so MCP servers can signal isError:true to clients.
     """
+    from .exceptions import AuthenticationError, RateLimitError
+
     limit_error = check_limits_before_query(model)
     if limit_error:
         return limit_error
 
-    client = get_client()
     sources = SOURCE_FOCUS_MAP.get(source_focus, [SourceFocus.WEB])
+    search_mode = SearchFocus.WRITING if source_focus == "none" else SearchFocus.WEB
 
     try:
-        conversation = client.create_conversation(
-            ConversationConfig(
-                model=model,
-                citation_mode=CitationMode.DEFAULT,
-                search_focus=SearchFocus.WEB,
-                source_focus=sources,
-            )
-        )
-
-        conversation.ask(query)
-
-        cache = get_limit_cache()
-        if cache:
-            cache.invalidate_rate_limits()
-
-        answer = conversation.answer or "No answer received"
-
-        response_parts = [answer]
-
-        if conversation.search_results:
-            response_parts.append("\n\nCitations:")
-            for i, result in enumerate(conversation.search_results, 1):
-                url = result.url or ""
-                response_parts.append(f"\n[{i}]: {url}")
-
-        return "".join(response_parts)
-
+        answer, search_results = _execute_query(query, model, sources, search_mode)
+    except AuthenticationError:
+        old_token = _client_token
+        reset_client()
+        new_token = load_token()
+        if new_token and new_token != old_token:
+            try:
+                answer, search_results = _execute_query(query, model, sources, search_mode)
+            except (AuthenticationError, RateLimitError) as retry_err:
+                raise type(retry_err)(_format_error(retry_err)) from retry_err
+            except Exception as retry_err:
+                return _format_error(retry_err)
+        else:
+            raise
+    except RateLimitError:
+        raise
     except Exception as error:
         return _format_error(error)
+
+    response_parts = [answer]
+    if search_results:
+        response_parts.append("\n\nCitations:")
+        for i, result in enumerate(search_results, 1):
+            url = result.url or ""
+            response_parts.append(f"\n[{i}]: {url}")
+
+    return "".join(response_parts)
 
 
 def _format_error(error: Exception) -> str:
@@ -299,7 +342,11 @@ def smart_ask(
 
     Unlike ask(), which requires an explicit model, smart_ask() picks the
     best model for the given *intent* based on current rate limits.
+    Raises AuthenticationError or RateLimitError so MCP servers can signal
+    isError:true to clients.
     """
+    from .exceptions import AuthenticationError, RateLimitError
+
     cache = get_limit_cache()
     limits = cache.get_rate_limits() if cache else None
 
@@ -309,32 +356,32 @@ def smart_ask(
         parsed_intent = Intent.STANDARD
 
     decision = _router.route(parsed_intent, limits)
-
-    client = get_client()
     sources = SOURCE_FOCUS_MAP.get(source_focus, [SourceFocus.WEB])
+    search_mode = SearchFocus.WRITING if source_focus == "none" else SearchFocus.WEB
 
     try:
-        conversation = client.create_conversation(
-            ConversationConfig(
-                model=decision.model,
-                citation_mode=CitationMode.DEFAULT,
-                search_focus=SearchFocus.WEB,
-                source_focus=sources,
-            )
-        )
-
-        conversation.ask(query)
-
-        rate_cache = get_limit_cache()
-        if rate_cache:
-            rate_cache.invalidate_rate_limits()
-
-        answer = conversation.answer or "No answer received"
-        citations = [r.url or "" for r in (conversation.search_results or [])]
-
-        return SmartResponse(answer=answer, citations=citations, routing=decision)
-
+        answer, search_results = _execute_query(query, decision.model, sources, search_mode)
+    except AuthenticationError:
+        old_token = _client_token
+        reset_client()
+        new_token = load_token()
+        if new_token and new_token != old_token:
+            try:
+                answer, search_results = _execute_query(query, decision.model, sources, search_mode)
+            except (AuthenticationError, RateLimitError) as retry_err:
+                raise type(retry_err)(_format_error(retry_err)) from retry_err
+            except Exception as retry_err:
+                return SmartResponse(
+                    answer=_format_error(retry_err), citations=[], routing=decision
+                )
+        else:
+            raise
+    except RateLimitError:
+        raise
     except Exception as error:
         return SmartResponse(
             answer=_format_error(error), citations=[], routing=decision
         )
+
+    citations = [r.url or "" for r in search_results]
+    return SmartResponse(answer=answer, citations=citations, routing=decision)

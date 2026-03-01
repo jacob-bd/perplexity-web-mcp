@@ -1,8 +1,8 @@
 [project]
 name = "perplexity-web-mcp-cli"
-version = "0.7.1"
+version = "0.7.2"
 description = "CLI, MCP server, and Anthropic/OpenAI API-compatible interface for Perplexity AI."
-authors = [{ name = "Jacob Ben David" }]
+authors = [{ name = "Jacob BD" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.10,<3.14"

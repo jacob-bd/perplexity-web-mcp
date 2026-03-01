@@ -4,6 +4,49 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.7.2] - 2026-03-01
+
+### Added
+
+- **No-search writing mode** (`source_focus="none"`) — Query Perplexity models using only their training data, without web search. Available across CLI (`-s none`), MCP tools, and API server. Uses the existing `SearchFocus.WRITING` mode internally.
+- **`pwm setup add json`** — Interactive JSON config generator for manual MCP setup. Walks through config type (uvx / regular), command format (name / full path), and scope (server entry / full file), then prints copyable JSON with optional clipboard copy on macOS.
+
+### Fixed
+
+- **MCP `isError` propagation** — `AuthenticationError` and `RateLimitError` now propagate as exceptions from `ask()` and `smart_ask()` instead of being returned as plain text. FastMCP sets `isError: true` on the response, allowing AI agents to programmatically detect auth and rate-limit failures.
+- **Token-from-disk retry** — On `AuthenticationError`, the cached client is invalidated and the token file is re-read. If the token changed (user re-authenticated via `pwm login`), the query is retried once automatically.
+- **Claude Code setup scope** — `pwm setup add claude-code` now uses `-s user` scope flag and `--` separator, ensuring the MCP server is registered at user scope (persists across projects).
+- **Gemini CLI trust flag** — `pwm setup add gemini` now includes `"trust": true` in the config entry, preventing Gemini CLI from prompting for trust confirmation on every use.
+- **Antigravity skill project path** — Corrected project-level skill path from `.gemini/antigravity/skills/` to `.agent/skills/` (matching sibling projects and Antigravity docs).
+
+### Changed
+
+- CLI `_cmd_ask()` and `_cmd_research()` now catch `AuthenticationError` and `RateLimitError` with clean error messages to stderr instead of unhandled tracebacks.
+- All documentation surfaces (SKILL.md, `pwm --ai`, MCP tool docstrings) updated with `source_focus="none"` option, examples, and workflow patterns.
+
+---
+
+## [0.7.1] - 2026-02-22
+
+### Changed
+
+- **`pwm api` merged into main CLI** — The standalone `pwm-api` entry point is replaced by `pwm api` subcommand. Options: `--host`, `--port`, `--model`, `--log-level`.
+
+---
+
+## [0.7.0] - 2026-02-21
+
+### Added
+
+- **Smart quota-aware routing** (`pplx_smart_query` MCP tool, `smart_ask()` function) — Automatically selects the best model and search type based on current rate limits. Supports four intents: `quick`, `standard`, `detailed`, `research`.
+- **`SmartRouter`** — Routing engine with quota classification (healthy/low/critical/exhausted) and graceful downgrade logic.
+- **`pwm ask` without `-m`** — CLI now uses smart routing by default when no model is specified. Added `--intent` flag.
+- **Router data structures** — `QuotaState`, `RoutingDecision`, `SmartResponse`, `SmartRouter` in `router.py`.
+- Exported router types from package `__init__.py`.
+- SKILL.md updated with smart routing guidance.
+
+---
+
 ## [0.6.0] - 2026-02-20
 
 ### Changed

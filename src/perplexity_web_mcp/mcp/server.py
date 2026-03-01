@@ -34,7 +34,8 @@ mcp = FastMCP(
         "'detailed' for complex analysis, or 'research' for deep research.\n\n"
         "For explicit model control, use pplx_query or model-specific tools "
         "(pplx_gpt52, pplx_claude_sonnet, etc.). These bypass quota-aware routing.\n\n"
-        "All tools support source_focus: web, academic, social, finance, all.\n\n"
+        "All tools support source_focus: none, web, academic, social, finance, all.\n"
+        "Use source_focus='none' for model-only queries without web search.\n\n"
         "USAGE LIMITS: pplx_smart_query handles this automatically. "
         "Call pplx_usage to see raw quota numbers.\n\n"
         "AUTHENTICATION: If you get a 403 error or 'token expired' message:\n"
@@ -65,7 +66,8 @@ def pplx_query(
                claude_opus, gemini_flash, gemini_pro, grok, kimi
         thinking: Enable extended thinking mode (available for gpt52, claude_sonnet,
                   claude_opus, gemini_flash, grok)
-        source_focus: Source type - web, academic, social, finance, all
+        source_focus: Source type - none (model only, no search), web, academic,
+                      social, finance, all
     """
     selected_model = resolve_model(model, thinking=thinking)
     return ask(query, selected_model, source_focus)
@@ -172,7 +174,8 @@ def pplx_smart_query(
     Args:
         query: The question to ask
         intent: Query complexity hint — quick, standard, detailed, research
-        source_focus: Source type — web, academic, social, finance, all
+        source_focus: Source type — none (model only, no search), web, academic,
+                      social, finance, all
     """
     result = smart_ask(query, intent=intent, source_focus=source_focus)
     return result.format_response()

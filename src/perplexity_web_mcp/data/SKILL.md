@@ -8,8 +8,8 @@ description: >-
   or wants to query premium models like GPT-5.2, Claude, Gemini, Grok through
   Perplexity's web interface.
 metadata:
-  version: "0.7.0"
-  author: "Jacob Ben David"
+  version: "0.7.2"
+  author: "Jacob BD"
 ---
 
 # Perplexity Web MCP
@@ -139,6 +139,7 @@ pwm ask "Prove sqrt(2) is irrational" -m claude_sonnet --thinking
 
 Focus on specific sources with `-s`:
 ```bash
+pwm ask "review this code for bugs" -s none            # Model only, no web search
 pwm ask "transformer improvements 2025" -s academic   # Scholarly papers
 pwm ask "best mechanical keyboard" -s social           # Reddit/Twitter
 pwm ask "Apple revenue Q4 2025" -s finance             # SEC EDGAR filings
@@ -202,6 +203,9 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_auth_request_code` | Send verification code |
 | `pplx_auth_complete` | Complete auth with code |
 
+All query tools accept `source_focus`: `"none"`, `"web"`, `"academic"`, `"social"`, `"finance"`, `"all"`.
+Use `source_focus="none"` for model-only queries without web search.
+
 For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools.md)
 
 ## Models
@@ -225,6 +229,7 @@ For full model details: See [references/models.md](references/models.md)
 
 | Option | Description | Example Use Case |
 |--------|-------------|------------------|
+| `none` | No search -- model training data only | Code review, writing, analysis without web |
 | `web` | General web search (default) | News, general questions |
 | `academic` | Academic papers, journals | Research, citations, scientific topics |
 | `social` | Reddit, Twitter, forums | Opinions, recommendations, community |
@@ -245,6 +250,12 @@ For full model details: See [references/models.md](references/models.md)
 ### Quick web search
 ```bash
 pwm ask "What happened in AI today?"
+```
+
+### Model-only query (no web search)
+```bash
+pwm ask "Explain the visitor pattern in OOP" -s none
+pwm ask "Write a Python decorator for retry logic" -m claude_sonnet -s none
 ```
 
 ### Specific model

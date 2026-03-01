@@ -68,7 +68,7 @@ def _get_targets() -> list[SkillTarget]:
             name="antigravity",
             description="Google Antigravity IDE",
             user_dir=home / ".gemini" / "antigravity" / "skills",
-            project_dir=".gemini/antigravity/skills",
+            project_dir=".agent/skills",
         ),
         SkillTarget(
             name="cline",

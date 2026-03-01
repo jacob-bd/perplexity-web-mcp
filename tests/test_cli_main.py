@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from perplexity_web_mcp.cli.main import _cmd_ask, _cmd_research, _cmd_usage, main
+from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
 
 
 # ============================================================================
@@ -190,3 +191,51 @@ class TestCmdUsage:
         out = capsys.readouterr().out
         assert "RATE LIMITS" in out
         assert "100 remaining" in out
+
+
+# ============================================================================
+# 5. CLI error handling for AuthenticationError / RateLimitError
+# ============================================================================
+
+
+class TestCmdAskErrorHandling:
+    """Verify CLI catches auth/rate-limit errors cleanly instead of crashing."""
+
+    @patch("perplexity_web_mcp.cli.main.ask", side_effect=AuthenticationError())
+    def test_auth_error_returns_1(self, mock_ask: MagicMock, capsys: pytest.CaptureFixture) -> None:
+        code = _cmd_ask(["query", "-m", "auto"])
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "403" in err or "forbidden" in err.lower()
+
+    @patch("perplexity_web_mcp.cli.main.ask", side_effect=RateLimitError())
+    def test_rate_limit_error_returns_1(self, mock_ask: MagicMock, capsys: pytest.CaptureFixture) -> None:
+        code = _cmd_ask(["query", "-m", "auto"])
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "429" in err or "rate limit" in err.lower()
+
+    @patch("perplexity_web_mcp.shared.smart_ask", side_effect=AuthenticationError())
+    def test_smart_ask_auth_error_returns_1(self, mock_smart: MagicMock, capsys: pytest.CaptureFixture) -> None:
+        code = _cmd_ask(["query"])
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "403" in err or "forbidden" in err.lower()
+
+
+class TestCmdResearchErrorHandling:
+    """Verify research command catches auth/rate-limit errors."""
+
+    @patch("perplexity_web_mcp.cli.main.ask", side_effect=AuthenticationError())
+    def test_auth_error_returns_1(self, mock_ask: MagicMock, capsys: pytest.CaptureFixture) -> None:
+        code = _cmd_research(["topic"])
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "403" in err or "forbidden" in err.lower()
+
+    @patch("perplexity_web_mcp.cli.main.ask", side_effect=RateLimitError())
+    def test_rate_limit_error_returns_1(self, mock_ask: MagicMock, capsys: pytest.CaptureFixture) -> None:
+        code = _cmd_research(["topic"])
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "429" in err or "rate limit" in err.lower()

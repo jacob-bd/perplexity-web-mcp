@@ -46,6 +46,7 @@ QUERYING
     pwm ask "Summarize this paper" -m gemini_pro
 
   Source focus examples (-s):
+    pwm ask "review this code" -s none                     # Model only, no web search
     pwm ask "transformer improvements 2025" -s academic    # Scholarly papers
     pwm ask "best mechanical keyboard" -s social           # Reddit/Twitter
     pwm ask "Apple revenue Q4 2025" -s finance             # SEC EDGAR filings
@@ -107,6 +108,7 @@ SOURCE FOCUS OPTIONS
 
 Name        Description                          Example Use Case
 --------    -----------                          ----------------
+none        No search — model training data only Code review, writing, analysis without web
 web         General web search (default)         News, general questions
 academic    Academic papers and scholarly articles  Research, citations, scientific topics
 social      Social media (Reddit, Twitter, etc.) Opinions, recommendations, community
@@ -114,12 +116,14 @@ finance     SEC EDGAR filings                    Company financials, regulatory 
 all         Web + Academic + Social combined      Broad coverage across all sources
 
 CLI examples:
+  pwm ask "explain this algorithm" -s none                 # No web search
   pwm ask "transformer architecture" -s academic
   pwm ask "best laptop 2026" -s social
   pwm ask "Tesla 10-K filing" -s finance
   pwm ask "latest AI breakthroughs" -s all
 
 MCP examples:
+  pplx_ask(query="review this code", source_focus="none")
   pplx_ask(query="transformer architecture", source_focus="academic")
   pplx_query(query="Tesla financials", model="gpt52", source_focus="finance")
 
@@ -148,6 +152,9 @@ QUERY TOOLS (14):
   pplx_grok(query, source_focus="web")            Grok 4.1
   pplx_grok_thinking(query, source_focus="web")   Grok 4.1 + thinking
   pplx_kimi_thinking(query, source_focus="web")   Kimi K2.5 (thinking always on)
+
+  All query tools accept source_focus: "none", "web", "academic", "social",
+  "finance", "all". Use "none" for model-only queries without web search.
 
 USAGE TOOL (1):
   pplx_usage(refresh=False)
@@ -237,6 +244,10 @@ COMMON WORKFLOWS
 
 Quick web search:
   pwm ask "What happened in AI today?"
+
+Model-only query (no web search):
+  pwm ask "Explain the visitor pattern" -s none
+  pwm ask "Write a retry decorator" -m claude_sonnet -s none
 
 Specific model:
   pwm ask "Compare React and Vue" -m gpt52

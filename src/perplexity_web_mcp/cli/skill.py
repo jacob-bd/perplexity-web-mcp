@@ -82,6 +82,12 @@ def _get_targets() -> list[SkillTarget]:
             user_dir=home / ".openclaw" / "workspace" / "skills",
             project_dir=".openclaw/workspace/skills",
         ),
+        SkillTarget(
+            name="other",
+            description="Export all formats for manual install",
+            user_dir=home,  # not used for export
+            project_dir=".",
+        ),
     ]
 
 
@@ -188,6 +194,93 @@ def _uninstall_skill(dest_dir: Path) -> bool:
         return False
 
 
+EXPORT_DIR_NAME = "perplexity-web-mcp-skill-export"
+
+
+def _export_all_formats(source: Path, current_version: str) -> int:
+    """Export all skill formats to a directory for manual installation."""
+    export_dir = Path.cwd() / EXPORT_DIR_NAME
+
+    if export_dir.exists():
+        shutil.rmtree(export_dir)
+
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    skill_dir = export_dir / SKILL_DIR_NAME
+    shutil.copytree(source, skill_dir)
+
+    readme_content = f"""# Perplexity Web MCP Skill Export (v{current_version})
+
+This directory contains the Perplexity Web MCP skill for manual installation.
+
+## perplexity-web-mcp/
+
+- `SKILL.md` - Main skill file
+- `references/` - Additional reference documentation
+
+## Installation
+
+Copy the `{SKILL_DIR_NAME}/` directory to the appropriate location:
+
+### Claude Code
+```bash
+cp -r {SKILL_DIR_NAME} ~/.claude/skills/
+```
+
+### Cursor
+```bash
+cp -r {SKILL_DIR_NAME} ~/.cursor/skills/
+```
+
+### OpenAI Codex CLI
+```bash
+cp -r {SKILL_DIR_NAME} ~/.agents/skills/
+```
+
+### OpenCode
+```bash
+cp -r {SKILL_DIR_NAME} ~/.config/opencode/skills/
+```
+
+### Gemini CLI
+```bash
+cp -r {SKILL_DIR_NAME} ~/.gemini/skills/
+```
+
+### Antigravity
+```bash
+cp -r {SKILL_DIR_NAME} ~/.gemini/antigravity/skills/
+```
+
+### Cline CLI
+```bash
+cp -r {SKILL_DIR_NAME} ~/.cline/skills/
+```
+
+### OpenClaw
+```bash
+cp -r {SKILL_DIR_NAME} ~/.openclaw/workspace/skills/
+```
+
+## Automated Installation
+
+Instead of manual copying, you can use:
+```bash
+pwm skill install <tool>
+```
+
+Where `<tool>` is: claude-code, cursor, codex, opencode, gemini-cli, antigravity, cline, openclaw.
+"""
+
+    (export_dir / "README.md").write_text(readme_content)
+
+    print(f"  Exported all formats to {export_dir}")
+    print(f"    {SKILL_DIR_NAME}/SKILL.md")
+    print(f"    {SKILL_DIR_NAME}/references/")
+    print(f"    README.md (installation instructions)")
+    return 0
+
+
 def _install_all(targets: list[SkillTarget], current_version: str) -> int:
     """Install skill to all detected tools on the system."""
     source = _find_skill_source()
@@ -199,6 +292,8 @@ def _install_all(targets: list[SkillTarget], current_version: str) -> int:
     not_detected: list[str] = []
 
     for t in targets:
+        if t.name == "other":
+            continue
         if _is_tool_detected(t):
             detected.append(t)
         else:
@@ -265,7 +360,7 @@ def cmd_skill(args: list[str]) -> int:
             "  pwm skill show                          Display the skill content\n"
             "  pwm skill update                        Update all outdated skills\n"
             "\n"
-            "Tools: claude-code, cursor, codex, opencode, gemini-cli, antigravity, cline, openclaw, all\n"
+            "Tools: claude-code, cursor, codex, opencode, gemini-cli, antigravity, cline, openclaw, other, all\n"
             "\n"
             "Examples:\n"
             "  pwm skill list\n"
@@ -289,6 +384,8 @@ def cmd_skill(args: list[str]) -> int:
 
         any_outdated = False
         for t in targets:
+            if t.name == "other":
+                continue
             user_ver = _get_installed_version(t.user_dir / SKILL_DIR_NAME)
             proj_dir = Path.cwd() / t.project_dir / SKILL_DIR_NAME
             proj_ver = _get_installed_version(proj_dir)
@@ -351,6 +448,9 @@ def cmd_skill(args: list[str]) -> int:
                 print("Make sure you're running from the project root or the package is installed.", file=sys.stderr)
                 return 1
 
+            if tool_name == "other":
+                return _export_all_formats(source, current_version)
+
             if level == "project":
                 dest = Path.cwd() / target.project_dir
             else:
@@ -363,6 +463,15 @@ def cmd_skill(args: list[str]) -> int:
             return 1
 
         if action == "uninstall":
+            if tool_name == "other":
+                export_dir = Path.cwd() / EXPORT_DIR_NAME
+                if export_dir.exists():
+                    shutil.rmtree(export_dir)
+                    print(f"  other: Removed export directory {export_dir}")
+                else:
+                    print(f"  other: No export directory found.")
+                return 0
+
             removed = False
             for dest in [target.user_dir, Path.cwd() / target.project_dir]:
                 if _uninstall_skill(dest):

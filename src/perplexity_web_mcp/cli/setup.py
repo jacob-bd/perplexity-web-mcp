@@ -15,6 +15,7 @@ import os
 import platform
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import rich_click as click
@@ -123,6 +124,10 @@ def _antigravity_config_path() -> Path:
     return Path.home() / ".gemini" / "antigravity" / "mcp_config.json"
 
 
+def _codex_config_path() -> Path:
+    return Path.home() / ".codex"
+
+
 # ── Client registry ────────────────────────────────────────────────────────
 
 
@@ -159,9 +164,9 @@ CLIENT_REGISTRY = {
         "config_fn": _antigravity_config_path,
     },
     "codex": {
-        "name": "Codex",
-        "description": "OpenAI Codex CLI agent (skill-based)",
-        "config_fn": None,  # Uses skill file via pwm skill install codex
+        "name": "Codex CLI",
+        "description": "OpenAI Codex CLI",
+        "config_fn": None,  # Uses codex mcp add or config.toml fallback
     },
 }
 
@@ -217,6 +222,82 @@ def _setup_json_client(client_id: str) -> bool:
     console.print(f"[green]✓[/green] Added to {info['name']}")
     console.print(f"  [dim]{config_path}[/dim]")
     return True
+
+
+def _setup_codex() -> bool:
+    """Add MCP to Codex CLI via `codex mcp add` (preferred) or config.toml fallback."""
+    codex_cmd = shutil.which("codex")
+    if codex_cmd:
+        try:
+            result = subprocess.run(
+                [codex_cmd, "mcp", "add", MCP_SERVER_KEY, "--", MCP_SERVER_CMD],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode == 0:
+                console.print("[green]✓[/green] Added to Codex CLI")
+                return True
+            elif "already exists" in result.stderr.lower():
+                console.print("[green]✓[/green] Already configured in Codex CLI")
+                return True
+            else:
+                console.print(f"[yellow]Warning:[/yellow] codex mcp add returned: {result.stderr.strip()}")
+                return False
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+            console.print(f"[yellow]Warning:[/yellow] Could not run codex command: {e}")
+            return False
+    else:
+        config_path = _codex_config_path() / "config.toml"
+
+        if config_path.exists():
+            try:
+                content = config_path.read_text()
+                config = tomllib.loads(content)
+                mcp_servers = config.get("mcp_servers", {})
+                if MCP_SERVER_KEY in mcp_servers or "perplexity-web-mcp" in mcp_servers:
+                    console.print("[green]✓[/green] Already configured in Codex CLI")
+                    return True
+            except Exception:
+                content = config_path.read_text() if config_path.exists() else ""
+        else:
+            content = ""
+
+        section = f'''
+# Perplexity Web MCP server
+[mcp_servers.{MCP_SERVER_KEY}]
+command = "{MCP_SERVER_CMD}"
+args = []
+enabled = true
+'''
+        new_content = content.rstrip() + "\n" + section if content.strip() else section.lstrip()
+
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(new_content)
+        console.print("[green]✓[/green] Added to Codex CLI (config.toml)")
+        console.print(f"  [dim]{config_path}[/dim]")
+        return True
+
+
+def _remove_codex() -> bool:
+    """Remove MCP from Codex CLI."""
+    codex_cmd = shutil.which("codex")
+    if codex_cmd:
+        try:
+            result = subprocess.run(
+                [codex_cmd, "mcp", "remove", MCP_SERVER_KEY],
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode == 0:
+                console.print("[green]✓[/green] Removed from Codex CLI")
+                return True
+            else:
+                console.print(f"[yellow]Note:[/yellow] {result.stderr.strip()}")
+                return False
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+            console.print(f"[yellow]Warning:[/yellow] Could not run codex command: {e}")
+            return False
+    else:
+        console.print("[yellow]Warning:[/yellow] 'codex' command not found")
+        return False
 
 
 def _remove_claude_code() -> bool:
@@ -362,7 +443,10 @@ def _detect_tool(client_id: str) -> bool:
         "windsurf": lambda: _windsurf_config_path().parent.exists(),
         "cline": lambda: Path.home().joinpath(".cline").exists(),
         "antigravity": lambda: _antigravity_config_path().parent.exists(),
-        "codex": lambda: shutil.which("codex") is not None,
+        "codex": lambda: (
+            shutil.which("codex") is not None
+            or _codex_config_path().exists()
+        ),
     }
     check_fn = checks.get(client_id)
     if not check_fn:
@@ -386,7 +470,25 @@ def _is_already_configured(client_id: str) -> bool:
                 return MCP_SERVER_KEY in result.stdout.lower()
             return False
         elif client_id == "codex":
-            return False  # Skill-based, not MCP config
+            codex_cmd = shutil.which("codex")
+            if codex_cmd:
+                try:
+                    result = subprocess.run(
+                        [codex_cmd, "mcp", "list"],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    return MCP_SERVER_KEY in result.stdout.lower()
+                except Exception:
+                    pass
+            toml_path = _codex_config_path() / "config.toml"
+            if toml_path.exists():
+                try:
+                    config = tomllib.loads(toml_path.read_text())
+                    mcp = config.get("mcp_servers", {})
+                    return MCP_SERVER_KEY in mcp or "perplexity-web-mcp" in mcp
+                except Exception:
+                    pass
+            return False
         else:
             info = CLIENT_REGISTRY[client_id]
             config_fn = info.get("config_fn")
@@ -412,7 +514,7 @@ def _setup_all() -> None:
 
     for client_id, info in CLIENT_REGISTRY.items():
         is_present = _detect_tool(client_id)
-        has_auto = info.get("config_fn") is not None or client_id == "claude-code"
+        has_auto = info.get("config_fn") is not None or client_id in ("claude-code", "codex")
         if is_present:
             already = _is_already_configured(client_id) if has_auto else False
             detected.append((client_id, info, already, has_auto))
@@ -495,6 +597,9 @@ def _setup_all() -> None:
         if client_id == "claude-code":
             if _setup_claude_code():
                 success_count += 1
+        elif client_id == "codex":
+            if _setup_codex():
+                success_count += 1
         elif CLIENT_REGISTRY[client_id].get("config_fn"):
             if _setup_json_client(client_id):
                 success_count += 1
@@ -510,7 +615,7 @@ def _remove_all() -> None:
 
     configured = []
     for client_id, info in CLIENT_REGISTRY.items():
-        has_auto = info.get("config_fn") is not None or client_id == "claude-code"
+        has_auto = info.get("config_fn") is not None or client_id in ("claude-code", "codex")
         if not has_auto:
             continue
         if _is_already_configured(client_id):
@@ -550,6 +655,9 @@ def _remove_all() -> None:
         if client_id == "claude-code":
             if _remove_claude_code():
                 removed_count += 1
+        elif client_id == "codex":
+            if _remove_codex():
+                removed_count += 1
         else:
             if _remove_json_client(client_id):
                 removed_count += 1
@@ -580,6 +688,7 @@ def setup_add(client):
       pwm setup add cursor
       pwm setup add claude-code
       pwm setup add gemini
+      pwm setup add codex
       pwm setup add antigravity
       pwm setup add json
       pwm setup add all
@@ -601,13 +710,10 @@ def setup_add(client):
     info = CLIENT_REGISTRY[client]
     console.print(f"\n[bold]{info['name']}[/bold] — Adding Perplexity MCP\n")
 
-    if client == "codex":
-        console.print("[yellow]Note:[/yellow] Codex uses skill files for configuration.")
-        console.print("Use [bold]pwm skill install codex[/bold] to install the skill.")
-        return
-
     if client == "claude-code":
         success = _setup_claude_code()
+    elif client == "codex":
+        success = _setup_codex()
     else:
         success = _setup_json_client(client)
 
@@ -636,13 +742,10 @@ def setup_remove(client):
         console.print(f"Available clients: {valid}")
         raise SystemExit(1)
 
-    if client == "codex":
-        console.print("[yellow]Note:[/yellow] Codex uses skill files for configuration.")
-        console.print("Use [bold]pwm skill uninstall codex[/bold] to remove the skill.")
-        return
-
     if client == "claude-code":
         _remove_claude_code()
+    elif client == "codex":
+        _remove_codex()
     else:
         _remove_json_client(client)
 
@@ -676,8 +779,29 @@ def setup_list():
             else:
                 config_path_str = "not installed"
         elif client_id == "codex":
-            config_path_str = "pwm skill install codex"
-            status = "[dim]skill[/dim]"
+            codex_cmd = shutil.which("codex")
+            if codex_cmd:
+                try:
+                    result = subprocess.run(
+                        [codex_cmd, "mcp", "list"],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if MCP_SERVER_KEY in result.stdout.lower():
+                        status = "[green]✓[/green]"
+                except (subprocess.TimeoutExpired, OSError):
+                    status = "[dim]?[/dim]"
+                config_path_str = "codex mcp list"
+            else:
+                toml_path = _codex_config_path() / "config.toml"
+                if toml_path.exists():
+                    try:
+                        config = tomllib.loads(toml_path.read_text())
+                        mcp = config.get("mcp_servers", {})
+                        if MCP_SERVER_KEY in mcp or "perplexity-web-mcp" in mcp:
+                            status = "[green]✓[/green]"
+                    except Exception:
+                        pass
+                config_path_str = str(toml_path).replace(str(Path.home()), "~")
         else:
             config_fn = info["config_fn"]
             key = info.get("key", MCP_SERVER_KEY)
@@ -714,10 +838,10 @@ def _get_tools() -> list[dict]:
 
     tools = []
     for client_id, info in CLIENT_REGISTRY.items():
-        if client_id == "codex":
-            hint = "pwm skill install codex"
-        elif client_id == "claude-code":
+        if client_id == "claude-code":
             hint = "claude mcp list"
+        elif client_id == "codex":
+            hint = "codex mcp list"
         else:
             config_fn = info.get("config_fn")
             hint = str(config_fn()).replace(str(Path.home()), "~") if config_fn else ""

@@ -6,17 +6,17 @@
 
 MCP server, CLI, and API-compatible interface for Perplexity AI's web interface.
 
-Use your Perplexity Pro/Max subscription to access premium models (GPT-5.2, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3, Grok 4.1, Kimi K2.5) from the terminal, through MCP tools, or as an API endpoint.
+Use your Perplexity Pro/Max subscription to access premium models (GPT-5.4, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3.1 Pro, Nemotron 3 Super) from the terminal, through MCP tools, or as an API endpoint.
 
 ## Features
 
 - **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm research`)
-- **MCP Server**: 21 MCP tools for AI agents with citations and rate limit checking
+- **MCP Server**: 16 MCP tools for AI agents with citations and rate limit checking
 - **API Server**: Drop-in Anthropic Messages API and OpenAI Chat Completions API
-- **11 Models**: GPT-5.4, GPT-5.2, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3 Flash, Gemini 3.1 Pro, Grok 4.1, Kimi K2.5, Sonar
+- **8 Models**: GPT-5.4, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3.1 Pro, Nemotron 3 Super, Sonar
 - **Thinking Mode**: Extended thinking support for all compatible models
 - **Deep Research**: Full support for Perplexity's Deep Research mode
-- **Setup & Skill Management**: Auto-configure MCP for Claude, Cursor, Windsurf, Gemini CLI; install Agent Skills across platforms
+- **Setup & Skill Management**: Auto-configure MCP for Claude Code, Cursor, Windsurf, Gemini CLI, Codex, Cline, Antigravity; install Agent Skills across 8 platforms
 - **Doctor**: Diagnose installation, auth, config, rate limits, and skill status
 
 ## Vibe Coding Alert
@@ -113,7 +113,7 @@ pwm ask "What is quantum computing?"
 **Choose a specific model** with `-m` (see [Models](#models) for the full list):
 
 ```bash
-pwm ask "Compare React and Vue" -m gpt52
+pwm ask "Compare React and Vue" -m gpt54
 ```
 
 ```bash
@@ -196,7 +196,7 @@ Seamlessly launch external AI tools connected to the Perplexity API server. This
 
 ```bash
 pwm hack claude            # Launch Claude Code
-pwm hack claude -m gpt52   # Launch Claude Code with a specific model
+pwm hack claude -m gpt54   # Launch Claude Code with a specific model
 ```
 
 ### MCP Setup
@@ -206,8 +206,11 @@ pwm setup list             # Show supported tools and MCP configuration status
 pwm setup add all          # Interactive: detect and configure all tools
 pwm setup add claude-code  # Add MCP server to Claude Code
 pwm setup add cursor       # Add MCP server to Cursor
-pwm setup add windsurf     # Add MCP server to Windsurf
+pwm setup add codex        # Add MCP server to Codex CLI
 pwm setup add gemini       # Add MCP server to Gemini CLI
+pwm setup add windsurf     # Add MCP server to Windsurf
+pwm setup add cline        # Add MCP server to Cline CLI
+pwm setup add antigravity  # Add MCP server to Antigravity
 pwm setup remove all       # Remove from all configured tools
 pwm setup remove cursor    # Remove MCP server from a tool
 ```
@@ -246,13 +249,10 @@ pwm --ai                   # Print comprehensive AI-optimized reference
 | `sonar` | Perplexity | No | Perplexity's latest model |
 | `deep_research` | Perplexity | No | Monthly quota, in-depth reports |
 | `gpt54` | OpenAI | Toggle | GPT-5.4 |
-| `gpt52` | OpenAI | Toggle | GPT-5.2 |
 | `claude_sonnet` | Anthropic | Toggle | Claude 4.6 Sonnet |
 | `claude_opus` | Anthropic | Toggle | Claude 4.6 Opus (Max tier required) |
-| `gemini_flash` | Google | Toggle | Gemini 3 Flash |
 | `gemini_pro` | Google | Always | Gemini 3.1 Pro |
-| `grok` | xAI | Toggle | Grok 4.1 |
-| `kimi` | Moonshot | Always | Kimi K2.5 |
+| `nemotron` | NVIDIA | Always | Nemotron 3 Super 120B |
 
 ### Source Focus
 
@@ -309,21 +309,19 @@ claude mcp add perplexity pwm-mcp
 
 ### Available MCP Tools
 
-**Query tools (16):**
+**Query tools (12):**
 
 | Tool | Description |
 |------|-------------|
 | `pplx_query` | Flexible: model selection + thinking toggle |
 | `pplx_ask` | Quick Q&A (auto-selects best model) |
 | `pplx_deep_research` | In-depth reports with sources |
-| `pplx_sonar` | Perplexity Sonar |
+| `pplx_sonar` | Perplexity Sonar (FREE) |
 | `pplx_gpt54` / `pplx_gpt54_thinking` | GPT-5.4 |
-| `pplx_gpt52` / `pplx_gpt52_thinking` | GPT-5.2 |
 | `pplx_claude_sonnet` / `pplx_claude_sonnet_think` | Claude 4.6 Sonnet |
-| `pplx_gemini_flash` / `pplx_gemini_flash_think` | Gemini 3 Flash |
+| `pplx_claude_opus` / `pplx_claude_opus_think` | Claude 4.6 Opus (Max tier) |
 | `pplx_gemini_pro_think` | Gemini 3.1 Pro (thinking always on) |
-| `pplx_grok` / `pplx_grok_thinking` | Grok 4.1 |
-| `pplx_kimi_thinking` | Kimi K2.5 (thinking always on) |
+| `pplx_nemotron_thinking` | Nemotron 3 Super (thinking always on) |
 
 **Smart routing (1):**
 
@@ -340,7 +338,7 @@ claude mcp add perplexity pwm-mcp
 | `pplx_auth_request_code` | Send verification code to email |
 | `pplx_auth_complete` | Complete auth with 6-digit code |
 
-All query tools support `source_focus`: `web`, `academic`, `social`, `finance`, `all`.
+All query tools support `source_focus`: `none`, `web`, `academic`, `social`, `finance`, `all`.
 
 ---
 
@@ -359,7 +357,7 @@ pwm api
 ```bash
 export ANTHROPIC_BASE_URL=http://localhost:8080
 export ANTHROPIC_API_KEY=perplexity
-claude --model gpt-5.2
+claude --model gpt-5.4
 ```
 
 Alternatively, launch Claude Code seamlessly using the `hack` command, which automatically starts the API server and configures the environment for you:
@@ -381,13 +379,10 @@ export OPENAI_API_KEY=anything
 |----------|------------------|----------|
 | `perplexity-auto` | Best (auto-select) | No |
 | `gpt-5.4` | GPT-5.4 | Toggle |
-| `gpt-5.2` | GPT-5.2 | Toggle |
 | `claude-sonnet-4-6` | Claude 4.6 Sonnet | Toggle |
 | `claude-opus-4-6` | Claude 4.6 Opus | Toggle |
-| `gemini-3-flash` | Gemini 3 Flash | Toggle |
 | `gemini-3.1-pro` | Gemini 3.1 Pro | Always |
-| `grok-4.1` | Grok 4.1 | Toggle |
-| `kimi-k2.5` | Kimi K2.5 | Always |
+| `nemotron-3-super` / `nemotron` | Nemotron 3 Super | Always |
 
 Legacy aliases (`claude-3-5-sonnet`, `claude-3-opus`) are supported for compatibility.
 
@@ -473,9 +468,15 @@ This checks installation, authentication, rate limits, MCP configuration, and sk
 This project includes a portable [Agent Skill](https://agentskills.io/) (SKILL.md) that teaches AI agents how to use the CLI and MCP tools. Install it for your platform:
 
 ```bash
-pwm skill install claude-code
+pwm skill install all              # Install for all detected tools
+pwm skill install claude-code      # Or install individually
 pwm skill install cursor
+pwm skill install codex
 pwm skill install gemini-cli
+pwm skill install antigravity
+pwm skill install cline
+pwm skill install opencode
+pwm skill install openclaw
 ```
 
 The skill follows Anthropic's Agent Skills open standard and works across any compliant AI platform.

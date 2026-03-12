@@ -208,15 +208,14 @@ class TestSetupCommands:
         assert result.exit_code == 1
         assert "Unknown client" in result.output
 
-    def test_add_codex_shows_skill_hint(self) -> None:
+    def test_add_codex_configures_mcp(self) -> None:
         result = self._run("add", "codex")
         assert result.exit_code == 0
-        assert "skill" in result.output.lower()
+        assert "codex" in result.output.lower()
 
-    def test_remove_codex_shows_skill_hint(self) -> None:
+    def test_remove_codex_removes_mcp(self) -> None:
         result = self._run("remove", "codex")
         assert result.exit_code == 0
-        assert "skill" in result.output.lower()
 
     def test_list_shows_clients(self) -> None:
         result = self._run("list")
@@ -264,9 +263,11 @@ class TestDetectTool:
 class TestIsAlreadyConfigured:
     """Test configuration status check."""
 
-    def test_codex_always_false(self) -> None:
+    @patch("perplexity_web_mcp.cli.setup._codex_config_path")
+    def test_codex_not_configured_without_binary_or_toml(self, mock_path: MagicMock) -> None:
         from perplexity_web_mcp.cli.setup import _is_already_configured
 
+        mock_path.return_value = Path("/nonexistent/.codex")
         assert _is_already_configured("codex") is False
 
     @patch("perplexity_web_mcp.cli.setup._read_json_config")

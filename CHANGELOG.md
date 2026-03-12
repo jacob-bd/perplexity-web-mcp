@@ -4,6 +4,21 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.9.2] - 2026-03-12
+
+### Added
+
+- **Codex CLI MCP setup** — `pwm setup add codex` now performs real MCP configuration via `codex mcp add` CLI with `~/.codex/config.toml` fallback. Previously redirected users to skill install. Includes `pwm setup remove codex` support.
+- **"other" skill export** — `pwm skill install other` exports all skill formats to a `perplexity-web-mcp-skill-export/` directory with a README containing manual installation instructions for all 8 supported platforms.
+
+### Changed
+
+- **Full tool parity with NotebookLM MCP** — Both skill management (8 tools) and MCP setup (7 clients) now match the sibling project. Codex upgraded from skill-only to full auto-setup.
+- **README.md overhauled** — Updated model list (8 models, removed GPT-5.2/Gemini Flash/Grok/Kimi references), MCP tool count (16), setup section (added Codex, Cline, Antigravity), API model names, and skill install examples.
+- Skill metadata version bumped to 0.9.2.
+
+---
+
 ## [0.9.1] - 2026-03-11
 
 ### Added

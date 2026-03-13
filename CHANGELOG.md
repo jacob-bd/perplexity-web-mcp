@@ -4,6 +4,15 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.9.3] - 2026-03-13
+
+### Changed
+
+- **Gemini CLI skill path** — Updated from `~/.gemini/skills/` to `~/.agents/skills/` to align with Gemini CLI v0.33.1+ which prioritizes the `.agents/skills/` directory. The `.agents/` path is the official cross-tool compatible alias. Detection now checks for the `gemini` binary in PATH instead of the `.gemini/` config directory (same pattern as Codex).
+- Skill metadata version bumped to 0.9.3.
+
+---
+
 ## [0.9.2] - 2026-03-12
 
 ### Added

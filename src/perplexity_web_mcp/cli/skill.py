@@ -61,8 +61,8 @@ def _get_targets() -> list[SkillTarget]:
         SkillTarget(
             name="gemini-cli",
             description="Google Gemini CLI",
-            user_dir=home / ".gemini" / "skills",
-            project_dir=".gemini/skills",
+            user_dir=home / ".agents" / "skills",
+            project_dir=".agents/skills",
         ),
         SkillTarget(
             name="antigravity",
@@ -98,12 +98,15 @@ def _is_tool_detected(target: SkillTarget) -> bool:
     verifies the tool itself created content there -- not just our own
     ``skills/`` subdirectory from a previous install.
 
-    Special case: Codex uses ``~/.agents/`` which is a shared directory,
-    so we check for the ``codex`` binary in PATH instead.
+    Special case: Codex and Gemini CLI both use ``~/.agents/`` which is a
+    shared cross-tool directory, so we check for their respective binaries
+    (``codex`` / ``gemini``) in PATH instead.
     """
-    # Codex: check for binary since ~/.agents/ is a shared directory
+    # Codex and Gemini CLI: check for binary since ~/.agents/ is a shared directory
     if target.name == "codex":
         return shutil.which("codex") is not None
+    if target.name == "gemini-cli":
+        return shutil.which("gemini") is not None
 
     config_root = target.user_dir.parent
     if not config_root.is_dir():
@@ -244,7 +247,7 @@ cp -r {SKILL_DIR_NAME} ~/.config/opencode/skills/
 
 ### Gemini CLI
 ```bash
-cp -r {SKILL_DIR_NAME} ~/.gemini/skills/
+cp -r {SKILL_DIR_NAME} ~/.agents/skills/
 ```
 
 ### Antigravity

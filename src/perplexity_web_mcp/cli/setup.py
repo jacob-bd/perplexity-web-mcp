@@ -128,6 +128,10 @@ def _codex_config_path() -> Path:
     return Path.home() / ".codex"
 
 
+def _opencode_config_path() -> Path:
+    return Path.home() / ".config" / "opencode" / "opencode.json"
+
+
 # ── Client registry ────────────────────────────────────────────────────────
 
 
@@ -167,6 +171,11 @@ CLIENT_REGISTRY = {
         "name": "Codex CLI",
         "description": "OpenAI Codex CLI",
         "config_fn": None,  # Uses codex mcp add or config.toml fallback
+    },
+    "opencode": {
+        "name": "OpenCode",
+        "description": "OpenCode AI terminal agent",
+        "config_fn": None,  # Custom handler (different JSON schema)
     },
 }
 
@@ -278,6 +287,48 @@ enabled = true
         console.print("[green]✓[/green] Added to Codex CLI (config.toml)")
         console.print(f"  [dim]{config_path}[/dim]")
         return True
+
+
+def _setup_opencode() -> bool:
+    """Add MCP to OpenCode via its config file (mcp key, array command format)."""
+    config_path = _opencode_config_path()
+    config = _read_json_config(config_path)
+    mcp = config.get("mcp", {})
+
+    if MCP_SERVER_KEY in mcp:
+        console.print("[green]✓[/green] Already configured in OpenCode")
+        return True
+
+    mcp[MCP_SERVER_KEY] = {
+        "type": "local",
+        "command": [MCP_SERVER_CMD],
+        "enabled": True,
+    }
+    config["mcp"] = mcp
+    _write_json_config(config_path, config)
+    console.print("[green]✓[/green] Added to OpenCode")
+    console.print(f"  [dim]{config_path}[/dim]")
+    return True
+
+
+def _remove_opencode() -> bool:
+    """Remove MCP from OpenCode config."""
+    config_path = _opencode_config_path()
+    if not config_path.exists():
+        console.print("[dim]No config file found for OpenCode.[/dim]")
+        return False
+
+    config = _read_json_config(config_path)
+    mcp = config.get("mcp", {})
+    if MCP_SERVER_KEY in mcp:
+        del mcp[MCP_SERVER_KEY]
+        config["mcp"] = mcp
+        _write_json_config(config_path, config)
+        console.print("[green]✓[/green] Removed from OpenCode")
+        return True
+    else:
+        console.print("[dim]Perplexity MCP was not configured in OpenCode.[/dim]")
+        return False
 
 
 def _remove_codex() -> bool:
@@ -450,6 +501,10 @@ def _detect_tool(client_id: str) -> bool:
             shutil.which("codex") is not None
             or _codex_config_path().exists()
         ),
+        "opencode": lambda: (
+            shutil.which("opencode") is not None
+            or _opencode_config_path().exists()
+        ),
     }
     check_fn = checks.get(client_id)
     if not check_fn:
@@ -492,6 +547,9 @@ def _is_already_configured(client_id: str) -> bool:
                 except Exception:
                     pass
             return False
+        elif client_id == "opencode":
+            config = _read_json_config(_opencode_config_path())
+            return MCP_SERVER_KEY in config.get("mcp", {})
         else:
             info = CLIENT_REGISTRY[client_id]
             config_fn = info.get("config_fn")
@@ -517,7 +575,7 @@ def _setup_all() -> None:
 
     for client_id, info in CLIENT_REGISTRY.items():
         is_present = _detect_tool(client_id)
-        has_auto = info.get("config_fn") is not None or client_id in ("claude-code", "codex")
+        has_auto = info.get("config_fn") is not None or client_id in ("claude-code", "codex", "opencode")
         if is_present:
             already = _is_already_configured(client_id) if has_auto else False
             detected.append((client_id, info, already, has_auto))
@@ -603,6 +661,9 @@ def _setup_all() -> None:
         elif client_id == "codex":
             if _setup_codex():
                 success_count += 1
+        elif client_id == "opencode":
+            if _setup_opencode():
+                success_count += 1
         elif CLIENT_REGISTRY[client_id].get("config_fn"):
             if _setup_json_client(client_id):
                 success_count += 1
@@ -618,7 +679,7 @@ def _remove_all() -> None:
 
     configured = []
     for client_id, info in CLIENT_REGISTRY.items():
-        has_auto = info.get("config_fn") is not None or client_id in ("claude-code", "codex")
+        has_auto = info.get("config_fn") is not None or client_id in ("claude-code", "codex", "opencode")
         if not has_auto:
             continue
         if _is_already_configured(client_id):
@@ -661,6 +722,9 @@ def _remove_all() -> None:
         elif client_id == "codex":
             if _remove_codex():
                 removed_count += 1
+        elif client_id == "opencode":
+            if _remove_opencode():
+                removed_count += 1
         else:
             if _remove_json_client(client_id):
                 removed_count += 1
@@ -693,6 +757,7 @@ def setup_add(client):
       pwm setup add gemini
       pwm setup add codex
       pwm setup add antigravity
+      pwm setup add opencode
       pwm setup add json
       pwm setup add all
     """
@@ -717,6 +782,8 @@ def setup_add(client):
         success = _setup_claude_code()
     elif client == "codex":
         success = _setup_codex()
+    elif client == "opencode":
+        success = _setup_opencode()
     else:
         success = _setup_json_client(client)
 
@@ -749,6 +816,8 @@ def setup_remove(client):
         _remove_claude_code()
     elif client == "codex":
         _remove_codex()
+    elif client == "opencode":
+        _remove_opencode()
     else:
         _remove_json_client(client)
 
@@ -805,6 +874,12 @@ def setup_list():
                     except Exception:
                         pass
                 config_path_str = str(toml_path).replace(str(Path.home()), "~")
+        elif client_id == "opencode":
+            oc_path = _opencode_config_path()
+            oc_config = _read_json_config(oc_path)
+            if MCP_SERVER_KEY in oc_config.get("mcp", {}):
+                status = "[green]✓[/green]"
+            config_path_str = str(oc_path).replace(str(Path.home()), "~")
         else:
             config_fn = info["config_fn"]
             key = info.get("key", MCP_SERVER_KEY)
@@ -845,6 +920,8 @@ def _get_tools() -> list[dict]:
             hint = "claude mcp list"
         elif client_id == "codex":
             hint = "codex mcp list"
+        elif client_id == "opencode":
+            hint = str(_opencode_config_path()).replace(str(Path.home()), "~")
         else:
             config_fn = info.get("config_fn")
             hint = str(config_fn()).replace(str(Path.home()), "~") if config_fn else ""

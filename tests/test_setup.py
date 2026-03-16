@@ -217,6 +217,35 @@ class TestSetupCommands:
         result = self._run("remove", "codex")
         assert result.exit_code == 0
 
+    def test_add_opencode_configures_mcp(self, tmp_path: Path) -> None:
+        cfg_path = tmp_path / "opencode.json"
+        with patch("perplexity_web_mcp.cli.setup._opencode_config_path", return_value=cfg_path):
+            result = self._run("add", "opencode")
+        assert result.exit_code == 0
+        assert "opencode" in result.output.lower()
+        data = json.loads(cfg_path.read_text())
+        assert MCP_SERVER_KEY in data["mcp"]
+        assert data["mcp"][MCP_SERVER_KEY]["type"] == "local"
+        assert data["mcp"][MCP_SERVER_KEY]["command"] == ["pwm-mcp"]
+
+    def test_add_opencode_already_configured(self, tmp_path: Path) -> None:
+        cfg_path = tmp_path / "opencode.json"
+        cfg_path.write_text(json.dumps({"mcp": {MCP_SERVER_KEY: {"type": "local", "command": ["pwm-mcp"]}}}))
+        with patch("perplexity_web_mcp.cli.setup._opencode_config_path", return_value=cfg_path):
+            result = self._run("add", "opencode")
+        assert result.exit_code == 0
+        assert "already configured" in result.output.lower()
+
+    def test_remove_opencode_removes_mcp(self, tmp_path: Path) -> None:
+        cfg_path = tmp_path / "opencode.json"
+        cfg_path.write_text(json.dumps({"mcp": {MCP_SERVER_KEY: {"type": "local"}, "other": {}}}))
+        with patch("perplexity_web_mcp.cli.setup._opencode_config_path", return_value=cfg_path):
+            result = self._run("remove", "opencode")
+        assert result.exit_code == 0
+        data = json.loads(cfg_path.read_text())
+        assert MCP_SERVER_KEY not in data["mcp"]
+        assert "other" in data["mcp"]
+
     def test_list_shows_clients(self) -> None:
         result = self._run("list")
         assert result.exit_code == 0

@@ -189,15 +189,16 @@ def _setup_claude_code() -> bool:
             [claude_cmd, "mcp", "add", "-s", "user", MCP_SERVER_KEY, "--", MCP_SERVER_CMD],
             capture_output=True, text=True, timeout=10,
         )
+        combined = (result.stdout + result.stderr).lower()
         if result.returncode == 0:
             console.print("[green]✓[/green] Added to Claude Code (user scope)")
             console.print("  [dim]Verify: claude mcp list[/dim]")
             return True
-        elif "already exists" in result.stderr.lower():
+        elif "already exists" in combined:
             console.print("[green]✓[/green] Already configured in Claude Code")
             return True
         else:
-            console.print(f"[yellow]Warning:[/yellow] {result.stderr.strip()}")
+            console.print(f"[yellow]Warning:[/yellow] {result.stderr.strip() or result.stdout.strip()}")
             return False
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
         console.print(f"[yellow]Warning:[/yellow] Could not run claude command: {e}")

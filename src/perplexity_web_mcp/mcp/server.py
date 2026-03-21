@@ -189,6 +189,63 @@ def pplx_smart_query(
     return result.format_response()
 
 
+@mcp.tool
+def pplx_council(
+    query: str,
+    source_focus: SourceFocusName = "web",
+    models: str = "gpt54,claude_opus,gemini_pro",
+    synthesize: bool = True,
+) -> str:
+    """Model Council — query multiple models in parallel, get synthesized consensus.
+
+    COSTS 3 PRO SEARCH QUERIES (one per council member) + 1 Sonar (free) for synthesis.
+    Use when you need high-confidence answers validated across multiple AI providers.
+    Ideal for important decisions, fact-checking, and complex analysis.
+
+    Default council: GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro (3 diverse providers).
+
+    Args:
+        query: The question to ask all council models
+        source_focus: Source type for all models (none/web/academic/social/finance/all)
+        models: Comma-separated model names to use as council members.
+                Available: auto, sonar, gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron.
+                Default: "gpt54,claude_opus,gemini_pro"
+        synthesize: Whether to synthesize a consensus from all responses.
+                    Set false to get only individual responses (saves 1 Sonar call).
+    """
+    from perplexity_web_mcp.council import COUNCIL_DEFAULT_MODELS
+
+    # Parse custom model list if provided
+    model_list = None
+    if models != "gpt54,claude_opus,gemini_pro":
+        model_list = []
+        for name in models.split(","):
+            name = name.strip()
+            resolved = resolve_model(name)
+            # Map short names to display names
+            display_names = {
+                "auto": "Auto (Best)",
+                "sonar": "Sonar",
+                "gpt54": "GPT-5.4",
+                "claude_sonnet": "Claude Sonnet 4.6",
+                "claude_opus": "Claude Opus 4.6",
+                "gemini_pro": "Gemini 3.1 Pro",
+                "nemotron": "Nemotron 3 Super",
+            }
+            display = display_names.get(name, name)
+            model_list.append((display, resolved))
+
+    from perplexity_web_mcp.shared import council_ask
+
+    result = council_ask(
+        query=query,
+        models=model_list,
+        source_focus=source_focus,
+        synthesize=synthesize,
+    )
+    return result.format_response()
+
+
 # =============================================================================
 # Usage & Limits Tools
 # =============================================================================

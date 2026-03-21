@@ -426,3 +426,39 @@ def smart_ask(
 
     citations = [r.url or "" for r in search_results]
     return SmartResponse(answer=answer, citations=citations, routing=decision)
+
+
+# ---------------------------------------------------------------------------
+# Council ask (multi-model parallel query with synthesis)
+# ---------------------------------------------------------------------------
+
+def council_ask(
+    query: str,
+    models: list[tuple[str, Model]] | None = None,
+    source_focus: SourceFocusName = "web",
+    synthesize: bool = True,
+) -> "CouncilResponse":
+    """Query multiple models in parallel and optionally synthesize results.
+
+    Each council member model is queried concurrently. A free Sonar query
+    then synthesizes the responses into a consensus answer highlighting
+    agreements and disagreements.
+
+    Args:
+        query: The question to ask all models.
+        models: List of (display_name, Model) tuples. Defaults to
+                GPT-5.4, Claude Opus 4.6, and Gemini 3.1 Pro.
+        source_focus: Source focus for all queries.
+        synthesize: Whether to run Sonar synthesis (free, no Pro cost).
+
+    Returns:
+        CouncilResponse with individual results and optional synthesis.
+    """
+    from .council import CouncilResponse, council_ask as _council_ask
+
+    return _council_ask(
+        query=query,
+        models=models,
+        source_focus=source_focus,
+        synthesize=synthesize,
+    )

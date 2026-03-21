@@ -18,8 +18,9 @@ from .exceptions import (
 )
 from .models import Model, Models
 from .rate_limits import RateLimitCache, RateLimits, SourceLimit, UserSettings, fetch_rate_limits, fetch_user_settings
+from .council import CouncilMemberResult, CouncilResponse
 from .router import Intent, QuotaLevel, QuotaState, RoutingDecision, SmartResponse, SmartRouter
-from .shared import smart_ask
+from .shared import council_ask, smart_ask
 from .types import Coordinates, Response, SearchResultItem
 
 
@@ -34,6 +35,8 @@ __all__: list[str] = [
     "Conversation",
     "ConversationConfig",
     "Coordinates",
+    "CouncilMemberResult",
+    "CouncilResponse",
     "FileUploadError",
     "FileValidationError",
     "HTTPError",
@@ -61,6 +64,7 @@ __all__: list[str] = [
     "StreamingError",
     "TimeRange",
     "UserSettings",
+    "council_ask",
     "fetch_rate_limits",
     "fetch_user_settings",
     "smart_ask",

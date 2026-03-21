@@ -46,6 +46,7 @@ the weekly pool fast, leaving nothing for questions that actually need it.
 |------|---------------|--------|--------------|
 | **Sonar / quick** | FREE — no quota consumed | — | Unlimited |
 | **Pro Search** (standard/detailed, pplx_ask, pplx_query, all model-specific tools) | 1 Pro Search query | Weekly | ~300/week |
+| **Council** (pplx_council, pwm council) | N Pro Searches (1 per model selected) + 1 free Sonar synthesis | Weekly | ~300/week (shared) |
 | **Deep Research** (pplx_deep_research, research intent) | 1 Deep Research query | Monthly | ~5-10/month |
 
 ### Before Every Session
@@ -84,6 +85,13 @@ Ask yourself: **"Can Sonar answer this?"** If yes, use `quick`. Only escalate if
 - Never use autonomously — always ask the user first
 - Falls back to premium Pro Search if research quota is exhausted
 
+**Use council (N Pro Searches — expensive)** when:
+- The user needs high-confidence answers validated across multiple AI providers
+- Important decisions, fact-checking, or complex analysis
+- BEFORE calling: ASK the user which models and how many (each = 1 Pro Search)
+- Available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron
+- Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches
+
 ### Decision Flowchart
 
 ```
@@ -97,6 +105,9 @@ You want to query Perplexity...
 │
 ├─ Does it need deep reasoning, complex analysis, or premium model quality?
 │  └─ YES → intent='detailed' (1 Pro, premium model)
+│
+├─ Does the user need high-confidence answers from multiple AI providers?
+│  └─ YES → pplx_council / pwm council (N Pro Searches — ASK USER which models first!)
 │
 ├─ Did the user explicitly request deep research / comprehensive report?
 │  └─ YES → intent='research' (1 Deep Research)
@@ -161,6 +172,11 @@ User wants to...
 |   +-- MCP:  pplx_smart_query(query)            # smart routing (default)
 |   +-- Explicit model: pwm ask "query" -m gpt54  or  pplx_query(query, model="gpt54")
 |
++-- Query multiple models at once (Model Council)
+|   +-- CLI:  pwm council "query"                         # default 3 models
+|   +-- CLI:  pwm council "query" -m gpt54,claude_sonnet  # custom models
+|   +-- MCP:  pplx_council(query)                         # ASK USER which models first!
+|
 +-- Deep research on a topic
 |   +-- CLI:  pwm research "query"
 |   +-- MCP:  pplx_deep_research(query)
@@ -224,6 +240,19 @@ Combine flags:
 pwm ask "protein folding advances" -m gemini_pro -s academic --json
 ```
 
+### Model Council
+
+Query multiple models in parallel and get a synthesized consensus.
+Each model in the council costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
+
+```bash
+pwm council "What are the best practices for microservices?"           # default 3 models
+pwm council "Compare Rust and Go for backend" -m gpt54,claude_sonnet  # custom 2 models
+pwm council "Explain quantum computing" -s academic                   # with source focus
+pwm council "Is React or Vue better?" --no-synthesis                  # skip synthesis
+pwm council "AI trends 2026" --json                                   # JSON output
+```
+
 ### Deep Research
 
 Uses a separate monthly quota. Produces in-depth reports with extensive sources.
@@ -258,6 +287,7 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_sonar` | **FREE** | Perplexity Sonar model (no Pro quota used) |
 | `pplx_query` | 1 Pro | Explicit model selection with thinking toggle |
 | `pplx_ask` | 1 Pro | Quick Q&A (auto model) |
+| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** |
 | `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 |
 | `pplx_claude_sonnet` / `_think` | 1 Pro | Anthropic Claude 4.6 Sonnet |
 | `pplx_claude_opus` / `_think` | 1 Pro | Anthropic Claude 4.6 Opus |

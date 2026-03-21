@@ -27,6 +27,9 @@ ENDPOINT_RATE_LIMITS: Final[str] = "/rest/rate-limit/all"
 ENDPOINT_USER_SETTINGS: Final[str] = "/rest/user/settings"
 """Endpoint to fetch user settings, subscription info, and connector limits."""
 
+ENDPOINT_CREDITS: Final[str] = "/rest/billing/credits"
+"""Endpoint to fetch usage-based credits balance and usage breakdown."""
+
 SEND_BACK_TEXT: Final[bool] = True
 """Whether to receive full text in each streaming chunk (replace mode)."""
 

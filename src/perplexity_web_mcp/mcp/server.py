@@ -198,9 +198,12 @@ def pplx_council(
 ) -> str:
     """Model Council — query multiple models in parallel, get synthesized consensus.
 
-    COSTS 3 PRO SEARCH QUERIES (one per council member) + 1 Sonar (free) for synthesis.
-    Use when you need high-confidence answers validated across multiple AI providers.
-    Ideal for important decisions, fact-checking, and complex analysis.
+    IMPORTANT — BEFORE calling this tool, you MUST:
+    1. Tell the user the available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron
+    2. Ask the user WHICH models they want in their council and HOW MANY
+    3. Inform them of the cost: each model = 1 Pro Search query, plus 1 free Sonar for synthesis
+       (e.g., 3 models = 3 Pro Searches + 1 free Sonar = 3 Pro total)
+    4. Get explicit confirmation before executing
 
     Default council: GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro (3 diverse providers).
 
@@ -208,8 +211,8 @@ def pplx_council(
         query: The question to ask all council models
         source_focus: Source type for all models (none/web/academic/social/finance/all)
         models: Comma-separated model names to use as council members.
-                Available: auto, sonar, gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron.
-                Default: "gpt54,claude_opus,gemini_pro"
+                Available: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron.
+                Default: "gpt54,claude_opus,gemini_pro" (3 models = 3 Pro Searches)
         synthesize: Whether to synthesize a consensus from all responses.
                     Set false to get only individual responses (saves 1 Sonar call).
     """
@@ -289,6 +292,13 @@ def pplx_usage(refresh: bool = False) -> str:
         parts.append("ACCOUNT INFO")
         parts.append("=" * 40)
         parts.append(settings.format_summary())
+
+    credits = cache.get_credits(force_refresh=refresh)
+    if credits:
+        parts.append("")
+        parts.append("CREDITS")
+        parts.append("=" * 40)
+        parts.append(credits.format_summary())
 
     return "\n".join(parts)
 

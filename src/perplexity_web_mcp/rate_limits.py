@@ -17,7 +17,7 @@ from typing import Any
 
 from curl_cffi.requests import Session
 
-from .constants import API_BASE_URL, ENDPOINT_RATE_LIMITS, ENDPOINT_USER_SETTINGS, SESSION_COOKIE_NAME
+from .constants import API_BASE_URL, ENDPOINT_CREDITS, ENDPOINT_RATE_LIMITS, ENDPOINT_USER_SETTINGS, SESSION_COOKIE_NAME
 from .logging import get_logger
 
 
@@ -191,6 +191,109 @@ class UserSettings:
         return "\n".join(lines)
 
 
+@dataclass(frozen=True, slots=True)
+class CreditGrant:
+    """A single credit grant (plan, promotional, purchased, etc.)."""
+
+    type: str
+    amount_cents: float
+    expires_at_ts: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Credits:
+    """Usage-based credits from /rest/billing/credits.
+
+    Attributes:
+        balance_cents: Available credit balance in cents.
+        total_usage_cents: Total usage in the current billing period.
+        current_period_purchased_cents: Credits purchased this period.
+        credit_grants: List of active credit grants (promotional, etc.).
+        meter_usage: Usage breakdown by type (text, image, video, audio, etc.).
+        renewal_date_ts: Unix timestamp of next renewal date.
+        global_cap_cents: Maximum spending cap in cents.
+        spending_limit_cents: User-set spending limit (None if not set).
+        auto_topup_enabled: Whether auto top-up is active.
+    """
+
+    balance_cents: float = 0.0
+    total_usage_cents: float = 0.0
+    current_period_purchased_cents: float = 0.0
+    credit_grants: list[CreditGrant] = field(default_factory=list)
+    meter_usage: list[dict[str, Any]] = field(default_factory=list)
+    renewal_date_ts: int | None = None
+    global_cap_cents: int | None = None
+    spending_limit_cents: float | None = None
+    auto_topup_enabled: bool = False
+
+    @classmethod
+    def from_api(cls, data: dict[str, Any]) -> Credits:
+        """Parse the /rest/billing/credits JSON response."""
+        grants = [
+            CreditGrant(
+                type=g.get("type", "unknown"),
+                amount_cents=g.get("amount_cents", 0),
+                expires_at_ts=g.get("expires_at_ts"),
+            )
+            for g in data.get("credit_grants", [])
+        ]
+        return cls(
+            balance_cents=data.get("balance_cents", 0.0),
+            total_usage_cents=data.get("total_usage_cents", 0.0),
+            current_period_purchased_cents=data.get("current_period_purchased_cents", 0.0),
+            credit_grants=grants,
+            meter_usage=data.get("meter_usage", []),
+            renewal_date_ts=data.get("renewal_date_ts"),
+            global_cap_cents=data.get("global_cap_cents"),
+            spending_limit_cents=data.get("spending_limit_cents"),
+            auto_topup_enabled=data.get("auto_topup_enabled", False),
+        )
+
+    def format_summary(self) -> str:
+        """Human-readable summary of credits."""
+        from datetime import datetime, timezone
+
+        lines = [
+            f"Purchased credits: {self.current_period_purchased_cents:,.2f}",
+        ]
+
+        total_grants = 0.0
+        for grant in self.credit_grants:
+            label = grant.type.replace("_", " ").title()
+            exp = ""
+            if grant.expires_at_ts:
+                exp_date = datetime.fromtimestamp(grant.expires_at_ts, tz=timezone.utc)
+                exp = f" (expires {exp_date.strftime('%b %d, %Y')})"
+            lines.append(f"{label} credits: {grant.amount_cents:,.2f}{exp}")
+            total_grants += grant.amount_cents
+
+        total_pool = total_grants + self.current_period_purchased_cents
+        if total_pool > 0:
+            lines.append(f"Total available: {self.balance_cents:,.2f} / {total_pool:,.2f}")
+        else:
+            lines.append(f"Total available: {self.balance_cents:,.2f}")
+
+        # Usage breakdown
+        meter_map = {
+            "asi_token_usage": "Text usage",
+            "image_generation_usage": "Image usage",
+            "video_generation_usage": "Video usage",
+            "audio_generation_usage": "Audio usage",
+        }
+        if self.meter_usage:
+            for meter in self.meter_usage:
+                raw_type = meter.get("meter_type", "unknown")
+                friendly = meter_map.get(raw_type, raw_type.replace("_", " ").title())
+                cost = meter.get("cost_cents", 0)
+                lines.append(f"{friendly}: {cost:,.2f}")
+
+        if self.renewal_date_ts:
+            renewal = datetime.fromtimestamp(self.renewal_date_ts, tz=timezone.utc)
+            lines.append(f"Next renewal: {renewal.strftime('%b %d, %Y')}")
+
+        return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Fetching (low-level, no caching)
 # ---------------------------------------------------------------------------
@@ -236,6 +339,26 @@ def fetch_user_settings(token: str) -> UserSettings | None:
     return None
 
 
+def fetch_credits(token: str) -> Credits | None:
+    """Fetch usage-based credits from Perplexity.
+
+    Returns None on any error (network, auth, parsing).
+    """
+    try:
+        with _create_session(token) as session:
+            response = session.get(
+                f"{API_BASE_URL}{ENDPOINT_CREDITS}",
+                params={"version": "2.18", "source": "default"},
+                headers={"x-app-apiclient": "default", "x-app-apiversion": "2.18"},
+            )
+            if response.status_code == 200:
+                return Credits.from_api(response.json())
+            logger.warning(f"Credits fetch failed: HTTP {response.status_code}")
+    except Exception as exc:
+        logger.warning(f"Credits fetch error: {exc}")
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Cached layer (thread-safe, time-based)
 # ---------------------------------------------------------------------------
@@ -249,6 +372,9 @@ class RateLimitCache:
     """
 
     __slots__ = (
+        "_credits",
+        "_credits_ts",
+        "_credits_ttl",
         "_fetch_lock",
         "_lock",
         "_rate_limits",
@@ -265,16 +391,20 @@ class RateLimitCache:
         token: str,
         rate_limit_ttl: float = 30.0,
         settings_ttl: float = 300.0,
+        credits_ttl: float = 300.0,
     ) -> None:
         self._token = token
         self._rate_limit_ttl = rate_limit_ttl
         self._settings_ttl = settings_ttl
+        self._credits_ttl = credits_ttl
         self._lock = Lock()
         self._fetch_lock = Lock()  # Prevents thundering herd on cache miss
         self._rate_limits: RateLimits | None = None
         self._rate_limits_ts: float = 0.0
         self._settings: UserSettings | None = None
         self._settings_ts: float = 0.0
+        self._credits: Credits | None = None
+        self._credits_ts: float = 0.0
 
     def update_token(self, token: str) -> None:
         """Update the token (e.g. after re-authentication) and clear cache."""
@@ -284,6 +414,8 @@ class RateLimitCache:
             self._rate_limits_ts = 0.0
             self._settings = None
             self._settings_ts = 0.0
+            self._credits = None
+            self._credits_ts = 0.0
 
     def get_rate_limits(self, force_refresh: bool = False) -> RateLimits | None:
         """Get rate limits, fetching if cache is stale or empty."""
@@ -344,6 +476,33 @@ class RateLimitCache:
                     self._settings = settings
                     self._settings_ts = monotonic()
             return settings
+
+    def get_credits(self, force_refresh: bool = False) -> Credits | None:
+        """Get credits info, fetching if cache is stale or empty."""
+        with self._lock:
+            if (
+                not force_refresh
+                and self._credits is not None
+                and (monotonic() - self._credits_ts) < self._credits_ttl
+            ):
+                return self._credits
+            token = self._token
+
+        with self._fetch_lock:
+            with self._lock:
+                if (
+                    not force_refresh
+                    and self._credits is not None
+                    and (monotonic() - self._credits_ts) < self._credits_ttl
+                ):
+                    return self._credits
+
+            credits = fetch_credits(token)
+            if credits is not None:
+                with self._lock:
+                    self._credits = credits
+                    self._credits_ts = monotonic()
+            return credits
 
     def invalidate_rate_limits(self) -> None:
         """Invalidate rate limit cache (call after making a query)."""

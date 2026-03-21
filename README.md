@@ -18,12 +18,13 @@ Use your Perplexity Pro/Max subscription to access premium models (GPT-5.4, Clau
 
 ## Features
 
-- **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm research`)
-- **MCP Server**: 16 MCP tools for AI agents with citations and rate limit checking
+- **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm council`, `pwm research`)
+- **MCP Server**: 17 MCP tools for AI agents with citations and rate limit checking
 - **API Server**: Drop-in Anthropic Messages API and OpenAI Chat Completions API
 - **6 Models**: GPT-5.4, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3.1 Pro, Nemotron 3 Super, Sonar
 - **Thinking Mode**: Extended thinking support for all compatible models
 - **Deep Research**: Full support for Perplexity's Deep Research mode
+- **Model Council**: Query multiple models in parallel and get a synthesized consensus
 - **Setup & Skill Management**: Auto-configure MCP for Claude Code, Cursor, Windsurf, Gemini CLI, Codex, Cline, Antigravity; install Agent Skills across 9 platforms
 - **Doctor**: Diagnose installation, auth, config, rate limits, and skill status
 
@@ -185,6 +186,25 @@ pwm research "climate policy impact on renewable energy" -s academic
 pwm research "NVIDIA competitive landscape" -s finance --json
 ```
 
+### Model Council
+
+Query multiple models in parallel and get a synthesized consensus. Each model costs 1 Pro Search; synthesis by Sonar is free.
+
+```bash
+# Default: GPT-5.4, Claude Opus, Gemini Pro (3 Pro Searches)
+pwm council "What are best practices for microservices?"
+```
+
+```bash
+# Custom model selection
+pwm council "Compare Rust and Go" -m gpt54,claude_sonnet
+```
+
+```bash
+# Skip synthesis, output as JSON
+pwm council "React vs Vue" --no-synthesis --json
+```
+
 ### Authentication
 
 ```bash
@@ -339,6 +359,12 @@ claude mcp add perplexity pwm-mcp
 | Tool | Description |
 |------|-------------|
 | `pplx_smart_query` | Quota-aware routing — auto-selects best model based on limits |
+
+**Council (1):**
+
+| Tool | Description |
+|------|-------------|
+| `pplx_council` | Query multiple models in parallel with optional synthesis |
 
 **Usage & auth tools (4):**
 

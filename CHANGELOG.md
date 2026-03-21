@@ -4,6 +4,28 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.10.0] - 2026-03-21
+
+### Added
+
+- **Model Council** — Parallel multi-model queries with optional Sonar synthesis. Query multiple AI models simultaneously and get a unified answer combining their perspectives.
+  - `pplx_council` MCP tool with interactive model selection UX — AI agents must ask the user which models and how many before executing, with clear cost communication.
+  - `pwm council` CLI command with `-m` model selection, `--no-synthesis`, `--json`, and `-s` source focus options.
+  - Default council: GPT-5.4, Claude Opus, Gemini Pro (3 Pro Searches). Cost scales linearly with models selected.
+  - MCP tool count increased from 16 to 17.
+- **Usage-Based Credits** — New "💳 Usage-Based Credits" section in `pwm usage` and `pplx_usage` showing Perplexity's credit system data.
+  - Fetches from `/rest/billing/credits` endpoint.
+  - Displays: Purchased Credits, Bonus/Promotional Credits (with expiry), Total Available balance, and Text/Image/Video/Audio usage breakdown.
+  - `Credits`, `CreditGrant` dataclasses and `fetch_credits()` in `rate_limits.py` with thread-safe caching (5-min TTL).
+
+### Changed
+
+- **`pwm usage` prettified with Rich tables** — Rate Limits, Account, and Credits sections now display as formatted tables with color-coded remaining counts (green → yellow → red) instead of raw text output. Removed source limits noise from Account section.
+- All documentation surfaces updated: SKILL.md, `pwm --ai`, CLAUDE.md, README.md, quickstart.md.
+- 11 new council CLI tests + updated usage tests.
+
+---
+
 ## [0.9.5] - 2026-03-16
 
 ### Added

@@ -1,6 +1,6 @@
 [project]
 name = "perplexity-web-mcp-cli"
-version = "0.9.5"
+version = "0.10.0"
 description = "CLI, MCP server, and Anthropic/OpenAI API-compatible interface for Perplexity AI."
 authors = [{ name = "Jacob BD" }]
 license = "MIT"

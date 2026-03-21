@@ -5,6 +5,7 @@ Entry point: pwm
 Subcommands:
     pwm login           Authenticate with Perplexity (interactive or non-interactive)
     pwm ask "query"     Ask a question (web search + AI model)
+    pwm council "q"     Query multiple models in parallel (Model Council)
     pwm research "q"    Deep research on a topic
     pwm api             Start the Anthropic/OpenAI API-compatible server
     pwm usage           Check remaining rate limits and quotas
@@ -212,6 +213,107 @@ def _cmd_research_impl(query, source, json_output):
     return 0
 
 
+# ── Council ────────────────────────────────────────────────────────────────
+
+COUNCIL_MODEL_NAMES = ("gpt54", "claude_sonnet", "claude_opus", "gemini_pro", "nemotron")
+
+
+@cli.command()
+@click.argument("query")
+@click.option("-m", "--models", "models_str", default="gpt54,claude_opus,gemini_pro",
+              help=f"Comma-separated models ({', '.join(COUNCIL_MODEL_NAMES)}).")
+@click.option("-s", "--source", "source", default="web",
+              help=f"Source focus ({', '.join(SOURCE_FOCUS_NAMES)}).")
+@click.option("--no-synthesis", is_flag=True, help="Skip Sonar consensus synthesis.")
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
+def council(query, models_str, source, no_synthesis, json_output):
+    """Query multiple models in parallel (Model Council).
+
+    Each model costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
+    Synthesis by Sonar is free.
+
+    \b
+    Examples:
+      pwm council "What are best practices for microservices?"
+      pwm council "Compare Rust and Go" -m gpt54,claude_sonnet
+      pwm council "Explain quantum computing" -s academic
+      pwm council "React vs Vue" --no-synthesis --json
+    """
+    code = _cmd_council_impl(query, models_str, source, not no_synthesis, json_output)
+    raise SystemExit(code)
+
+
+def _cmd_council_impl(query, models_str, source, synthesize, json_output):
+    """Implementation for council command."""
+    if source not in SOURCE_FOCUS_NAMES:
+        print(f"Error: Unknown source '{source}'. Available: {', '.join(SOURCE_FOCUS_NAMES)}", file=sys.stderr)
+        return 1
+
+    # Validate model names
+    model_names = [m.strip() for m in models_str.split(",") if m.strip()]
+    for name in model_names:
+        if name not in COUNCIL_MODEL_NAMES:
+            print(f"Error: Unknown council model '{name}'. Available: {', '.join(COUNCIL_MODEL_NAMES)}", file=sys.stderr)
+            return 1
+
+    if len(model_names) < 2:
+        print("Error: Council requires at least 2 models.", file=sys.stderr)
+        return 1
+
+    try:
+        from perplexity_web_mcp.council import council_ask
+
+        # Build model list (None = use defaults)
+        model_list = None
+        if models_str != "gpt54,claude_opus,gemini_pro":
+            display_names = {
+                "gpt54": "GPT-5.4",
+                "claude_sonnet": "Claude Sonnet 4.6",
+                "claude_opus": "Claude Opus 4.6",
+                "gemini_pro": "Gemini 3.1 Pro",
+                "nemotron": "Nemotron 3 Super",
+            }
+            model_list = []
+            for name in model_names:
+                resolved = resolve_model(name)
+                display = display_names.get(name, name)
+                model_list.append((display, resolved))
+
+        result = council_ask(
+            query=query,
+            models=model_list,
+            source_focus=source,
+            synthesize=synthesize,
+        )
+
+        if json_output:
+            import orjson
+
+            data = {
+                "query": result.query,
+                "models": result.model_names,
+                "synthesis": result.synthesis,
+                "individual_results": [
+                    {
+                        "model": r.model_name,
+                        "answer": r.answer,
+                        "error": r.error,
+                    }
+                    for r in result.individual_results
+                ],
+            }
+            sys.stdout.buffer.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+            sys.stdout.buffer.write(b"\n")
+        else:
+            print(result.format_response())
+
+    except (AuthenticationError, RateLimitError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    return 0
+
+
 # ── Login ──────────────────────────────────────────────────────────────────
 
 
@@ -270,37 +372,123 @@ def usage(refresh):
 
 def _cmd_usage_impl(refresh):
     """Implementation for usage command."""
+    from datetime import datetime, timezone
+
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    console = Console()
     token = load_token()
     if not token:
-        print(
-            "NOT AUTHENTICATED\n\n"
-            "No session token found. Authenticate first with: pwm login"
+        console.print(
+            Panel(
+                "[bold red]NOT AUTHENTICATED[/]\n\n"
+                "No session token found. Authenticate first with: [cyan]pwm login[/]",
+                title="⚠️  Authentication Required",
+            )
         )
         return 1
 
     cache = get_limit_cache()
     if cache is None:
-        print("ERROR: Could not initialize limit cache.")
+        console.print("[red]ERROR:[/] Could not initialize limit cache.")
         return 1
 
-    parts: list[str] = []
-
+    # ── Rate Limits ────────────────────────────────────────────────────────
     limits = cache.get_rate_limits(force_refresh=refresh)
     if limits:
-        parts.append("RATE LIMITS (remaining queries)")
-        parts.append("=" * 40)
-        parts.append(limits.format_summary())
-    else:
-        parts.append("WARNING: Could not fetch rate limits (network error or token issue).")
+        table = Table(title="📊 Rate Limits", show_header=True, header_style="bold cyan")
+        table.add_column("Feature", style="bold")
+        table.add_column("Remaining", justify="right")
 
+        def _color(n: int) -> str:
+            if n <= 0:
+                return f"[bold red]{n}[/]"
+            if n <= 5:
+                return f"[yellow]{n}[/]"
+            return f"[green]{n}[/]"
+
+        table.add_row("Pro Search", _color(limits.remaining_pro))
+        table.add_row("Deep Research", _color(limits.remaining_research))
+        table.add_row("Create Files & Apps", _color(limits.remaining_labs))
+        table.add_row("Browser Agent", _color(limits.remaining_agentic_research))
+
+        console.print(table)
+    else:
+        console.print("[yellow]WARNING:[/] Could not fetch rate limits (network error or token issue).")
+
+    # ── Account Info ───────────────────────────────────────────────────────
     settings = cache.get_user_settings(force_refresh=refresh)
     if settings:
-        parts.append("")
-        parts.append("ACCOUNT INFO")
-        parts.append("=" * 40)
-        parts.append(settings.format_summary())
+        table = Table(title="👤 Account", show_header=True, header_style="bold cyan")
+        table.add_column("Field", style="bold")
+        table.add_column("Value", justify="right")
 
-    print("\n".join(parts))
+        tier = settings.subscription_tier.title()
+        status = settings.subscription_status
+        table.add_row("Subscription", f"[bold]{tier}[/] ({status})")
+        table.add_row("Total Queries", f"{settings.query_count:,}")
+        table.add_row("Pro Queries", f"{settings.query_count_copilot:,}")
+
+        console.print(table)
+
+    # ── Credits ────────────────────────────────────────────────────────────
+    credits = cache.get_credits(force_refresh=refresh)
+    if credits:
+        table = Table(title="💳 Usage-Based Credits", show_header=True, header_style="bold cyan")
+        table.add_column("Field", style="bold")
+        table.add_column("Value", justify="right")
+
+        # Credit sources (matching Perplexity UI: Plan / Purchased / Bonus)
+        purchased = credits.current_period_purchased_cents
+        table.add_row("Purchased Credits", f"{purchased:,.2f}")
+
+        total_grants = 0.0
+        for grant in credits.credit_grants:
+            label = grant.type.replace("_", " ").title() + " Credits"
+            table.add_row(label, f"{grant.amount_cents:,.2f}")
+            total_grants += grant.amount_cents
+            if grant.expires_at_ts:
+                exp_date = datetime.fromtimestamp(grant.expires_at_ts, tz=timezone.utc)
+                table.add_row("  Expires", exp_date.strftime("%b %d, %Y"))
+
+        # Total available / total granted
+        total_pool = total_grants + purchased
+        balance = credits.balance_cents
+        if total_pool > 0:
+            table.add_row("Total Available", f"[bold green]{balance:,.2f}[/] / {total_pool:,.2f}")
+        else:
+            table.add_row("Total Available", f"[bold green]{balance:,.2f}[/]")
+
+        # Usage breakdown by type (Text, Image, Video, Audio)
+        meter_map = {
+            "asi_token_usage": "Text Usage",
+            "image_generation_usage": "Image Usage",
+            "video_generation_usage": "Video Usage",
+            "audio_generation_usage": "Audio Usage",
+        }
+        seen_types: set[str] = set()
+        if credits.meter_usage:
+            table.add_section()
+            for meter in credits.meter_usage:
+                raw_type = meter.get("meter_type", "unknown")
+                seen_types.add(raw_type)
+                friendly = meter_map.get(raw_type, raw_type.replace("_", " ").title())
+                cost = meter.get("cost_cents", 0)
+                table.add_row(friendly, f"{cost:,.2f}")
+            # Show zero for any standard types not in the response
+            for raw_type, friendly in meter_map.items():
+                if raw_type not in seen_types:
+                    table.add_row(friendly, "0.00")
+
+        if credits.renewal_date_ts:
+            table.add_section()
+            renewal = datetime.fromtimestamp(credits.renewal_date_ts, tz=timezone.utc)
+            table.add_row("Next Renewal", renewal.strftime("%b %d, %Y"))
+
+        console.print(table)
+
     return 0
 
 
@@ -499,6 +687,41 @@ def _cmd_usage(args: list[str]) -> int:
     """Handle: pwm usage [--refresh] — legacy interface for tests."""
     refresh = "--refresh" in args
     return _cmd_usage_impl(refresh)
+
+
+def _cmd_council(args: list[str]) -> int:
+    """Handle: pwm council <query> [options] — legacy interface for tests."""
+    if not args or args[0].startswith("-"):
+        print("Error: pwm council requires a query string.\n", file=sys.stderr)
+        print('Usage: pwm council "your question" [-m MODELS] [-s SOURCE]', file=sys.stderr)
+        return 1
+
+    query = args[0]
+    models_str = "gpt54,claude_opus,gemini_pro"
+    source: SourceFocusName = "web"
+    synthesize = True
+    json_output = False
+
+    i = 1
+    while i < len(args):
+        arg = args[i]
+        if arg in ("-m", "--models") and i + 1 < len(args):
+            models_str = args[i + 1]
+            i += 2
+        elif arg in ("-s", "--source") and i + 1 < len(args):
+            source = args[i + 1]  # type: ignore[assignment]
+            i += 2
+        elif arg == "--no-synthesis":
+            synthesize = False
+            i += 1
+        elif arg == "--json":
+            json_output = True
+            i += 1
+        else:
+            print(f"Unknown option: {arg}", file=sys.stderr)
+            return 1
+
+    return _cmd_council_impl(query, models_str, source, synthesize, json_output)
 
 
 # ── Entry point ────────────────────────────────────────────────────────────

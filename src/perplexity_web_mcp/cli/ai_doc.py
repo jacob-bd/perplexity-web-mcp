@@ -14,7 +14,7 @@ PERPLEXITY WEB MCP - AI REFERENCE
 
 Perplexity Web MCP provides three interfaces to Perplexity AI:
   1. CLI (pwm)         - Direct terminal queries and authentication
-  2. MCP Server        - 16 MCP tools for AI agents (pplx_* namespace)
+  2. MCP Server        - 17 MCP tools for AI agents (pplx_* namespace)
   3. API Server        - Anthropic/OpenAI-compatible HTTP endpoints
 
 All three share the same backend, models, and authentication token stored at
@@ -54,6 +54,22 @@ QUERYING
 
   Combined:
     pwm ask "protein folding advances" -m gemini_pro -s academic --json
+
+MODEL COUNCIL
+  pwm council "query"                         Query default 3 models in parallel
+  pwm council "query" -m MODELS               Custom model selection (comma-separated)
+  pwm council "query" -s SOURCE               Source focus for all council models
+  pwm council "query" --no-synthesis           Skip Sonar consensus synthesis
+  pwm council "query" --json                  Output as JSON
+
+  Each model in the council costs 1 Pro Search. Default = 3 Pro Searches.
+  Available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron
+
+  Examples:
+    pwm council "Best practices for microservices?"
+    pwm council "Compare Rust vs Go" -m gpt54,claude_sonnet
+    pwm council "Quantum computing" -s academic
+    pwm council "React vs Vue" --no-synthesis --json
 
 DEEP RESEARCH
   pwm research "query"                In-depth research report (monthly quota)
@@ -126,7 +142,7 @@ MCP examples:
   pplx_query(query="Tesla financials", model="gpt54", source_focus="finance")
 
 ================================================================================
-MCP TOOLS (16 total, pplx_* namespace)
+MCP TOOLS (17 total, pplx_* namespace)
 ================================================================================
 
 SMART QUERY (RECOMMENDED DEFAULT — use this for every query):
@@ -141,6 +157,14 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
 
   pplx_ask(query, source_focus="web")
       Auto-selects best model. 1 PRO SEARCH per call.
+
+  pplx_council(query, source_focus="web", models="gpt54,claude_opus,gemini_pro",
+               synthesize=True)
+      Model Council — N PRO SEARCHES (1 per model selected).
+      BEFORE CALLING: You MUST ask the user which models and how many.
+      Available: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron.
+      Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches.
+      Synthesis uses Sonar (free). Set synthesize=False to skip.
 
   pplx_deep_research(query, source_focus="web")
       In-depth research. 1 DEEP RESEARCH per call (scarce monthly quota).
@@ -230,6 +254,7 @@ COST MODEL:
     detailed, pplx_ask,
     pplx_query, all
     model-specific tools)
+  Council (pplx_council)  N Pro Searches (1 per model)   ~300/week (shared)
   Deep Research           1 Deep Research query           ~5-10/month
 
 MANDATORY PROTOCOL:
@@ -239,6 +264,8 @@ MANDATORY PROTOCOL:
   3. ESCALATE ONLY WHEN NEEDED: Use 'standard' for multi-source synthesis,
      'detailed' for complex analysis, 'research' only when user requests it.
   4. NEVER USE DEEP RESEARCH AUTONOMOUSLY — always ask the user first.
+  5. COUNCIL: Before calling pplx_council, ASK the user which models and how
+     many. Each model = 1 Pro Search. List available models for them to choose.
 
 WHEN TO USE EACH INTENT:
   quick     Facts, definitions, simple lookups, "what is X"      → FREE
@@ -298,6 +325,12 @@ Academic research:
 
 Financial analysis:
   pwm ask "Apple revenue Q4 2025" -s finance
+
+Model council (3 models, synthesized):
+  pwm council "What are the best practices for microservices?"
+
+Model council (custom 2 models):
+  pwm council "Compare Rust vs Go" -m gpt54,claude_sonnet
 
 Deep research:
   pwm research "agentic AI trends 2026"

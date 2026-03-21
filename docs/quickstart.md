@@ -78,6 +78,16 @@ pwm research "agentic AI trends 2026"
 
 > Deep Research has a limited monthly quota. Check your usage with `pwm usage`.
 
+### Model Council
+
+Get perspectives from multiple models at once:
+
+```bash
+pwm council "Compare Rust and Go for backend development"
+```
+
+Each model costs 1 Pro Search. Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro).
+
 ## 4. Check Your Quotas
 
 See how many Pro Search and Deep Research queries you have left:

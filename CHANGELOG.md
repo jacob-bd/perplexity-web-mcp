@@ -4,6 +4,18 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.10.4] - 2026-04-22
+
+### Added
+
+- **Council thinking control** — Enable extended thinking for all council models with `-t` / `--thinking`.
+  - `pwm council "query" --thinking` enables thinking variants for GPT-5.4, Claude Sonnet, and Claude Opus. Gemini Pro and Nemotron are always-thinking (unaffected).
+  - `pplx_council(query, thinking=True)` MCP tool support.
+  - New `COUNCIL_DEFAULT_MODELS_THINKING` preset with thinking model variants.
+  - 10 new tests covering thinking flag propagation through CLI, MCP, and core.
+
+---
+
 ## [0.10.3] - 2026-04-21
 
 ### Fixed

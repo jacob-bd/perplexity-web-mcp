@@ -50,7 +50,7 @@ src/perplexity_web_mcp/
 
 ```bash
 pwm ask "query" [-m MODEL] [-t] [-s SOURCE]  # Query Perplexity
-pwm council "query" [-m MODELS] [-s SOURCE]   # Model Council (multi-model)
+pwm council "query" [-m MODELS] [-t] [-s SOURCE]  # Model Council (multi-model)
 pwm research "query" [-s SOURCE]              # Deep research
 pwm login [--check] [--email E --code C]      # Authentication
 pwm usage [--refresh]                          # Rate limits

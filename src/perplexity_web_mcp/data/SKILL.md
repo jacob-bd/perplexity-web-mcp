@@ -243,6 +243,7 @@ Each model in the council costs 1 Pro Search. Default: 3 models = 3 Pro Searches
 pwm council "What are the best practices for microservices?"           # default 3 models
 pwm council "Compare Rust and Go for backend" -m gpt54,claude_sonnet  # custom 2 models
 pwm council "Explain quantum computing" -s academic                   # with source focus
+pwm council "Prove the Pythagorean theorem" --thinking                # extended thinking
 pwm council "Is React or Vue better?" --no-synthesis                  # skip synthesis
 pwm council "AI trends 2026" --json                                   # JSON output
 ```
@@ -281,7 +282,7 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_sonar` | **FREE** | Perplexity Sonar model (no Pro quota used) |
 | `pplx_query` | 1 Pro | Explicit model selection with thinking toggle |
 | `pplx_ask` | 1 Pro | Quick Q&A (auto model) |
-| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** |
+| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** Supports `thinking=True`. |
 | `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 |
 | `pplx_claude_sonnet` / `_think` | 1 Pro | Anthropic Claude 4.6 Sonnet |
 | `pplx_claude_opus` / `_think` | 1 Pro | Anthropic Claude 4.6 Opus |

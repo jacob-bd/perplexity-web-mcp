@@ -195,6 +195,7 @@ def pplx_council(
     source_focus: SourceFocusName = "web",
     models: str = "gpt54,claude_opus,gemini_pro",
     synthesize: bool = True,
+    thinking: bool = False,
 ) -> str:
     """Model Council — query multiple models in parallel, get synthesized consensus.
 
@@ -215,17 +216,16 @@ def pplx_council(
                 Default: "gpt54,claude_opus,gemini_pro" (3 models = 3 Pro Searches)
         synthesize: Whether to synthesize a consensus from all responses.
                     Set false to get only individual responses (saves 1 Sonar call).
+        thinking: Enable extended thinking for council models (gpt54, claude_sonnet,
+                  claude_opus support toggle; gemini_pro and nemotron are always thinking).
     """
-    from perplexity_web_mcp.council import COUNCIL_DEFAULT_MODELS
-
     # Parse custom model list if provided
     model_list = None
     if models != "gpt54,claude_opus,gemini_pro":
         model_list = []
         for name in models.split(","):
             name = name.strip()
-            resolved = resolve_model(name)
-            # Map short names to display names
+            resolved = resolve_model(name, thinking=thinking)
             display_names = {
                 "auto": "Auto (Best)",
                 "sonar": "Sonar",
@@ -236,6 +236,8 @@ def pplx_council(
                 "nemotron": "Nemotron 3 Super",
             }
             display = display_names.get(name, name)
+            if thinking and name in ("gpt54", "claude_sonnet", "claude_opus"):
+                display += " Thinking"
             model_list.append((display, resolved))
 
     from perplexity_web_mcp.shared import council_ask
@@ -245,6 +247,7 @@ def pplx_council(
         models=model_list,
         source_focus=source_focus,
         synthesize=synthesize,
+        thinking=thinking,
     )
     return result.format_response()
 

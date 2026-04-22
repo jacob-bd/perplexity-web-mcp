@@ -36,6 +36,13 @@ COUNCIL_DEFAULT_MODELS: list[tuple[str, Model]] = [
 ]
 """Default models for the council (3 diverse providers)."""
 
+COUNCIL_DEFAULT_MODELS_THINKING: list[tuple[str, Model]] = [
+    ("GPT-5.4 Thinking", Models.GPT_54_THINKING),
+    ("Claude Opus 4.6 Thinking", Models.CLAUDE_46_OPUS_THINKING),
+    ("Gemini 3.1 Pro", Models.GEMINI_31_PRO_THINKING),
+]
+"""Default models for the council with extended thinking enabled."""
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -198,6 +205,7 @@ def council_ask(
     models: list[tuple[str, Model]] | None = None,
     source_focus: str = "web",
     synthesize: bool = True,
+    thinking: bool = False,
 ) -> CouncilResponse:
     """Query multiple models in parallel and optionally synthesize results.
 
@@ -207,13 +215,20 @@ def council_ask(
                 COUNCIL_DEFAULT_MODELS (GPT-5.4, Claude Opus, Gemini Pro).
         source_focus: Source focus for all queries (none/web/academic/social/finance/all).
         synthesize: Whether to produce a synthesized consensus (adds 1 free Sonar query).
+        thinking: Use thinking model variants for default council members.
+                  Ignored when a custom *models* list is provided (caller resolves models).
 
     Returns:
         CouncilResponse with individual results and optional synthesis.
     """
     from .shared import SOURCE_FOCUS_MAP, check_limits_before_query
 
-    council = models or COUNCIL_DEFAULT_MODELS
+    if models is not None:
+        council = models
+    elif thinking:
+        council = COUNCIL_DEFAULT_MODELS_THINKING
+    else:
+        council = COUNCIL_DEFAULT_MODELS
     sources = SOURCE_FOCUS_MAP.get(source_focus, [SourceFocus.WEB])
     search_mode = SearchFocus.WRITING if source_focus == "none" else SearchFocus.WEB
 

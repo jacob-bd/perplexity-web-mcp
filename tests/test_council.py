@@ -8,6 +8,7 @@ import pytest
 
 from perplexity_web_mcp.council import (
     COUNCIL_DEFAULT_MODELS,
+    COUNCIL_DEFAULT_MODELS_THINKING,
     CouncilMemberResult,
     CouncilResponse,
     _build_synthesis_prompt,
@@ -118,6 +119,25 @@ class TestDefaultModels:
 
     def test_default_models_are_valid_model_instances(self) -> None:
         for name, model in COUNCIL_DEFAULT_MODELS:
+            assert isinstance(model, Model), f"{name} is not a Model"
+
+    def test_thinking_defaults_has_three_members(self) -> None:
+        assert len(COUNCIL_DEFAULT_MODELS_THINKING) == 3
+
+    def test_thinking_defaults_use_thinking_variants(self) -> None:
+        names = [name for name, _ in COUNCIL_DEFAULT_MODELS_THINKING]
+        assert any("Thinking" in n for n in names if "GPT" in n)
+        assert any("Thinking" in n for n in names if "Claude" in n)
+
+    def test_thinking_defaults_use_thinking_model_ids(self) -> None:
+        models_by_name = {name: model for name, model in COUNCIL_DEFAULT_MODELS_THINKING}
+        gpt_model = next(m for n, m in COUNCIL_DEFAULT_MODELS_THINKING if "GPT" in n)
+        claude_model = next(m for n, m in COUNCIL_DEFAULT_MODELS_THINKING if "Claude" in n)
+        assert gpt_model is Models.GPT_54_THINKING
+        assert claude_model is Models.CLAUDE_46_OPUS_THINKING
+
+    def test_thinking_defaults_are_valid_model_instances(self) -> None:
+        for name, model in COUNCIL_DEFAULT_MODELS_THINKING:
             assert isinstance(model, Model), f"{name} is not a Model"
 
 
@@ -346,6 +366,68 @@ class TestCouncilAsk:
         expected_names = [name for name, _ in COUNCIL_DEFAULT_MODELS]
         actual_names = [r.model_name for r in result.individual_results]
         assert actual_names == expected_names
+
+    @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_client")
+    def test_thinking_true_uses_thinking_defaults(
+        self, mock_client_fn: MagicMock, mock_cache: MagicMock, mock_limits: MagicMock,
+    ) -> None:
+        """thinking=True with no custom models should use COUNCIL_DEFAULT_MODELS_THINKING."""
+        mock_conv = MagicMock()
+        mock_conv.answer = "Thinking answer"
+        mock_conv.search_results = []
+        mock_client = MagicMock()
+        mock_client.create_conversation.return_value = mock_conv
+        mock_client_fn.return_value = mock_client
+
+        result = council_ask("test", synthesize=False, thinking=True)
+
+        assert isinstance(result, CouncilResponse)
+        expected_names = [name for name, _ in COUNCIL_DEFAULT_MODELS_THINKING]
+        actual_names = [r.model_name for r in result.individual_results]
+        assert actual_names == expected_names
+        assert result.model_names == expected_names
+
+    @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_client")
+    def test_thinking_false_uses_base_defaults(
+        self, mock_client_fn: MagicMock, mock_cache: MagicMock, mock_limits: MagicMock,
+    ) -> None:
+        """thinking=False (default) should use COUNCIL_DEFAULT_MODELS."""
+        mock_conv = MagicMock()
+        mock_conv.answer = "Base answer"
+        mock_conv.search_results = []
+        mock_client = MagicMock()
+        mock_client.create_conversation.return_value = mock_conv
+        mock_client_fn.return_value = mock_client
+
+        result = council_ask("test", synthesize=False, thinking=False)
+
+        expected_names = [name for name, _ in COUNCIL_DEFAULT_MODELS]
+        actual_names = [r.model_name for r in result.individual_results]
+        assert actual_names == expected_names
+
+    @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_client")
+    def test_thinking_ignored_when_custom_models_provided(
+        self, mock_client_fn: MagicMock, mock_cache: MagicMock, mock_limits: MagicMock,
+    ) -> None:
+        """When custom models are provided, thinking flag is ignored (caller resolves)."""
+        mock_conv = MagicMock()
+        mock_conv.answer = "Custom"
+        mock_conv.search_results = []
+        mock_client = MagicMock()
+        mock_client.create_conversation.return_value = mock_conv
+        mock_client_fn.return_value = mock_client
+
+        custom = [("GPT", Models.GPT_54), ("Sonar", Models.SONAR)]
+        result = council_ask("test", models=custom, synthesize=False, thinking=True)
+
+        assert result.model_names == ["GPT", "Sonar"]
+        assert len(result.individual_results) == 2
 
 
 # ============================================================================

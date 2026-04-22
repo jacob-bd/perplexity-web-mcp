@@ -336,6 +336,48 @@ class TestCmdCouncil:
         call_kwargs = mock_council.call_args
         assert call_kwargs[1]["synthesize"] is False or call_kwargs.kwargs.get("synthesize") is False
 
+    @patch("perplexity_web_mcp.council.council_ask")
+    def test_thinking_flag(self, mock_council: MagicMock) -> None:
+        from perplexity_web_mcp.council import CouncilMemberResult, CouncilResponse
+
+        mock_council.return_value = CouncilResponse(
+            individual_results=[CouncilMemberResult(model_name="GPT", answer="A")],
+            synthesis="",
+            query="test",
+            model_names=["GPT"],
+        )
+        _cmd_council(["query", "--thinking"])
+        call_kwargs = mock_council.call_args
+        assert call_kwargs[1].get("thinking") is True
+
+    @patch("perplexity_web_mcp.council.council_ask")
+    def test_thinking_short_flag(self, mock_council: MagicMock) -> None:
+        from perplexity_web_mcp.council import CouncilMemberResult, CouncilResponse
+
+        mock_council.return_value = CouncilResponse(
+            individual_results=[CouncilMemberResult(model_name="GPT", answer="A")],
+            synthesis="",
+            query="test",
+            model_names=["GPT"],
+        )
+        _cmd_council(["query", "-t"])
+        call_kwargs = mock_council.call_args
+        assert call_kwargs[1].get("thinking") is True
+
+    @patch("perplexity_web_mcp.council.council_ask")
+    def test_default_no_thinking(self, mock_council: MagicMock) -> None:
+        from perplexity_web_mcp.council import CouncilMemberResult, CouncilResponse
+
+        mock_council.return_value = CouncilResponse(
+            individual_results=[CouncilMemberResult(model_name="GPT", answer="A")],
+            synthesis="",
+            query="test",
+            model_names=["GPT"],
+        )
+        _cmd_council(["query"])
+        call_kwargs = mock_council.call_args
+        assert call_kwargs[1].get("thinking") is False
+
 
 # ============================================================================
 # 7. Council error handling

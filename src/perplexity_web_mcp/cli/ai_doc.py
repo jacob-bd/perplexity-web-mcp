@@ -58,17 +58,20 @@ QUERYING
 MODEL COUNCIL
   pwm council "query"                         Query default 3 models in parallel
   pwm council "query" -m MODELS               Custom model selection (comma-separated)
+  pwm council "query" -t                      Enable extended thinking for all models
   pwm council "query" -s SOURCE               Source focus for all council models
   pwm council "query" --no-synthesis           Skip Sonar consensus synthesis
   pwm council "query" --json                  Output as JSON
 
   Each model in the council costs 1 Pro Search. Default = 3 Pro Searches.
   Available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron
+  Thinking toggle: -t / --thinking (gpt54, claude_sonnet, claude_opus support toggle;
+    gemini_pro and nemotron are always thinking)
 
   Examples:
     pwm council "Best practices for microservices?"
     pwm council "Compare Rust vs Go" -m gpt54,claude_sonnet
-    pwm council "Quantum computing" -s academic
+    pwm council "Quantum computing" -s academic --thinking
     pwm council "React vs Vue" --no-synthesis --json
 
 DEEP RESEARCH
@@ -159,12 +162,13 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
       Auto-selects best model. 1 PRO SEARCH per call.
 
   pplx_council(query, source_focus="web", models="gpt54,claude_opus,gemini_pro",
-               synthesize=True)
+               synthesize=True, thinking=False)
       Model Council — N PRO SEARCHES (1 per model selected).
       BEFORE CALLING: You MUST ask the user which models and how many.
       Available: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron.
       Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches.
       Synthesis uses Sonar (free). Set synthesize=False to skip.
+      Set thinking=True to enable extended thinking for all council models.
 
   pplx_deep_research(query, source_focus="web")
       In-depth research. 1 DEEP RESEARCH per call (scarce monthly quota).
@@ -331,6 +335,9 @@ Model council (3 models, synthesized):
 
 Model council (custom 2 models):
   pwm council "Compare Rust vs Go" -m gpt54,claude_sonnet
+
+Model council with thinking:
+  pwm council "Prove the Pythagorean theorem" --thinking
 
 Deep research:
   pwm research "agentic AI trends 2026"

@@ -437,6 +437,7 @@ def council_ask(
     models: list[tuple[str, Model]] | None = None,
     source_focus: SourceFocusName = "web",
     synthesize: bool = True,
+    thinking: bool = False,
 ) -> "CouncilResponse":
     """Query multiple models in parallel and optionally synthesize results.
 
@@ -450,6 +451,7 @@ def council_ask(
                 GPT-5.4, Claude Opus 4.6, and Gemini 3.1 Pro.
         source_focus: Source focus for all queries.
         synthesize: Whether to run Sonar synthesis (free, no Pro cost).
+        thinking: Use thinking model variants for default council members.
 
     Returns:
         CouncilResponse with individual results and optional synthesis.
@@ -461,4 +463,5 @@ def council_ask(
         models=models,
         source_focus=source_focus,
         synthesize=synthesize,
+        thinking=thinking,
     )

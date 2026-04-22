@@ -222,11 +222,12 @@ COUNCIL_MODEL_NAMES = ("gpt54", "claude_sonnet", "claude_opus", "gemini_pro", "n
 @click.argument("query")
 @click.option("-m", "--models", "models_str", default="gpt54,claude_opus,gemini_pro",
               help=f"Comma-separated models ({', '.join(COUNCIL_MODEL_NAMES)}).")
+@click.option("-t", "--thinking", is_flag=True, help="Enable extended thinking mode.")
 @click.option("-s", "--source", "source", default="web",
               help=f"Source focus ({', '.join(SOURCE_FOCUS_NAMES)}).")
 @click.option("--no-synthesis", is_flag=True, help="Skip Sonar consensus synthesis.")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
-def council(query, models_str, source, no_synthesis, json_output):
+def council(query, models_str, thinking, source, no_synthesis, json_output):
     """Query multiple models in parallel (Model Council).
 
     Each model costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
@@ -236,14 +237,14 @@ def council(query, models_str, source, no_synthesis, json_output):
     Examples:
       pwm council "What are best practices for microservices?"
       pwm council "Compare Rust and Go" -m gpt54,claude_sonnet
-      pwm council "Explain quantum computing" -s academic
+      pwm council "Explain quantum computing" -s academic --thinking
       pwm council "React vs Vue" --no-synthesis --json
     """
-    code = _cmd_council_impl(query, models_str, source, not no_synthesis, json_output)
+    code = _cmd_council_impl(query, models_str, source, not no_synthesis, json_output, thinking)
     raise SystemExit(code)
 
 
-def _cmd_council_impl(query, models_str, source, synthesize, json_output):
+def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinking=False):
     """Implementation for council command."""
     if source not in SOURCE_FOCUS_NAMES:
         print(f"Error: Unknown source '{source}'. Available: {', '.join(SOURCE_FOCUS_NAMES)}", file=sys.stderr)
@@ -275,8 +276,10 @@ def _cmd_council_impl(query, models_str, source, synthesize, json_output):
             }
             model_list = []
             for name in model_names:
-                resolved = resolve_model(name)
+                resolved = resolve_model(name, thinking=thinking)
                 display = display_names.get(name, name)
+                if thinking and name in ("gpt54", "claude_sonnet", "claude_opus"):
+                    display += " Thinking"
                 model_list.append((display, resolved))
 
         result = council_ask(
@@ -284,6 +287,7 @@ def _cmd_council_impl(query, models_str, source, synthesize, json_output):
             models=model_list,
             source_focus=source,
             synthesize=synthesize,
+            thinking=thinking,
         )
 
         if json_output:
@@ -693,7 +697,7 @@ def _cmd_council(args: list[str]) -> int:
     """Handle: pwm council <query> [options] — legacy interface for tests."""
     if not args or args[0].startswith("-"):
         print("Error: pwm council requires a query string.\n", file=sys.stderr)
-        print('Usage: pwm council "your question" [-m MODELS] [-s SOURCE]', file=sys.stderr)
+        print('Usage: pwm council "your question" [-m MODELS] [-s SOURCE] [-t]', file=sys.stderr)
         return 1
 
     query = args[0]
@@ -701,6 +705,7 @@ def _cmd_council(args: list[str]) -> int:
     source: SourceFocusName = "web"
     synthesize = True
     json_output = False
+    thinking = False
 
     i = 1
     while i < len(args):
@@ -711,6 +716,9 @@ def _cmd_council(args: list[str]) -> int:
         elif arg in ("-s", "--source") and i + 1 < len(args):
             source = args[i + 1]  # type: ignore[assignment]
             i += 2
+        elif arg in ("-t", "--thinking"):
+            thinking = True
+            i += 1
         elif arg == "--no-synthesis":
             synthesize = False
             i += 1
@@ -721,7 +729,7 @@ def _cmd_council(args: list[str]) -> int:
             print(f"Unknown option: {arg}", file=sys.stderr)
             return 1
 
-    return _cmd_council_impl(query, models_str, source, synthesize, json_output)
+    return _cmd_council_impl(query, models_str, source, synthesize, json_output, thinking)
 
 
 # ── Entry point ────────────────────────────────────────────────────────────

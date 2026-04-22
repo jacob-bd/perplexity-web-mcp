@@ -201,6 +201,11 @@ pwm council "Compare Rust and Go" -m gpt54,claude_sonnet
 ```
 
 ```bash
+# Enable extended thinking for all council models
+pwm council "Prove the Pythagorean theorem" --thinking
+```
+
+```bash
 # Skip synthesis, output as JSON
 pwm council "React vs Vue" --no-synthesis --json
 ```

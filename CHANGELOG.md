@@ -4,6 +4,26 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.10.5] - 2026-04-22
+
+### Added
+
+- **Kimi K2.6** — Moonshot AI's latest model, available across all layers (CLI `-m kimi_k26`, MCP `pplx_kimi_k26` / `pplx_kimi_k26_thinking`, API server, Model Council). Thinking toggle supported.
+- **Claude Opus 4.7** — Upgraded from 4.6 to 4.7 across all model definitions, aliases, council defaults, and documentation. Legacy 4.6/4.5 aliases continue to map to 4.7.
+
+### Fixed
+
+- **Rate limit pre-flight blocking** — Perplexity's `/rest/rate-limit/all` API reports 0 while the account still has quota. Removed the hard block so queries proceed and real 429 errors surface instead.
+- **`pwm usage` crash** — `subscription_tier: null` from the API no longer throws `AttributeError`. Displays as "Unknown" gracefully.
+
+### Improved
+
+- Council model display names and thinking-toggleable set moved to module-level constants (derived from `MODEL_MAP`) — no longer rebuilt per query call, and no longer a hardcoded list that drifts when new models are added.
+- Removed dead pre-flight rate-limit loop from `council_ask()` and redundant `invalidate_rate_limits()` call.
+- **Skill docs updated** — `SKILL.md` and `references/models.md` now include Kimi K2.6, correct Claude 4.7 references, and a note clarifying that `source_focus="none"` does **not** reduce Pro quota cost for premium models.
+
+---
+
 ## [0.10.4] - 2026-04-22
 
 ### Added

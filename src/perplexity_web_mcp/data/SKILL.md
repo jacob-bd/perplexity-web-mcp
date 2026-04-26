@@ -1,8 +1,8 @@
 ---
 name: perplexity-web-mcp
-description: "Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions \"perplexity\", \"pplx\", \"pwm\", \"web search with AI\", \"deep research\", \"search the internet\", or wants to query premium models like GPT-5.4, Claude, Gemini, Nemotron through Perplexity's web interface."
+description: "Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions \"perplexity\", \"pplx\", \"pwm\", \"web search with AI\", \"deep research\", \"search the internet\", or wants to query premium models like GPT-5.4, GPT-5.5, Claude, Gemini, Nemotron through Perplexity's web interface."
 metadata:
-  version: "0.10.4"
+  version: "0.10.6"
   author: "Jacob BD"
 ---
 
@@ -83,7 +83,7 @@ Ask yourself: **"Can Sonar answer this?"** If yes, use `quick`. Only escalate if
 - The user needs high-confidence answers validated across multiple AI providers
 - Important decisions, fact-checking, or complex analysis
 - BEFORE calling: ASK the user which models and how many (each = 1 Pro Search)
-- Available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
+- Available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
 - Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches
 
 ### Decision Flowchart
@@ -244,6 +244,7 @@ pwm council "What are the best practices for microservices?"           # default
 pwm council "Compare Rust and Go for backend" -m gpt54,claude_sonnet  # custom 2 models
 pwm council "Explain quantum computing" -s academic                   # with source focus
 pwm council "Prove the Pythagorean theorem" --thinking                # extended thinking
+pwm council "AI trends 2026" --chairman claude_sonnet                 # premium synthesis (+1 Pro)
 pwm council "Is React or Vue better?" --no-synthesis                  # skip synthesis
 pwm council "AI trends 2026" --json                                   # JSON output
 ```
@@ -282,8 +283,9 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_sonar` | **FREE** | Perplexity Sonar model (no Pro quota used) |
 | `pplx_query` | 1 Pro | Explicit model selection with thinking toggle |
 | `pplx_ask` | 1 Pro | Quick Q&A (auto model) |
-| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** Supports `thinking=True`. |
-| `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 |
+| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** Supports `thinking=True` and `chairman` for synthesis model. |
+| `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 (versatile) |
+| `pplx_gpt55` / `_thinking` | 1 Pro | OpenAI GPT-5.5 (latest, Max tier) |
 | `pplx_claude_sonnet` / `_think` | 1 Pro | Anthropic Claude 4.6 Sonnet |
 | `pplx_claude_opus` / `_think` | 1 Pro | Anthropic Claude 4.7 Opus |
 | `pplx_gemini_pro_think` | 1 Pro | Google Gemini 3.1 Pro (thinking always on) |
@@ -307,7 +309,8 @@ For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools
 | auto | Perplexity | No | Auto-selects best |
 | sonar | Perplexity | No | Latest Perplexity model |
 | deep_research | Perplexity | No | Monthly quota |
-| gpt54 | OpenAI | Toggle | GPT-5.4 |
+| gpt54 | OpenAI | Toggle | GPT-5.4 (versatile) |
+| gpt55 | OpenAI | Toggle | GPT-5.5 (latest, Max tier) |
 | claude_sonnet | Anthropic | Toggle | Claude 4.6 Sonnet |
 | claude_opus | Anthropic | Toggle | Claude 4.7 Opus (Max tier) |
 | gemini_pro | Google | Always | Gemini 3.1 Pro |

@@ -60,18 +60,22 @@ MODEL COUNCIL
   pwm council "query" -m MODELS               Custom model selection (comma-separated)
   pwm council "query" -t                      Enable extended thinking for all models
   pwm council "query" -s SOURCE               Source focus for all council models
-  pwm council "query" --no-synthesis           Skip Sonar consensus synthesis
+  pwm council "query" --chairman MODEL        Set synthesis model (default: sonar, free)
+  pwm council "query" --no-synthesis           Skip consensus synthesis
   pwm council "query" --json                  Output as JSON
 
   Each model in the council costs 1 Pro Search. Default = 3 Pro Searches.
-  Available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
-  Thinking toggle: -t / --thinking (gpt54, claude_sonnet, claude_opus, kimi_k26 support toggle;
+  Available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
+  Thinking toggle: -t / --thinking (gpt54, gpt55, claude_sonnet, claude_opus, kimi_k26 support toggle;
     gemini_pro and nemotron are always thinking)
+
+  Chairman: --chairman MODEL (default: sonar, free). Non-sonar costs 1 extra Pro Search.
 
   Examples:
     pwm council "Best practices for microservices?"
     pwm council "Compare Rust vs Go" -m gpt54,claude_sonnet
     pwm council "Quantum computing" -s academic --thinking
+    pwm council "React vs Vue" --chairman claude_sonnet
     pwm council "React vs Vue" --no-synthesis --json
 
 DEEP RESEARCH
@@ -107,7 +111,8 @@ Name            Identifier              Thinking   Notes
 auto            pplx_pro                No         Auto-selects best model
 sonar           experimental            No         Perplexity's latest
 deep_research   pplx_alpha              No         In-depth reports (monthly quota)
-gpt54           gpt54                   Yes        OpenAI GPT-5.4
+gpt54           gpt54                   Yes        OpenAI GPT-5.4 (versatile)
+gpt55           gpt55                   Yes        OpenAI GPT-5.5 (latest, Max tier)
 claude_sonnet   claude46sonnet          Yes        Anthropic Claude 4.6 Sonnet
 claude_opus     claude47opus            Yes        Anthropic Claude 4.7 Opus (Max tier)
 gemini_pro      gemini31pro_high        Always     Google Gemini 3.1 Pro (thinking only)
@@ -163,21 +168,25 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
       Auto-selects best model. 1 PRO SEARCH per call.
 
   pplx_council(query, source_focus="web", models="gpt54,claude_opus,gemini_pro",
-               synthesize=True, thinking=False)
+               synthesize=True, thinking=False, chairman="sonar")
       Model Council — N PRO SEARCHES (1 per model selected).
       BEFORE CALLING: You MUST ask the user which models and how many.
-      Available: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26.
+      Available: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26.
       Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches.
-      Synthesis uses Sonar (free). Set synthesize=False to skip.
+      Synthesis uses Sonar (free) by default. Set chairman to override.
+      Non-sonar chairman costs 1 extra Pro Search.
+      Set synthesize=False to skip synthesis entirely.
       Set thinking=True to enable extended thinking for all council models.
 
   pplx_deep_research(query, source_focus="web")
       In-depth research. 1 DEEP RESEARCH per call (scarce monthly quota).
       ONLY use when user explicitly requests deep research.
 
-  pplx_sonar(query, source_focus="web")         Perplexity Sonar — FREE
+  pplx_sonar(query, source_focus="web")          Perplexity Sonar — FREE
   pplx_gpt54(query, source_focus="web")          GPT-5.4 — 1 Pro
   pplx_gpt54_thinking(query, source_focus="web") GPT-5.4 + thinking — 1 Pro
+  pplx_gpt55(query, source_focus="web")          GPT-5.5 — 1 Pro (Max tier)
+  pplx_gpt55_thinking(query, source_focus="web") GPT-5.5 + thinking — 1 Pro (Max tier)
   pplx_claude_sonnet(query, source_focus="web")   Claude 4.6 Sonnet — 1 Pro
   pplx_claude_sonnet_think(query, source_focus)   Claude 4.6 Sonnet + thinking — 1 Pro
   pplx_claude_opus(query, source_focus="web")     Claude 4.7 Opus — 1 Pro (Max tier)

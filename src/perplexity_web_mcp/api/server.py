@@ -158,6 +158,10 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "gpt-5-4": (Models.GPT_54, Models.GPT_54_THINKING),
     "gpt-54": (Models.GPT_54, Models.GPT_54_THINKING),
     "gpt54": (Models.GPT_54, Models.GPT_54_THINKING),
+    "gpt-5.5": (Models.GPT_55, Models.GPT_55_THINKING),
+    "gpt-5-5": (Models.GPT_55, Models.GPT_55_THINKING),
+    "gpt-55": (Models.GPT_55, Models.GPT_55_THINKING),
+    "gpt55": (Models.GPT_55, Models.GPT_55_THINKING),
     
     # ==========================================================================
     # Google Gemini Models (via Perplexity)
@@ -194,7 +198,8 @@ AVAILABLE_MODELS = [
     # Google Gemini
     {"id": "gemini-3.1-pro", "description": "Gemini 3.1 Pro - Advanced, thinking always on"},
     # OpenAI
-    {"id": "gpt-5.4", "description": "GPT-5.4 - OpenAI's latest, thinking toggle available"},
+    {"id": "gpt-5.4", "description": "GPT-5.4 - OpenAI's versatile model, thinking toggle available"},
+    {"id": "gpt-5.5", "description": "GPT-5.5 - OpenAI's latest, Max tier required, thinking toggle available"},
     # Anthropic Claude
     {"id": "claude-sonnet-4-6", "description": "Claude Sonnet 4.6 - Fast, thinking toggle available"},
     {"id": "claude-opus-4-7", "description": "Claude Opus 4.7 - Advanced reasoning, Max tier required"},

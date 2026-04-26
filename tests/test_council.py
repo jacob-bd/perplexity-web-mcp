@@ -418,6 +418,55 @@ class TestCouncilAsk:
         assert result.model_names == ["GPT", "Sonar"]
         assert len(result.individual_results) == 2
 
+    @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_client")
+    def test_custom_synthesis_model(
+        self, mock_client_fn: MagicMock, mock_cache: MagicMock, mock_limits: MagicMock,
+    ) -> None:
+        """synthesis_model overrides default Sonar for synthesis."""
+        configs_used: list[Model] = []
+
+        def create_conv_side_effect(config):
+            configs_used.append(config.model)
+            mock_conv = MagicMock()
+            mock_conv.answer = "Answer"
+            mock_conv.search_results = []
+            return mock_conv
+
+        mock_client = MagicMock()
+        mock_client.create_conversation.side_effect = create_conv_side_effect
+        mock_client_fn.return_value = mock_client
+
+        council_ask("test", synthesize=True, synthesis_model=Models.GPT_54)
+
+        # Last call should be the synthesis model (GPT_54, not SONAR)
+        assert configs_used[-1] is Models.GPT_54
+
+    @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_client")
+    def test_default_synthesis_uses_sonar(
+        self, mock_client_fn: MagicMock, mock_cache: MagicMock, mock_limits: MagicMock,
+    ) -> None:
+        """Default synthesis (no synthesis_model) uses Sonar."""
+        configs_used: list[Model] = []
+
+        def create_conv_side_effect(config):
+            configs_used.append(config.model)
+            mock_conv = MagicMock()
+            mock_conv.answer = "Answer"
+            mock_conv.search_results = []
+            return mock_conv
+
+        mock_client = MagicMock()
+        mock_client.create_conversation.side_effect = create_conv_side_effect
+        mock_client_fn.return_value = mock_client
+
+        council_ask("test", synthesize=True)
+
+        assert configs_used[-1] is Models.SONAR
+
 
 # ============================================================================
 # 5. Shared council_ask wrapper

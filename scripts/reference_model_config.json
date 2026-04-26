@@ -111,12 +111,24 @@
     },
     "gpt54": {
       "label": "GPT-5.4",
-      "description": "OpenAI's latest model",
+      "description": "OpenAI's versatile model",
       "mode": "search",
       "provider": "OPENAI"
     },
     "gpt54_thinking": {
       "label": "GPT-5.4 Thinking",
+      "description": "OpenAI's versatile model with thinking",
+      "mode": "search",
+      "provider": "OPENAI"
+    },
+    "gpt55": {
+      "label": "GPT-5.5",
+      "description": "OpenAI's latest model",
+      "mode": "search",
+      "provider": "OPENAI"
+    },
+    "gpt55_thinking": {
+      "label": "GPT-5.5 Thinking",
       "description": "OpenAI's latest model with thinking",
       "mode": "search",
       "provider": "OPENAI"
@@ -229,6 +241,18 @@
       "mode": "search",
       "provider": "ANTHROPIC"
     },
+    "claude47opus": {
+      "label": "Claude Opus 4.7",
+      "description": "Anthropic's most advanced model",
+      "mode": "search",
+      "provider": "ANTHROPIC"
+    },
+    "claude47opusthinking": {
+      "label": "Claude Opus 4.7 Thinking",
+      "description": "Anthropic's most advanced model with thinking",
+      "mode": "search",
+      "provider": "ANTHROPIC"
+    },
     "claude45sonnet": {
       "label": "Claude Sonnet 4.5",
       "description": "Anthropic's fast model",
@@ -274,6 +298,18 @@
     "kimik25thinking": {
       "label": "Kimi K2.5 Thinking",
       "description": "Moonshot AI's latest model",
+      "mode": "search",
+      "provider": "MOONSHOT_AI"
+    },
+    "kimik26instant": {
+      "label": "Kimi K2.6",
+      "description": "Moonshot AI's latest model",
+      "mode": "search",
+      "provider": "MOONSHOT_AI"
+    },
+    "kimik26thinking": {
+      "label": "Kimi K2.6 Thinking",
+      "description": "Moonshot AI's latest model with Thinking",
       "mode": "search",
       "provider": "MOONSHOT_AI"
     },
@@ -356,8 +392,20 @@
       "provider": "PERPLEXITY"
     },
     "pplx_asi": {
-      "label": "Claude Opus 4.6",
-      "description": "Computer powered by Claude 4.6 Opus",
+      "label": "Computer",
+      "description": "Computer (default model)",
+      "mode": "asi",
+      "provider": "ANTHROPIC"
+    },
+    "pplx_asi_opus": {
+      "label": "Claude Opus 4.7",
+      "description": "Computer powered by Claude 4.7 Opus",
+      "mode": "asi",
+      "provider": "ANTHROPIC"
+    },
+    "pplx_asi_opus_thinking": {
+      "label": "Claude Opus 4.7 Thinking",
+      "description": "Computer powered by Claude 4.7 Opus with thinking",
       "mode": "asi",
       "provider": "ANTHROPIC"
     },
@@ -367,9 +415,39 @@
       "mode": "asi",
       "provider": "OPENAI"
     },
+    "pplx_asi_gpt_55": {
+      "label": "GPT 5.5",
+      "description": "Computer powered by GPT 5.5",
+      "mode": "asi",
+      "provider": "OPENAI"
+    },
+    "pplx_asi_kimi": {
+      "label": "Kimi K2.5",
+      "description": "Computer powered by Kimi K2.5",
+      "mode": "asi",
+      "provider": "FIREWORKS"
+    },
+    "pplx_asi_qwen": {
+      "label": "Qwen 3.6 Plus",
+      "description": "Computer powered by Qwen 3.6 Plus",
+      "mode": "asi",
+      "provider": "FIREWORKS"
+    },
     "pplx_asi_sonnet": {
       "label": "Claude Sonnet 4.6",
       "description": "Computer powered by Claude 4.6 Sonnet",
+      "mode": "asi",
+      "provider": "ANTHROPIC"
+    },
+    "pplx_asi_sonnet_thinking": {
+      "label": "Claude Sonnet 4.6 Thinking",
+      "description": "Computer powered by Claude 4.6 Sonnet with thinking",
+      "mode": "asi",
+      "provider": "ANTHROPIC"
+    },
+    "pplx_business_assistant": {
+      "label": "Business Assistant",
+      "description": "Business AI assistant",
       "mode": "asi",
       "provider": "ANTHROPIC"
     },
@@ -386,22 +464,78 @@
       "provider": "ANTHROPIC"
     },
     "comet_browser_agent_opus": {
-      "label": "Claude Opus 4.6",
-      "description": "Browser agent powered by Claude 4.6 Opus",
+      "label": "Claude Opus 4.7",
+      "description": "Browser agent powered by Claude 4.7 Opus",
       "mode": "browser_agent",
       "provider": "ANTHROPIC"
+    },
+    "claudecode": {
+      "label": "Claude Code",
+      "description": "Anthropic's coding agent",
+      "mode": "search",
+      "provider": "ANTHROPIC"
+    },
+    "codex": {
+      "label": "Codex",
+      "description": "OpenAI's coding agent",
+      "mode": "search",
+      "provider": "OPENAI"
+    },
+    "gpt53codex": {
+      "label": "GPT-5.3 Codex",
+      "description": "OpenAI's coding model",
+      "mode": "search",
+      "provider": "OPENAI"
+    },
+    "nanobananapro": {
+      "label": "Nano Banana Pro",
+      "description": "Google's advanced image generation model",
+      "mode": "search",
+      "provider": "GOOGLE"
+    },
+    "nanobanana2": {
+      "label": "Nano Banana 2",
+      "description": "Google's image generation model",
+      "mode": "search",
+      "provider": "GOOGLE"
+    },
+    "sora2": {
+      "label": "Sora 2",
+      "description": "OpenAI's video generation model",
+      "mode": "search",
+      "provider": "OPENAI"
+    },
+    "sora2pro": {
+      "label": "Sora 2 Pro",
+      "description": "OpenAI's advanced video generation model",
+      "mode": "search",
+      "provider": "OPENAI"
+    },
+    "veo31": {
+      "label": "Veo 3.1",
+      "description": "Google's video generation model",
+      "mode": "search",
+      "provider": "GOOGLE"
+    },
+    "veo31fast": {
+      "label": "Veo 3.1 Fast",
+      "description": "Google's fast video generation model",
+      "mode": "search",
+      "provider": "GOOGLE"
     }
   },
   "config": [
     {
-      "label": "Sonar",
-      "description": "Perplexity's latest model",
+      "label": "Sonar 2",
+      "description": "Perplexity's latest in-house model.",
       "subheading": null,
       "has_new_tag": false,
       "subscription_tier": "pro",
       "non_reasoning_model": "experimental",
       "reasoning_model": null,
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
       "label": "Claude Sonnet 4.6",
@@ -411,27 +545,45 @@
       "subscription_tier": "pro",
       "non_reasoning_model": "comet_browser_agent_sonnet",
       "reasoning_model": null,
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
-      "label": "Claude Opus 4.6",
-      "description": "Browser agent powered by Claude 4.6 Opus",
+      "label": "Claude Opus 4.7",
+      "description": "Browser agent powered by Claude 4.7 Opus",
       "subheading": null,
       "has_new_tag": false,
       "subscription_tier": "max",
       "non_reasoning_model": "comet_browser_agent_opus",
       "reasoning_model": null,
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
       "label": "GPT-5.4",
-      "description": "OpenAI's latest model",
+      "description": "OpenAI's versatile model",
       "subheading": null,
       "has_new_tag": false,
       "subscription_tier": "pro",
       "non_reasoning_model": "gpt54",
       "reasoning_model": "gpt54_thinking",
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
+    },
+    {
+      "label": "GPT-5.5",
+      "description": "OpenAI's latest model",
+      "subheading": null,
+      "has_new_tag": true,
+      "subscription_tier": "max",
+      "non_reasoning_model": "gpt55",
+      "reasoning_model": "gpt55_thinking",
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
       "label": "Gemini 3.1 Pro",
@@ -441,7 +593,9 @@
       "subscription_tier": "pro",
       "non_reasoning_model": null,
       "reasoning_model": "gemini31pro_high",
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
       "label": "Claude Sonnet 4.6",
@@ -451,47 +605,69 @@
       "subscription_tier": "pro",
       "non_reasoning_model": "claude46sonnet",
       "reasoning_model": "claude46sonnetthinking",
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
-      "label": "Claude Opus 4.6",
+      "label": "Claude Opus 4.7",
       "description": "Anthropic's most advanced model",
       "subheading": null,
-      "has_new_tag": false,
+      "has_new_tag": true,
       "subscription_tier": "max",
-      "non_reasoning_model": "claude46opus",
-      "reasoning_model": "claude46opusthinking",
-      "text_only_model": false
+      "non_reasoning_model": "claude47opus",
+      "reasoning_model": "claude47opusthinking",
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
+    },
+    {
+      "label": "Kimi K2.6",
+      "description": "Moonshot AI's latest model",
+      "subheading": null,
+      "has_new_tag": true,
+      "subscription_tier": "pro",
+      "non_reasoning_model": "kimik26instant",
+      "reasoning_model": "kimik26thinking",
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
       "label": "Nemotron 3 Super",
       "description": "NVIDIA's Nemotron 3 Super 120B model",
       "subheading": null,
-      "has_new_tag": true,
+      "has_new_tag": false,
       "subscription_tier": "pro",
       "non_reasoning_model": null,
       "reasoning_model": "nv_nemotron_3_super",
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
-      "label": "Claude Opus 4.6",
-      "description": "Computer powered by Claude 4.6 Opus",
-      "subheading": "Powerful model for complex tasks.",
-      "has_new_tag": false,
-      "subscription_tier": "pro",
-      "non_reasoning_model": "pplx_asi",
-      "reasoning_model": null,
-      "text_only_model": false
-    },
-    {
-      "label": "GPT-5.4",
-      "description": "Computer powered by GPT-5.4",
+      "label": "GPT-5.5",
+      "description": "Computer powered by GPT-5.5",
       "subheading": "Newest model for complex tasks.",
       "has_new_tag": true,
       "subscription_tier": "pro",
-      "non_reasoning_model": "pplx_asi_gpt54",
+      "non_reasoning_model": "pplx_asi_gpt_55",
       "reasoning_model": null,
-      "text_only_model": false
+      "text_only_model": false,
+      "audience": null,
+      "is_default": true
+    },
+    {
+      "label": "Claude Opus 4.7",
+      "description": "Computer powered by Claude 4.7 Opus",
+      "subheading": "Powerful model for complex tasks.",
+      "has_new_tag": false,
+      "subscription_tier": "pro",
+      "non_reasoning_model": "pplx_asi_opus",
+      "reasoning_model": "pplx_asi_opus_thinking",
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     },
     {
       "label": "Claude Sonnet 4.6",
@@ -500,23 +676,24 @@
       "has_new_tag": false,
       "subscription_tier": "pro",
       "non_reasoning_model": "pplx_asi_sonnet",
-      "reasoning_model": null,
-      "text_only_model": false
+      "reasoning_model": "pplx_asi_sonnet_thinking",
+      "text_only_model": false,
+      "audience": null,
+      "is_default": false
     }
   ],
   "default_models": {
     "search": "turbo",
     "research": "pplx_alpha",
     "agentic_research": "pplx_agentic_research",
-    "studio": "pplx_beta",
     "study": "pplx_study",
     "document_review": "pplx_document_review",
     "browser_agent": "comet_browser_agent_sonnet",
     "asi": "pplx_asi"
   },
   "agentic_research_compare_models": [
-    "gpt54_thinking",
-    "claude46opusthinking",
+    "gpt55_thinking",
+    "claude47opusthinking",
     "gemini31pro_high"
   ]
 }

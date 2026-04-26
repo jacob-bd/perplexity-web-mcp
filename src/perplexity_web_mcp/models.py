@@ -32,10 +32,16 @@ class Models:
     """Gemini 3.1 Pro Thinking - Google's most advanced model (thinking)."""
 
     GPT_54 = Model(identifier="gpt54")
-    """GPT-5.4 - OpenAI's latest model."""
+    """GPT-5.4 - OpenAI's versatile model."""
 
     GPT_54_THINKING = Model(identifier="gpt54_thinking")
-    """GPT-5.4 Thinking - OpenAI's latest model (thinking)."""
+    """GPT-5.4 Thinking - OpenAI's versatile model (thinking)."""
+
+    GPT_55 = Model(identifier="gpt55")
+    """GPT-5.5 - OpenAI's latest model (Max only)."""
+
+    GPT_55_THINKING = Model(identifier="gpt55_thinking")
+    """GPT-5.5 Thinking - OpenAI's latest model with thinking (Max only)."""
 
     CLAUDE_46_SONNET = Model(identifier="claude46sonnet")
     """Claude Sonnet 4.6 - Anthropic's fast model."""

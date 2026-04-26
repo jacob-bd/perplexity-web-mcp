@@ -1,8 +1,8 @@
 ---
 name: perplexity-web-mcp
-description: "Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions \"perplexity\", \"pplx\", \"pwm\", \"web search with AI\", \"deep research\", \"search the internet\", or wants to query premium models like GPT-5.4, Claude, Gemini, Nemotron through Perplexity's web interface."
+description: "Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions \"perplexity\", \"pplx\", \"pwm\", \"web search with AI\", \"deep research\", \"search the internet\", or wants to query premium models like GPT-5.4, GPT-5.5, Claude, Gemini, Nemotron through Perplexity's web interface."
 metadata:
-  version: "0.10.2"
+  version: "0.10.6"
   author: "Jacob BD"
 ---
 
@@ -40,6 +40,7 @@ the weekly pool fast, leaving nothing for questions that actually need it.
 |------|---------------|--------|--------------|
 | **Sonar / quick** | FREE — no quota consumed | — | Unlimited |
 | **Pro Search** (standard/detailed, pplx_ask, pplx_query, all model-specific tools) | 1 Pro Search query | Weekly | ~300/week |
+| **Council** (pplx_council, pwm council) | N Pro Searches (1 per model selected) + 1 free Sonar synthesis | Weekly | ~300/week (shared) |
 | **Deep Research** (pplx_deep_research, research intent) | 1 Deep Research query | Monthly | ~5-10/month |
 
 ### Before Every Session
@@ -78,6 +79,13 @@ Ask yourself: **"Can Sonar answer this?"** If yes, use `quick`. Only escalate if
 - Never use autonomously — always ask the user first
 - Falls back to premium Pro Search if research quota is exhausted
 
+**Use council (N Pro Searches — expensive)** when:
+- The user needs high-confidence answers validated across multiple AI providers
+- Important decisions, fact-checking, or complex analysis
+- BEFORE calling: ASK the user which models and how many (each = 1 Pro Search)
+- Available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
+- Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches
+
 ### Decision Flowchart
 
 ```
@@ -91,6 +99,9 @@ You want to query Perplexity...
 │
 ├─ Does it need deep reasoning, complex analysis, or premium model quality?
 │  └─ YES → intent='detailed' (1 Pro, premium model)
+│
+├─ Does the user need high-confidence answers from multiple AI providers?
+│  └─ YES → pplx_council / pwm council (N Pro Searches — ASK USER which models first!)
 │
 ├─ Did the user explicitly request deep research / comprehensive report?
 │  └─ YES → intent='research' (1 Deep Research)
@@ -155,6 +166,11 @@ User wants to...
 |   +-- MCP:  pplx_smart_query(query)            # smart routing (default)
 |   +-- Explicit model: pwm ask "query" -m gpt54  or  pplx_query(query, model="gpt54")
 |
++-- Query multiple models at once (Model Council)
+|   +-- CLI:  pwm council "query"                         # default 3 models
+|   +-- CLI:  pwm council "query" -m gpt54,claude_sonnet  # custom models
+|   +-- MCP:  pplx_council(query)                         # ASK USER which models first!
+|
 +-- Deep research on a topic
 |   +-- CLI:  pwm research "query"
 |   +-- MCP:  pplx_deep_research(query)
@@ -218,6 +234,21 @@ Combine flags:
 pwm ask "protein folding advances" -m gemini_pro -s academic --json
 ```
 
+### Model Council
+
+Query multiple models in parallel and get a synthesized consensus.
+Each model in the council costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
+
+```bash
+pwm council "What are the best practices for microservices?"           # default 3 models
+pwm council "Compare Rust and Go for backend" -m gpt54,claude_sonnet  # custom 2 models
+pwm council "Explain quantum computing" -s academic                   # with source focus
+pwm council "Prove the Pythagorean theorem" --thinking                # extended thinking
+pwm council "AI trends 2026" --chairman claude_sonnet                 # premium synthesis (+1 Pro)
+pwm council "Is React or Vue better?" --no-synthesis                  # skip synthesis
+pwm council "AI trends 2026" --json                                   # JSON output
+```
+
 ### Deep Research
 
 Uses a separate monthly quota. Produces in-depth reports with extensive sources.
@@ -252,11 +283,14 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_sonar` | **FREE** | Perplexity Sonar model (no Pro quota used) |
 | `pplx_query` | 1 Pro | Explicit model selection with thinking toggle |
 | `pplx_ask` | 1 Pro | Quick Q&A (auto model) |
-| `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 |
+| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** Supports `thinking=True` and `chairman` for synthesis model. |
+| `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 (versatile) |
+| `pplx_gpt55` / `_thinking` | 1 Pro | OpenAI GPT-5.5 (latest, Max tier) |
 | `pplx_claude_sonnet` / `_think` | 1 Pro | Anthropic Claude 4.6 Sonnet |
-| `pplx_claude_opus` / `_think` | 1 Pro | Anthropic Claude 4.6 Opus |
+| `pplx_claude_opus` / `_think` | 1 Pro | Anthropic Claude 4.7 Opus |
 | `pplx_gemini_pro_think` | 1 Pro | Google Gemini 3.1 Pro (thinking always on) |
 | `pplx_nemotron_thinking` | 1 Pro | NVIDIA Nemotron 3 Super (thinking always on) |
+| `pplx_kimi_k26` / `_thinking` | 1 Pro | Moonshot Kimi K2.6 |
 | `pplx_deep_research` | 1 Research | In-depth reports (**scarce monthly quota**) |
 | `pplx_usage` | FREE | Check remaining quotas |
 | `pplx_auth_status` | FREE | Check auth status |
@@ -275,11 +309,13 @@ For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools
 | auto | Perplexity | No | Auto-selects best |
 | sonar | Perplexity | No | Latest Perplexity model |
 | deep_research | Perplexity | No | Monthly quota |
-| gpt54 | OpenAI | Toggle | GPT-5.4 |
+| gpt54 | OpenAI | Toggle | GPT-5.4 (versatile) |
+| gpt55 | OpenAI | Toggle | GPT-5.5 (latest, Max tier) |
 | claude_sonnet | Anthropic | Toggle | Claude 4.6 Sonnet |
-| claude_opus | Anthropic | Toggle | Claude 4.6 Opus (Max tier) |
+| claude_opus | Anthropic | Toggle | Claude 4.7 Opus (Max tier) |
 | gemini_pro | Google | Always | Gemini 3.1 Pro |
 | nemotron | NVIDIA | Always | Nemotron 3 Super 120B |
+| kimi_k26 | Moonshot | Toggle | Kimi K2.6 |
 
 For full model details: See [references/models.md](references/models.md)
 
@@ -287,7 +323,7 @@ For full model details: See [references/models.md](references/models.md)
 
 | Option | Description | Example Use Case |
 |--------|-------------|------------------|
-| `none` | No search -- model training data only | Code review, writing, analysis without web |
+| `none` | No search — model training data only. **Note: still costs 1 Pro Search for premium models** | Code review, writing, analysis without web |
 | `web` | General web search (default) | News, general questions |
 | `academic` | Academic papers, journals | Research, citations, scientific topics |
 | `social` | Reddit, Twitter, forums | Opinions, recommendations, community |

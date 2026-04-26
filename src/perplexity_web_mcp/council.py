@@ -178,14 +178,17 @@ def _synthesize(
     results: list[CouncilMemberResult],
     sources: list[SourceFocus],
     search_focus: SearchFocus,
+    synthesis_model: Model | None = None,
 ) -> str:
-    """Synthesize council results using Sonar (free — no Pro quota cost)."""
+    """Synthesize council results. Defaults to Sonar (free — no Pro quota cost)."""
     synthesis_prompt = _build_synthesis_prompt(query, results)
+    model = synthesis_model or Models.SONAR
+    label = "Sonar" if model is Models.SONAR else model.identifier
 
     try:
         result = _query_single_model(
-            "Sonar (synthesizer)",
-            Models.SONAR,
+            f"{label} (synthesizer)",
+            model,
             synthesis_prompt,
             sources,
             search_focus,
@@ -206,6 +209,7 @@ def council_ask(
     source_focus: str = "web",
     synthesize: bool = True,
     thinking: bool = False,
+    synthesis_model: Model | None = None,
 ) -> CouncilResponse:
     """Query multiple models in parallel and optionally synthesize results.
 
@@ -217,6 +221,7 @@ def council_ask(
         synthesize: Whether to produce a synthesized consensus (adds 1 free Sonar query).
         thinking: Use thinking model variants for default council members.
                   Ignored when a custom *models* list is provided (caller resolves models).
+        synthesis_model: Model to use for synthesis. Defaults to Sonar (free).
 
     Returns:
         CouncilResponse with individual results and optional synthesis.
@@ -256,7 +261,7 @@ def council_ask(
     synthesis = ""
     successful = [r for r in results if r.error is None]
     if synthesize and len(successful) >= 2:
-        synthesis = _synthesize(query, results, sources, search_mode)
+        synthesis = _synthesize(query, results, sources, search_mode, synthesis_model)
     elif synthesize and len(successful) < 2:
         synthesis = "[Not enough successful responses to synthesize.]"
 

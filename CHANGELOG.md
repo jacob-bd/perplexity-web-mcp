@@ -4,6 +4,26 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.10.6] - 2026-04-26
+
+### Added
+
+- **GPT-5.5** — OpenAI's latest model, available for Max subscribers. CLI `-m gpt55`, MCP `pplx_gpt55` / `pplx_gpt55_thinking`, API server aliases (`gpt-5.5`, `gpt-55`, etc.), and Model Council support. Thinking toggle supported.
+- **Configurable Council Chairman** — The synthesis model (previously hardcoded to Sonar) is now configurable. CLI `--chairman MODEL`, MCP `chairman` parameter on `pplx_council`. Default remains Sonar (free). Non-Sonar chairmen cost 1 extra Pro Search and a warning is displayed.
+
+### Fixed
+
+- **GPT-5.4 description** — Updated from "OpenAI's latest model" to "OpenAI's versatile model" to match Perplexity's updated metadata.
+- **Claude Opus display name bug** — CLI council `display_names` dict incorrectly showed "Claude Opus 4.6" instead of "4.7". Fixed.
+
+### Improved
+
+- **Council display names and thinking-toggle set** moved from duplicate local dicts to shared constants (`COUNCIL_DISPLAY_NAMES` and `THINKING_TOGGLEABLE` in `shared.py`). Both MCP server and CLI now import from the single source of truth.
+- **Kimi K2.6 thinking toggle** — Now correctly recognized as thinking-toggleable in CLI council (was missing from the hardcoded tuple).
+- Reference model config snapshot updated with latest Perplexity API config.
+
+---
+
 ## [0.10.5] - 2026-04-22
 
 ### Added

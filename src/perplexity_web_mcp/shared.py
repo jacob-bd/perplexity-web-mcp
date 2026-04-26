@@ -42,6 +42,7 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "sonar": (Models.SONAR, None),
     "deep_research": (Models.DEEP_RESEARCH, None),
     "gpt54": (Models.GPT_54, Models.GPT_54_THINKING),
+    "gpt55": (Models.GPT_55, Models.GPT_55_THINKING),
     "claude_sonnet": (Models.CLAUDE_46_SONNET, Models.CLAUDE_46_SONNET_THINKING),
     "claude_opus": (Models.CLAUDE_47_OPUS, Models.CLAUDE_47_OPUS_THINKING),
     "gemini_pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
@@ -51,12 +52,29 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
 
 SourceFocusName = Literal["none", "web", "academic", "social", "finance", "all"]
 ModelName = Literal[
-    "auto", "sonar", "deep_research", "gpt54", "claude_sonnet",
+    "auto", "sonar", "deep_research", "gpt54", "gpt55", "claude_sonnet",
     "claude_opus", "gemini_pro", "nemotron", "kimi_k26",
 ]
 
 MODEL_NAMES: list[str] = list(MODEL_MAP.keys())
 SOURCE_FOCUS_NAMES: list[str] = list(SOURCE_FOCUS_MAP.keys())
+
+COUNCIL_DISPLAY_NAMES: dict[str, str] = {
+    "auto": "Auto (Best)",
+    "sonar": "Sonar",
+    "gpt54": "GPT-5.4",
+    "gpt55": "GPT-5.5",
+    "claude_sonnet": "Claude Sonnet 4.6",
+    "claude_opus": "Claude Opus 4.7",
+    "gemini_pro": "Gemini 3.1 Pro",
+    "nemotron": "Nemotron 3 Super",
+    "kimi_k26": "Kimi K2.6",
+}
+
+THINKING_TOGGLEABLE: frozenset[str] = frozenset(
+    name for name, (base, thinking) in MODEL_MAP.items()
+    if thinking is not None and thinking is not base
+)
 
 
 def resolve_model(name: str, thinking: bool = False) -> Model:
@@ -409,12 +427,9 @@ def council_ask(
     source_focus: SourceFocusName = "web",
     synthesize: bool = True,
     thinking: bool = False,
+    synthesis_model: Model | None = None,
 ) -> "CouncilResponse":
     """Query multiple models in parallel and optionally synthesize results.
-
-    Each council member model is queried concurrently. A free Sonar query
-    then synthesizes the responses into a consensus answer highlighting
-    agreements and disagreements.
 
     Args:
         query: The question to ask all models.
@@ -423,6 +438,7 @@ def council_ask(
         source_focus: Source focus for all queries.
         synthesize: Whether to run Sonar synthesis (free, no Pro cost).
         thinking: Use thinking model variants for default council members.
+        synthesis_model: Model to use for synthesis. Defaults to Sonar (free).
 
     Returns:
         CouncilResponse with individual results and optional synthesis.
@@ -435,4 +451,5 @@ def council_ask(
         source_focus=source_focus,
         synthesize=synthesize,
         thinking=thinking,
+        synthesis_model=synthesis_model,
     )

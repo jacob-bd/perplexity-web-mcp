@@ -62,10 +62,11 @@ The API server accepts many model name variants:
 | `perplexity-sonar`, `sonar` | Perplexity Sonar |
 | `perplexity-research`, `deep-research` | Deep Research |
 | `claude-sonnet-4-6`, `claude-4-6-sonnet`, `claude` | Claude 4.6 Sonnet |
-| `claude-opus-4-6`, `claude-4-6-opus`, `opus` | Claude 4.6 Opus |
+| `claude-opus-4-7`, `claude-4-7-opus`, `opus` | Claude 4.7 Opus (Max tier) |
 | `claude-3-5-sonnet` (legacy) | Claude 4.6 Sonnet |
-| `claude-3-opus` (legacy) | Claude 4.6 Opus |
-| `gpt-5.4`, `gpt-54`, `gpt54` | GPT-5.4 |
+| `claude-3-opus` (legacy) | Claude 4.7 Opus |
+| `gpt-5.4`, `gpt-54`, `gpt54` | GPT-5.4 (versatile) |
+| `gpt-5.5`, `gpt-5-5`, `gpt-55`, `gpt55` | GPT-5.5 (latest, Max tier) |
 | `gemini-3.1-pro`, `gemini-3-pro`, `gemini-pro` | Gemini 3.1 Pro |
 | `nemotron-3-super`, `nemotron` | Nemotron 3 Super |
 

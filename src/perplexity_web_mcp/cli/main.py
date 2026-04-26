@@ -27,9 +27,11 @@ import rich_click as click
 
 from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
 from perplexity_web_mcp.shared import (
+    COUNCIL_DISPLAY_NAMES,
     MODEL_MAP,
     MODEL_NAMES,
     SOURCE_FOCUS_NAMES,
+    THINKING_TOGGLEABLE,
     Models,
     SourceFocusName,
     ask,
@@ -215,7 +217,7 @@ def _cmd_research_impl(query, source, json_output):
 
 # ── Council ────────────────────────────────────────────────────────────────
 
-COUNCIL_MODEL_NAMES = ("gpt54", "claude_sonnet", "claude_opus", "gemini_pro", "nemotron")
+COUNCIL_MODEL_NAMES = ("gpt54", "gpt55", "claude_sonnet", "claude_opus", "gemini_pro", "nemotron")
 
 
 @cli.command()
@@ -225,26 +227,29 @@ COUNCIL_MODEL_NAMES = ("gpt54", "claude_sonnet", "claude_opus", "gemini_pro", "n
 @click.option("-t", "--thinking", is_flag=True, help="Enable extended thinking mode.")
 @click.option("-s", "--source", "source", default="web",
               help=f"Source focus ({', '.join(SOURCE_FOCUS_NAMES)}).")
-@click.option("--no-synthesis", is_flag=True, help="Skip Sonar consensus synthesis.")
+@click.option("--no-synthesis", is_flag=True, help="Skip consensus synthesis.")
+@click.option("--chairman", default="sonar",
+              help=f"Synthesis model (default: sonar, free). Non-sonar costs 1 extra Pro Search. ({', '.join(MODEL_NAMES)})")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
-def council(query, models_str, thinking, source, no_synthesis, json_output):
+def council(query, models_str, thinking, source, no_synthesis, chairman, json_output):
     """Query multiple models in parallel (Model Council).
 
     Each model costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
-    Synthesis by Sonar is free.
+    Synthesis by Sonar is free. Use --chairman to pick a different synthesis model.
 
     \b
     Examples:
       pwm council "What are best practices for microservices?"
       pwm council "Compare Rust and Go" -m gpt54,claude_sonnet
       pwm council "Explain quantum computing" -s academic --thinking
+      pwm council "React vs Vue" --chairman claude_sonnet
       pwm council "React vs Vue" --no-synthesis --json
     """
-    code = _cmd_council_impl(query, models_str, source, not no_synthesis, json_output, thinking)
+    code = _cmd_council_impl(query, models_str, source, not no_synthesis, json_output, thinking, chairman)
     raise SystemExit(code)
 
 
-def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinking=False):
+def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinking=False, chairman="sonar"):
     """Implementation for council command."""
     if source not in SOURCE_FOCUS_NAMES:
         print(f"Error: Unknown source '{source}'. Available: {', '.join(SOURCE_FOCUS_NAMES)}", file=sys.stderr)
@@ -261,26 +266,29 @@ def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinki
         print("Error: Council requires at least 2 models.", file=sys.stderr)
         return 1
 
+    if chairman not in MODEL_NAMES:
+        print(f"Error: Unknown chairman model '{chairman}'. Available: {', '.join(MODEL_NAMES)}", file=sys.stderr)
+        return 1
+
+    if chairman != "sonar" and synthesize:
+        chairman_display = COUNCIL_DISPLAY_NAMES.get(chairman, chairman)
+        print(f"Note: Using {chairman_display} as chairman costs 1 extra Pro Search query.", file=sys.stderr)
+
     try:
         from perplexity_web_mcp.council import council_ask
 
         # Build model list (None = use defaults)
         model_list = None
         if models_str != "gpt54,claude_opus,gemini_pro":
-            display_names = {
-                "gpt54": "GPT-5.4",
-                "claude_sonnet": "Claude Sonnet 4.6",
-                "claude_opus": "Claude Opus 4.6",
-                "gemini_pro": "Gemini 3.1 Pro",
-                "nemotron": "Nemotron 3 Super",
-            }
             model_list = []
             for name in model_names:
                 resolved = resolve_model(name, thinking=thinking)
-                display = display_names.get(name, name)
-                if thinking and name in ("gpt54", "claude_sonnet", "claude_opus"):
+                display = COUNCIL_DISPLAY_NAMES.get(name, name)
+                if thinking and name in THINKING_TOGGLEABLE:
                     display += " Thinking"
                 model_list.append((display, resolved))
+
+        synthesis_model = resolve_model(chairman) if chairman != "sonar" else None
 
         result = council_ask(
             query=query,
@@ -288,6 +296,7 @@ def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinki
             source_focus=source,
             synthesize=synthesize,
             thinking=thinking,
+            synthesis_model=synthesis_model,
         )
 
         if json_output:

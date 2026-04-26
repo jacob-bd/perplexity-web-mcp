@@ -13,7 +13,9 @@ from fastmcp import FastMCP
 
 from perplexity_web_mcp.models import Models
 from perplexity_web_mcp.shared import (
+    COUNCIL_DISPLAY_NAMES,
     MODEL_MAP,
+    THINKING_TOGGLEABLE,
     ModelName,
     SourceFocusName,
     ask,
@@ -25,21 +27,6 @@ from perplexity_web_mcp.shared import (
 from perplexity_web_mcp.token_store import load_token, save_token
 
 
-_COUNCIL_DISPLAY_NAMES: dict[str, str] = {
-    "auto": "Auto (Best)",
-    "sonar": "Sonar",
-    "gpt54": "GPT-5.4",
-    "claude_sonnet": "Claude Sonnet 4.6",
-    "claude_opus": "Claude Opus 4.7",
-    "gemini_pro": "Gemini 3.1 Pro",
-    "nemotron": "Nemotron 3 Super",
-    "kimi_k26": "Kimi K2.6",
-}
-
-_THINKING_TOGGLEABLE: frozenset[str] = frozenset(
-    name for name, (base, thinking) in MODEL_MAP.items()
-    if thinking is not None and thinking is not base
-)
 
 mcp = FastMCP(
     "perplexity-web-mcp",
@@ -98,9 +85,9 @@ def pplx_query(
 
     Args:
         query: The question to ask
-        model: Model to use - auto, sonar, deep_research, gpt54,
+        model: Model to use - auto, sonar, deep_research, gpt54, gpt55,
                claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
-        thinking: Enable extended thinking mode (available for gpt54, claude_sonnet,
+        thinking: Enable extended thinking mode (available for gpt54, gpt55, claude_sonnet,
                   claude_opus, kimi_k26; always on for gemini_pro and nemotron)
         source_focus: Source type - none (model only, no search), web, academic,
                       social, finance, all
@@ -129,14 +116,26 @@ def pplx_sonar(query: str, source_focus: SourceFocusName = "web") -> str:
 
 @mcp.tool
 def pplx_gpt54(query: str, source_focus: SourceFocusName = "web") -> str:
-    """GPT-5.4 — OpenAI's latest model. COSTS 1 PRO SEARCH QUERY."""
+    """GPT-5.4 — OpenAI's versatile model. COSTS 1 PRO SEARCH QUERY."""
     return ask(query, Models.GPT_54, source_focus)
 
 
 @mcp.tool
 def pplx_gpt54_thinking(query: str, source_focus: SourceFocusName = "web") -> str:
-    """GPT-5.4 Thinking — OpenAI's latest model with extended thinking. COSTS 1 PRO SEARCH QUERY."""
+    """GPT-5.4 Thinking — OpenAI's versatile model with extended thinking. COSTS 1 PRO SEARCH QUERY."""
     return ask(query, Models.GPT_54_THINKING, source_focus)
+
+
+@mcp.tool
+def pplx_gpt55(query: str, source_focus: SourceFocusName = "web") -> str:
+    """GPT-5.5 — OpenAI's latest model. COSTS 1 PRO SEARCH QUERY. Requires Max subscription."""
+    return ask(query, Models.GPT_55, source_focus)
+
+
+@mcp.tool
+def pplx_gpt55_thinking(query: str, source_focus: SourceFocusName = "web") -> str:
+    """GPT-5.5 Thinking — OpenAI's latest model with extended thinking. COSTS 1 PRO SEARCH QUERY. Requires Max subscription."""
+    return ask(query, Models.GPT_55_THINKING, source_focus)
 
 
 @mcp.tool
@@ -225,11 +224,12 @@ def pplx_council(
     models: str = "gpt54,claude_opus,gemini_pro",
     synthesize: bool = True,
     thinking: bool = False,
+    chairman: ModelName = "sonar",
 ) -> str:
     """Model Council — query multiple models in parallel, get synthesized consensus.
 
     IMPORTANT — BEFORE calling this tool, you MUST:
-    1. Tell the user the available models: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
+    1. Tell the user the available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
     2. Ask the user WHICH models they want in their council and HOW MANY
     3. Inform them of the cost: each model = 1 Pro Search query, plus 1 free Sonar for synthesis
        (e.g., 3 models = 3 Pro Searches + 1 free Sonar = 3 Pro total)
@@ -241,12 +241,14 @@ def pplx_council(
         query: The question to ask all council models
         source_focus: Source type for all models (none/web/academic/social/finance/all)
         models: Comma-separated model names to use as council members.
-                Available: gpt54, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26.
+                Available: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26.
                 Default: "gpt54,claude_opus,gemini_pro" (3 models = 3 Pro Searches)
         synthesize: Whether to synthesize a consensus from all responses.
                     Set false to get only individual responses (saves 1 Sonar call).
-        thinking: Enable extended thinking for council models (gpt54, claude_sonnet,
+        thinking: Enable extended thinking for council models (gpt54, gpt55, claude_sonnet,
                   claude_opus, kimi_k26 support toggle; gemini_pro and nemotron are always thinking).
+        chairman: Model to use for synthesis (default: "sonar", FREE).
+                  Non-sonar chairmen cost 1 extra Pro Search query.
     """
     # Parse custom model list if provided
     model_list = None
@@ -255,10 +257,12 @@ def pplx_council(
         for name in models.split(","):
             name = name.strip()
             resolved = resolve_model(name, thinking=thinking)
-            display = _COUNCIL_DISPLAY_NAMES.get(name, name)
-            if thinking and name in _THINKING_TOGGLEABLE:
+            display = COUNCIL_DISPLAY_NAMES.get(name, name)
+            if thinking and name in THINKING_TOGGLEABLE:
                 display += " Thinking"
             model_list.append((display, resolved))
+
+    synthesis_model = resolve_model(chairman) if chairman != "sonar" else None
 
     result = council_ask(
         query=query,
@@ -266,6 +270,7 @@ def pplx_council(
         source_focus=source_focus,
         synthesize=synthesize,
         thinking=thinking,
+        synthesis_model=synthesis_model,
     )
     return result.format_response()
 

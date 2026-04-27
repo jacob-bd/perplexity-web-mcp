@@ -7,6 +7,7 @@ Test categories:
 4. RateLimitCache (TTL, invalidation, token changes, thread safety)
 5. MCP server helpers (_check_limits_before_query, _is_research_model)
 6. Integration tests (live API calls - require valid token, skipped if unavailable)
+7. Sonar 2 vs Pro Search counter (live before/after one Sonar query)
 """
 
 from __future__ import annotations
@@ -834,3 +835,56 @@ class TestIntegrationMCPServer:
         context = get_limit_context_for_error()
         assert "Pro Search:" in context
         assert "remaining" in context
+
+
+@pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
+class TestIntegrationSonarProSearch:
+    """Live check: does one Sonar 2 (experimental) query change ``remaining_pro``?
+
+    Perplexity can update counters asynchronously; we wait briefly before the
+    post-query fetch. This test documents observed behavior for CI and local runs
+    (``pytest tests/test_rate_limits.py -k SonarPro -v``).
+    """
+
+    def test_sonar2_query_observed_pro_search_delta(self, request: pytest.FixtureRequest) -> None:
+        from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
+        from perplexity_web_mcp.models import Models
+        from perplexity_web_mcp.shared import ask
+
+        token = load_token()
+        assert token is not None
+
+        before = fetch_rate_limits(token)
+        assert before is not None, "fetch_rate_limits returned None before query"
+
+        try:
+            answer = ask("Reply with the single word: ok", Models.SONAR, "web")
+        except (AuthenticationError, RateLimitError) as exc:
+            pytest.skip(f"Sonar query not completed: {exc}")
+
+        if answer.startswith("Error"):
+            pytest.skip(f"Sonar query failed (no usable answer): {answer[:200]!r}")
+
+        assert len(answer.strip()) > 0
+
+        # Give Perplexity time to refresh counters used by /rest/rate-limit/all
+        time.sleep(2.5)
+        after = fetch_rate_limits(token)
+        assert after is not None, "fetch_rate_limits returned None after query"
+
+        delta = before.remaining_pro - after.remaining_pro
+
+        assert after.remaining_pro <= before.remaining_pro + 1, (
+            f"remaining_pro increased unexpectedly after Sonar 2 query "
+            f"(before={before.remaining_pro}, after={after.remaining_pro}, delta={delta})"
+        )
+        assert delta <= 3, (
+            f"Sonar 2 query consumed unusually many Pro Search slots (delta={delta}, "
+            f"before={before.remaining_pro}, after={after.remaining_pro})"
+        )
+
+        request.node.add_report_section(
+            "call",
+            "sonar2_pro_delta",
+            f"remaining_pro before={before.remaining_pro} after={after.remaining_pro} delta={delta}",
+        )

@@ -2,7 +2,7 @@
 name: perplexity-web-mcp
 description: "Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions \"perplexity\", \"pplx\", \"pwm\", \"web search with AI\", \"deep research\", \"search the internet\", or wants to query premium models like GPT-5.4, GPT-5.5, Claude, Gemini, Nemotron through Perplexity's web interface."
 metadata:
-  version: "0.10.6"
+  version: "0.10.7"
   author: "Jacob BD"
 ---
 
@@ -26,7 +26,7 @@ pwm login --check       # Check auth status
 1. **Authenticate first**: Run `pwm login` before any queries
 2. **Tokens last ~30 days**: Re-run `pwm login` on 403 errors
 3. **Check quota before your first query every session** (see protocol below)
-4. **Default to quick/Sonar** — only escalate when the query genuinely needs Pro
+4. **Default to quick/Sonar 2** — only escalate when the query genuinely needs Pro
 5. **Never use Deep Research autonomously** — only when the user explicitly asks
 
 ## Quota-Aware Usage Protocol (MANDATORY)
@@ -38,22 +38,22 @@ the weekly pool fast, leaving nothing for questions that actually need it.
 
 | Tier | What It Costs | Resets | Typical Pool |
 |------|---------------|--------|--------------|
-| **Sonar / quick** | FREE — no quota consumed | — | Unlimited |
+| **Sonar 2 / quick** | 1 Pro Search | Weekly | ~300/week |
 | **Pro Search** (standard/detailed, pplx_ask, pplx_query, all model-specific tools) | 1 Pro Search query | Weekly | ~300/week |
-| **Council** (pplx_council, pwm council) | N Pro Searches (1 per model selected) + 1 free Sonar synthesis | Weekly | ~300/week (shared) |
+| **Council** (pplx_council, pwm council) | N+1 Pro Searches (1 per model + 1 Sonar 2 synthesis) | Weekly | ~300/week (shared) |
 | **Deep Research** (pplx_deep_research, research intent) | 1 Deep Research query | Monthly | ~5-10/month |
 
 ### Before Every Session
 
 1. **Check quota first**: Call `pplx_usage()` (MCP) or `pwm usage` (CLI) before your first query.
 2. Review the remaining Pro and Research counts.
-3. If Pro < 20% remaining, restrict yourself to quick/Sonar for everything except user-requested Pro queries.
+3. If Pro < 20% remaining, restrict yourself to quick/Sonar 2 for everything except user-requested Pro queries.
 
 ### Before Every Query: Choose the Lowest Sufficient Tier
 
-Ask yourself: **"Can Sonar answer this?"** If yes, use `quick`. Only escalate if the answer is no.
+Ask yourself: **"Can Sonar 2 answer this?"** If yes, use `quick`. Only escalate if the answer is no.
 
-**Use quick (FREE — Sonar)** when the query is:
+**Use quick (Sonar 2 — 1 Pro Search, cheapest option)** when the query is:
 - A factual lookup: "What is the capital of France?"
 - A definition: "What does CORS stand for?"
 - A simple current-event check: "Who won the Super Bowl?"
@@ -79,12 +79,12 @@ Ask yourself: **"Can Sonar answer this?"** If yes, use `quick`. Only escalate if
 - Never use autonomously — always ask the user first
 - Falls back to premium Pro Search if research quota is exhausted
 
-**Use council (N Pro Searches — expensive)** when:
+**Use council (N+1 Pro Searches — expensive)** when:
 - The user needs high-confidence answers validated across multiple AI providers
 - Important decisions, fact-checking, or complex analysis
 - BEFORE calling: ASK the user which models and how many (each = 1 Pro Search)
 - Available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
-- Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches
+- Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) + synthesis = 4 Pro Searches
 
 ### Decision Flowchart
 
@@ -92,21 +92,21 @@ Ask yourself: **"Can Sonar answer this?"** If yes, use `quick`. Only escalate if
 You want to query Perplexity...
 │
 ├─ Is this a simple fact, definition, or well-known how-to?
-│  └─ YES → intent='quick' (FREE)
+│  └─ YES → intent='quick' (Sonar 2, 1 Pro Search)
 │
 ├─ Does it need multiple current web sources or cited synthesis?
-│  └─ YES → intent='standard' (1 Pro)
+│  └─ YES → intent='standard' (1 Pro Search)
 │
 ├─ Does it need deep reasoning, complex analysis, or premium model quality?
-│  └─ YES → intent='detailed' (1 Pro, premium model)
+│  └─ YES → intent='detailed' (1 Pro Search, premium model)
 │
 ├─ Does the user need high-confidence answers from multiple AI providers?
-│  └─ YES → pplx_council / pwm council (N Pro Searches — ASK USER which models first!)
+│  └─ YES → pplx_council / pwm council (N+1 Pro Searches — ASK USER which models first!)
 │
 ├─ Did the user explicitly request deep research / comprehensive report?
 │  └─ YES → intent='research' (1 Deep Research)
 │
-└─ When in doubt → intent='quick' (FREE, upgrade later if insufficient)
+└─ When in doubt → intent='quick' (Sonar 2, upgrade later if insufficient)
 ```
 
 ### Smart Routing
@@ -127,7 +127,7 @@ The smart router automatically protects you:
 - **Healthy quota**: Uses the ideal model for your intent
 - **Low quota (<20% pro remaining)**: Response footer warns you to conserve
 - **Critical quota (<10% pro remaining)**: Downgrades detailed→auto to conserve
-- **Exhausted quota**: Falls back to Sonar for everything except research
+- **Exhausted quota**: Falls back to Sonar 2 for everything except research
 - **Research exhausted**: Falls back to premium Pro Search
 - Response metadata shows what model was used, why, and remaining quota
 
@@ -237,7 +237,7 @@ pwm ask "protein folding advances" -m gemini_pro -s academic --json
 ### Model Council
 
 Query multiple models in parallel and get a synthesized consensus.
-Each model in the council costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
+Each model in the council costs 1 Pro Search, plus 1 for Sonar 2 synthesis. Default: 3 models + synthesis = 4 Pro Searches.
 
 ```bash
 pwm council "What are the best practices for microservices?"           # default 3 models
@@ -280,10 +280,10 @@ pwm usage --refresh         # Force-refresh from server
 | Tool | Cost | Purpose |
 |------|------|---------|
 | `pplx_smart_query` | **Varies by intent** | **USE THIS BY DEFAULT** — quota-aware auto routing |
-| `pplx_sonar` | **FREE** | Perplexity Sonar model (no Pro quota used) |
+| `pplx_sonar` | 1 Pro Search | Perplexity Sonar 2 |
 | `pplx_query` | 1 Pro | Explicit model selection with thinking toggle |
 | `pplx_ask` | 1 Pro | Quick Q&A (auto model) |
-| `pplx_council` | **N Pro** (1 per model) | Model Council — **ASK USER which models first!** Supports `thinking=True` and `chairman` for synthesis model. |
+| `pplx_council` | **N+1 Pro** (1 per model + 1 synthesis) | Model Council — **ASK USER which models first!** Supports `thinking=True` and `chairman` for synthesis model. |
 | `pplx_gpt54` / `_thinking` | 1 Pro | OpenAI GPT-5.4 (versatile) |
 | `pplx_gpt55` / `_thinking` | 1 Pro | OpenAI GPT-5.5 (latest, Max tier) |
 | `pplx_claude_sonnet` / `_think` | 1 Pro | Anthropic Claude 4.6 Sonnet |
@@ -307,7 +307,7 @@ For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools
 | CLI Name | Provider | Thinking | Notes |
 |----------|----------|----------|-------|
 | auto | Perplexity | No | Auto-selects best |
-| sonar | Perplexity | No | Latest Perplexity model |
+| sonar | Perplexity | No | Sonar 2 (API id `experimental`) |
 | deep_research | Perplexity | No | Monthly quota |
 | gpt54 | OpenAI | Toggle | GPT-5.4 (versatile) |
 | gpt55 | OpenAI | Toggle | GPT-5.5 (latest, Max tier) |

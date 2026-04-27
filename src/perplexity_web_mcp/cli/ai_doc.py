@@ -60,16 +60,16 @@ MODEL COUNCIL
   pwm council "query" -m MODELS               Custom model selection (comma-separated)
   pwm council "query" -t                      Enable extended thinking for all models
   pwm council "query" -s SOURCE               Source focus for all council models
-  pwm council "query" --chairman MODEL        Set synthesis model (default: sonar, free)
+  pwm council "query" --chairman MODEL        Set synthesis model (default: sonar / Sonar 2)
   pwm council "query" --no-synthesis           Skip consensus synthesis
   pwm council "query" --json                  Output as JSON
 
-  Each model in the council costs 1 Pro Search. Default = 3 Pro Searches.
+  Each model in the council costs 1 Pro Search, plus 1 for synthesis. Default = 4 Pro Searches.
   Available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
   Thinking toggle: -t / --thinking (gpt54, gpt55, claude_sonnet, claude_opus, kimi_k26 support toggle;
     gemini_pro and nemotron are always thinking)
 
-  Chairman: --chairman MODEL (default: sonar, free). Non-sonar costs 1 extra Pro Search.
+  Chairman: --chairman MODEL (default: sonar / Sonar 2). Non-sonar costs 1 extra Pro Search.
 
   Examples:
     pwm council "Best practices for microservices?"
@@ -109,7 +109,7 @@ MODELS
 Name            Identifier              Thinking   Notes
 -----------     ----------------------  ---------  ---------------------------
 auto            pplx_pro                No         Auto-selects best model
-sonar           experimental            No         Perplexity's latest
+sonar           experimental            No         Sonar 2 (latest in-house)
 deep_research   pplx_alpha              No         In-depth reports (monthly quota)
 gpt54           gpt54                   Yes        OpenAI GPT-5.4 (versatile)
 gpt55           gpt55                   Yes        OpenAI GPT-5.5 (latest, Max tier)
@@ -156,7 +156,7 @@ MCP TOOLS (17 total, pplx_* namespace)
 
 SMART QUERY (RECOMMENDED DEFAULT — use this for every query):
   pplx_smart_query(query, intent="quick", source_focus="web")
-      Quota-aware routing. Default to intent='quick' for most lookups (FREE).
+      Quota-aware routing. Default to intent='quick' for most lookups (Sonar 2 first).
       Only escalate to 'standard', 'detailed', or 'research' when needed.
       See QUOTA-AWARE QUERYING section above for decision rules.
 
@@ -172,8 +172,8 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
       Model Council — N PRO SEARCHES (1 per model selected).
       BEFORE CALLING: You MUST ask the user which models and how many.
       Available: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26.
-      Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) = 3 Pro Searches.
-      Synthesis uses Sonar (free) by default. Set chairman to override.
+      Default: 3 models (GPT-5.4, Claude Opus, Gemini Pro) + synthesis = 4 Pro Searches.
+      Synthesis uses Sonar 2 by default. Set chairman to override.
       Non-sonar chairman costs 1 extra Pro Search.
       Set synthesize=False to skip synthesis entirely.
       Set thinking=True to enable extended thinking for all council models.
@@ -182,7 +182,7 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
       In-depth research. 1 DEEP RESEARCH per call (scarce monthly quota).
       ONLY use when user explicitly requests deep research.
 
-  pplx_sonar(query, source_focus="web")          Perplexity Sonar — FREE
+  pplx_sonar(query, source_focus="web")          Perplexity Sonar 2 (plan limits apply)
   pplx_gpt54(query, source_focus="web")          GPT-5.4 — 1 Pro
   pplx_gpt54_thinking(query, source_focus="web") GPT-5.4 + thinking — 1 Pro
   pplx_gpt55(query, source_focus="web")          GPT-5.5 — 1 Pro (Max tier)
@@ -265,18 +265,19 @@ weekly pool (~300). Deep Research draws from a tiny monthly pool (~5-10).
 Wasting Pro queries on simple lookups means nothing left for real questions.
 
 COST MODEL:
-  Sonar / quick intent    FREE — no quota consumed       Unlimited
-  Pro Search (standard,   1 Pro Search query              ~300/week
-    detailed, pplx_ask,
-    pplx_query, all
-    model-specific tools)
-  Council (pplx_council)  N Pro Searches (1 per model)   ~300/week (shared)
+  Sonar 2 (pplx_sonar,     In-house model; still uses your session and Perplexity
+    quick intent)         counters — check pplx_usage() / pwm usage.
+  Pro Search (standard,   Typically 1 from weekly Pro Search pool (~300/week
+    detailed, pplx_ask,   on Pro/Max; exact rules are enforced by Perplexity).
+    pplx_query, premium
+    model tools)
+  Council (pplx_council)  N+1 Pro Searches (1 per model + 1 synthesis)
   Deep Research           1 Deep Research query           ~5-10/month
 
 MANDATORY PROTOCOL:
   1. CHECK QUOTA FIRST: Call pplx_usage() before your first query each session.
   2. DEFAULT TO QUICK: Use pplx_smart_query(intent='quick') for most lookups.
-     It uses Sonar (FREE) and only upgrades when the query genuinely needs Pro.
+     It prefers Sonar 2 first and only escalates when the query needs a premium model.
   3. ESCALATE ONLY WHEN NEEDED: Use 'standard' for multi-source synthesis,
      'detailed' for complex analysis, 'research' only when user requests it.
   4. NEVER USE DEEP RESEARCH AUTONOMOUSLY — always ask the user first.
@@ -284,12 +285,12 @@ MANDATORY PROTOCOL:
      many. Each model = 1 Pro Search. List available models for them to choose.
 
 WHEN TO USE EACH INTENT:
-  quick     Facts, definitions, simple lookups, "what is X"      → FREE
+  quick     Facts, definitions, simple lookups, "what is X"      → Sonar 2 (see usage)
   standard  Multi-source synthesis, comparisons, current events   → 1 Pro
   detailed  Complex analysis, deep reasoning, premium model       → 1 Pro
   research  Comprehensive reports (user must request explicitly)  → 1 Research
 
-DECISION RULE: Ask "Can Sonar answer this?" If yes → quick. If no → standard.
+DECISION RULE: Ask "Can Sonar 2 answer this?" If yes → quick. If no → standard.
 Only use detailed/research when the complexity genuinely demands it.
 When in doubt, start with quick and escalate if the answer is insufficient.
 

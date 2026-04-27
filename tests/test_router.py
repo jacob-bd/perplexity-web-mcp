@@ -49,7 +49,7 @@ def sample_routing(sample_quota_snapshot: dict) -> RoutingDecision:
         model_name="sonar",
         search_type="standard",
         intent=Intent.QUICK,
-        reason="Quick lookup — using Sonar",
+        reason="Quick lookup — using Sonar 2",
         was_downgraded=False,
         quota_snapshot=sample_quota_snapshot,
     )
@@ -282,7 +282,7 @@ class TestRoutingDecision:
         assert sample_routing.model_name == "sonar"
         assert sample_routing.search_type == "standard"
         assert sample_routing.intent == Intent.QUICK
-        assert sample_routing.reason == "Quick lookup — using Sonar"
+        assert sample_routing.reason == "Quick lookup — using Sonar 2"
         assert sample_routing.was_downgraded is False
         assert sample_routing.quota_snapshot["pro_remaining"] == 142
 
@@ -323,7 +323,7 @@ class TestSmartResponseMetadata:
     def test_format_metadata_block(self, sample_response: SmartResponse) -> None:
         block = sample_response.format_metadata_block()
         assert "Routing: sonar | standard | quick intent" in block
-        assert "Reason: Quick lookup — using Sonar" in block
+        assert "Reason: Quick lookup — using Sonar 2" in block
         assert "Quota: Pro 142 | Research 7 | Labs 48 | Agent 19" in block
         assert "Downgraded: No" in block
 
@@ -434,7 +434,7 @@ class TestSmartResponseToDict:
         assert r["model_name"] == "sonar"
         assert r["search_type"] == "standard"
         assert r["intent"] == "quick"
-        assert r["reason"] == "Quick lookup — using Sonar"
+        assert r["reason"] == "Quick lookup — using Sonar 2"
         assert r["was_downgraded"] is False
         assert r["quota_snapshot"]["pro_remaining"] == 142
 

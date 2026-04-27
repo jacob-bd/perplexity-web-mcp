@@ -193,7 +193,7 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
 AVAILABLE_MODELS = [
     # Perplexity Native
     {"id": "perplexity-auto", "description": "Best - Automatically selects optimal model"},
-    {"id": "perplexity-sonar", "description": "Sonar - Perplexity's latest model"},
+    {"id": "perplexity-sonar", "description": "Sonar 2 - Perplexity's latest in-house model"},
     {"id": "perplexity-research", "description": "Deep Research - In-depth reports with sources"},
     # Google Gemini
     {"id": "gemini-3.1-pro", "description": "Gemini 3.1 Pro - Advanced, thinking always on"},

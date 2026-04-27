@@ -59,7 +59,7 @@ The API server accepts many model name variants:
 | API Model Name | Maps To |
 |---------------|---------|
 | `perplexity-auto`, `auto`, `best` | Perplexity Best (auto-select) |
-| `perplexity-sonar`, `sonar` | Perplexity Sonar |
+| `perplexity-sonar`, `sonar` | Perplexity Sonar 2 |
 | `perplexity-research`, `deep-research` | Deep Research |
 | `claude-sonnet-4-6`, `claude-4-6-sonnet`, `claude` | Claude 4.6 Sonnet |
 | `claude-opus-4-7`, `claude-4-7-opus`, `opus` | Claude 4.7 Opus (Max tier) |

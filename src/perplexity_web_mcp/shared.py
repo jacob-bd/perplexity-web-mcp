@@ -61,7 +61,7 @@ SOURCE_FOCUS_NAMES: list[str] = list(SOURCE_FOCUS_MAP.keys())
 
 COUNCIL_DISPLAY_NAMES: dict[str, str] = {
     "auto": "Auto (Best)",
-    "sonar": "Sonar",
+    "sonar": "Sonar 2",
     "gpt54": "GPT-5.4",
     "gpt55": "GPT-5.5",
     "claude_sonnet": "Claude Sonnet 4.6",
@@ -241,10 +241,16 @@ def _format_quota_footer(model: Model) -> str:
 
     model_label = _MODEL_DISPLAY_NAMES.get(model.identifier, model.identifier)
     is_research = is_research_model(model)
-    cost_label = "Deep Research" if is_research else "Pro Search"
+    is_sonar = model is Models.SONAR
+    if is_research:
+        head = f"\n\n---\n[Quota] Used 1 Deep Research query ({model_label})"
+    elif is_sonar:
+        head = f"\n\n---\n[Quota] Sonar 2 query completed ({model_label})"
+    else:
+        head = f"\n\n---\n[Quota] Used 1 Pro Search query ({model_label})"
 
     parts = [
-        f"\n\n---\n[Quota] Used 1 {cost_label} query ({model_label})",
+        head,
         f" | Pro: {limits.remaining_pro} left",
         f" | Research: {limits.remaining_research} left",
     ]
@@ -436,9 +442,9 @@ def council_ask(
         models: List of (display_name, Model) tuples. Defaults to
                 GPT-5.4, Claude Opus 4.7, and Gemini 3.1 Pro.
         source_focus: Source focus for all queries.
-        synthesize: Whether to run Sonar synthesis (free, no Pro cost).
+        synthesize: Whether to run Sonar 2 synthesis (default chairman; still a web query).
         thinking: Use thinking model variants for default council members.
-        synthesis_model: Model to use for synthesis. Defaults to Sonar (free).
+        synthesis_model: Model to use for synthesis. Defaults to Sonar 2 when chairman is sonar.
 
     Returns:
         CouncilResponse with individual results and optional synthesis.

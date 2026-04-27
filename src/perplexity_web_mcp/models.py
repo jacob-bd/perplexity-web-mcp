@@ -26,7 +26,7 @@ class Models:
     """Best - Automatically selects the best model based on the query."""
 
     SONAR = Model(identifier="experimental")
-    """Sonar - Perplexity's latest model."""
+    """Sonar 2 — Perplexity's latest in-house model (backend id: experimental)."""
 
     GEMINI_31_PRO_THINKING = Model(identifier="gemini31pro_high")
     """Gemini 3.1 Pro Thinking - Google's most advanced model (thinking)."""

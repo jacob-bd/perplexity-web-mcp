@@ -229,13 +229,13 @@ COUNCIL_MODEL_NAMES = ("gpt54", "gpt55", "claude_sonnet", "claude_opus", "gemini
               help=f"Source focus ({', '.join(SOURCE_FOCUS_NAMES)}).")
 @click.option("--no-synthesis", is_flag=True, help="Skip consensus synthesis.")
 @click.option("--chairman", default="sonar",
-              help=f"Synthesis model (default: sonar, free). Non-sonar costs 1 extra Pro Search. ({', '.join(MODEL_NAMES)})")
+              help=f"Synthesis model (default: sonar / Sonar 2). Non-sonar costs 1 extra Pro Search. ({', '.join(MODEL_NAMES)})")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
 def council(query, models_str, thinking, source, no_synthesis, chairman, json_output):
     """Query multiple models in parallel (Model Council).
 
-    Each model costs 1 Pro Search. Default: 3 models = 3 Pro Searches.
-    Synthesis by Sonar is free. Use --chairman to pick a different synthesis model.
+    Each model costs 1 Pro Search, plus 1 for synthesis. Default: 3 models + synthesis = 4 Pro Searches.
+    Default synthesis uses Sonar 2. Use --chairman to pick a different synthesis model.
 
     \b
     Examples:

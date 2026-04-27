@@ -1,7 +1,7 @@
 """Model Council: query multiple models in parallel and synthesize results.
 
 Sends the same prompt to N models concurrently (via ThreadPoolExecutor),
-collects their responses, then optionally uses Sonar (free, no Pro quota)
+collects their responses, then optionally synthesizes with Sonar 2 (default)
 to produce a synthesized consensus that highlights agreements and
 disagreements between the models.
 """
@@ -132,7 +132,7 @@ def _query_single_model(
 
 
 # ---------------------------------------------------------------------------
-# Internal: synthesize results using Sonar (free)
+# Internal: synthesize results using Sonar 2 by default
 # ---------------------------------------------------------------------------
 
 _SYNTHESIS_SYSTEM_PROMPT = """\
@@ -180,10 +180,10 @@ def _synthesize(
     search_focus: SearchFocus,
     synthesis_model: Model | None = None,
 ) -> str:
-    """Synthesize council results. Defaults to Sonar (free — no Pro quota cost)."""
+    """Synthesize council results. Defaults to Sonar 2 when no premium chairman is set."""
     synthesis_prompt = _build_synthesis_prompt(query, results)
     model = synthesis_model or Models.SONAR
-    label = "Sonar" if model is Models.SONAR else model.identifier
+    label = "Sonar 2" if model is Models.SONAR else model.identifier
 
     try:
         result = _query_single_model(
@@ -218,10 +218,10 @@ def council_ask(
         models: List of (display_name, Model) tuples. Defaults to
                 COUNCIL_DEFAULT_MODELS (GPT-5.4, Claude Opus, Gemini Pro).
         source_focus: Source focus for all queries (none/web/academic/social/finance/all).
-        synthesize: Whether to produce a synthesized consensus (adds 1 free Sonar query).
+        synthesize: Whether to produce a synthesized consensus (adds 1 Sonar 2 synthesis query by default).
         thinking: Use thinking model variants for default council members.
                   Ignored when a custom *models* list is provided (caller resolves models).
-        synthesis_model: Model to use for synthesis. Defaults to Sonar (free).
+        synthesis_model: Model to use for synthesis. Defaults to Sonar 2 when chairman is sonar.
 
     Returns:
         CouncilResponse with individual results and optional synthesis.

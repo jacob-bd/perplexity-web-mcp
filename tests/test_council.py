@@ -231,13 +231,13 @@ class TestCouncilAsk:
         mock_client_fn.return_value = mock_client
 
         custom = [
-            ("Sonar", Models.SONAR),
+            ("Sonar 2", Models.SONAR),
             ("GPT", Models.GPT_54),
         ]
         result = council_ask("test", models=custom, synthesize=False)
 
         assert len(result.individual_results) == 2
-        assert result.model_names == ["Sonar", "GPT"]
+        assert result.model_names == ["Sonar 2", "GPT"]
 
     @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
     @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
@@ -412,10 +412,10 @@ class TestCouncilAsk:
         mock_client.create_conversation.return_value = mock_conv
         mock_client_fn.return_value = mock_client
 
-        custom = [("GPT", Models.GPT_54), ("Sonar", Models.SONAR)]
+        custom = [("GPT", Models.GPT_54), ("Sonar 2", Models.SONAR)]
         result = council_ask("test", models=custom, synthesize=False, thinking=True)
 
-        assert result.model_names == ["GPT", "Sonar"]
+        assert result.model_names == ["GPT", "Sonar 2"]
         assert len(result.individual_results) == 2
 
     @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)

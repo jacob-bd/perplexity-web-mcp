@@ -62,7 +62,7 @@ pwm --ai                                       # AI reference doc
 
 ## Models
 
-- `auto` / `sonar` / `deep_research`
+- `auto` / `sonar` (Sonar 2, API id `experimental`) / `deep_research`
 - `gpt54` (+ thinking)
 - `claude_sonnet` / `claude_opus` (+ thinking)
 - `gemini_pro` (always thinking)

@@ -6,11 +6,11 @@ Complete parameter reference for all MCP tools in the `pplx_*` namespace.
 
 | Tool | Cost per Call |
 |------|-------------|
-| `pplx_smart_query(intent='quick')` | **FREE** (Sonar) |
+| `pplx_smart_query(intent='quick')` | 1 Pro Search (Sonar 2) |
 | `pplx_smart_query(intent='standard')` | 1 Pro Search |
 | `pplx_smart_query(intent='detailed')` | 1 Pro Search (premium model) |
 | `pplx_smart_query(intent='research')` | 1 Deep Research |
-| `pplx_sonar` | **FREE** |
+| `pplx_sonar` | 1 Pro Search |
 | `pplx_ask`, `pplx_query`, all model-specific tools | 1 Pro Search |
 | `pplx_deep_research` | 1 Deep Research (scarce monthly) |
 | `pplx_usage`, auth tools | FREE |
@@ -20,13 +20,13 @@ Complete parameter reference for all MCP tools in the `pplx_*` namespace.
 ### pplx_smart_query
 
 Quota-aware routing — checks limits and picks the best model automatically.
-**Use this for every query.** Default to `intent='quick'` (FREE) and only
-escalate when the query genuinely needs Pro or Research.
+**Use this for every query.** Default to `intent='quick'` (Sonar 2, 1 Pro Search)
+and only escalate when the query genuinely needs a premium model or Research.
 
 ```
 pplx_smart_query(
     query: str,                    # Required. The question to ask.
-    intent: str = "standard",      # quick (FREE), standard (1 Pro), detailed (1 Pro), research (1 Research)
+    intent: str = "standard",      # quick (1 Pro, Sonar 2), standard (1 Pro), detailed (1 Pro), research (1 Research)
     source_focus: str = "web",     # none, web, academic, social, finance, all
 ) -> str
 ```
@@ -51,7 +51,7 @@ pplx_query(
 ### pplx_ask
 
 Quick Q&A with auto-selected best model. **Costs 1 Pro Search query.**
-For free lookups, use `pplx_smart_query(intent='quick')` instead.
+For simple lookups, prefer `pplx_smart_query(intent='quick')` instead.
 
 ```
 pplx_ask(
@@ -74,7 +74,7 @@ pplx_deep_research(
 
 ### Model-Specific Tools
 
-All have the same signature and **each costs 1 Pro Search query** except `pplx_sonar` (FREE):
+All have the same signature and **each costs 1 Pro Search query**:
 
 ```
 pplx_<model>(
@@ -85,7 +85,7 @@ pplx_<model>(
 
 | Tool | Model | Thinking | Cost |
 |------|-------|----------|------|
-| `pplx_sonar` | Perplexity Sonar | No | **FREE** |
+| `pplx_sonar` | Perplexity Sonar 2 | No | 1 Pro |
 | `pplx_gpt54` | GPT-5.4 (versatile) | No | 1 Pro |
 | `pplx_gpt54_thinking` | GPT-5.4 (versatile) | Yes | 1 Pro |
 | `pplx_gpt55` | GPT-5.5 (latest, Max tier) | No | 1 Pro |

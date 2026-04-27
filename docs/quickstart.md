@@ -135,7 +135,7 @@ This verifies your installation, authentication, MCP config, skill status, rate 
 
 | Name | Provider | Thinking | Tier |
 |------|----------|----------|------|
-| `auto` / `sonar` | Perplexity | No | Free |
+| `auto` / `sonar` | Perplexity | No | Pro (1 Pro Search each) |
 | `deep_research` | Perplexity | No | Monthly quota |
 | `gpt54` | OpenAI | Toggle | Pro |
 | `claude_sonnet` | Anthropic | Toggle | Pro |

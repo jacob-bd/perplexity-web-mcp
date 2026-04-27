@@ -21,7 +21,7 @@ Use your Perplexity Pro/Max subscription to access premium models (GPT-5.4, Clau
 - **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm council`, `pwm research`)
 - **MCP Server**: 17 MCP tools for AI agents with citations and rate limit checking
 - **API Server**: Drop-in Anthropic Messages API and OpenAI Chat Completions API
-- **6 Models**: GPT-5.4, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3.1 Pro, Nemotron 3 Super, Sonar
+- **6 Models**: GPT-5.4, Claude 4.6 Opus, Claude 4.6 Sonnet, Gemini 3.1 Pro, Nemotron 3 Super, Sonar 2
 - **Thinking Mode**: Extended thinking support for all compatible models
 - **Deep Research**: Full support for Perplexity's Deep Research mode
 - **Model Council**: Query multiple models in parallel and get a synthesized consensus
@@ -188,10 +188,10 @@ pwm research "NVIDIA competitive landscape" -s finance --json
 
 ### Model Council
 
-Query multiple models in parallel and get a synthesized consensus. Each model costs 1 Pro Search; synthesis by Sonar is free.
+Query multiple models in parallel and get a synthesized consensus. Each model costs 1 Pro Search. Default synthesis uses Sonar 2 (also 1 Pro Search).
 
 ```bash
-# Default: GPT-5.4, Claude Opus, Gemini Pro (3 Pro Searches)
+# Default: GPT-5.4, Claude Opus, Gemini Pro + Sonar 2 synthesis (4 Pro Searches)
 pwm council "What are best practices for microservices?"
 ```
 
@@ -282,7 +282,7 @@ pwm --ai                   # Print comprehensive AI-optimized reference
 | CLI Name | Provider | Thinking | Notes |
 |----------|----------|----------|-------|
 | `auto` | Perplexity | No | Auto-selects best model |
-| `sonar` | Perplexity | No | Perplexity's latest model |
+| `sonar` | Perplexity | No | Sonar 2 (latest in-house; API id `experimental`) |
 | `deep_research` | Perplexity | No | Monthly quota, in-depth reports |
 | `gpt54` | OpenAI | Toggle | GPT-5.4 |
 | `claude_sonnet` | Anthropic | Toggle | Claude 4.6 Sonnet |
@@ -352,7 +352,7 @@ claude mcp add perplexity pwm-mcp
 | `pplx_query` | Flexible: model selection + thinking toggle |
 | `pplx_ask` | Quick Q&A (auto-selects best model) |
 | `pplx_deep_research` | In-depth reports with sources |
-| `pplx_sonar` | Perplexity Sonar (FREE) |
+| `pplx_sonar` | Perplexity Sonar 2 (1 Pro Search) |
 | `pplx_gpt54` / `pplx_gpt54_thinking` | GPT-5.4 |
 | `pplx_claude_sonnet` / `pplx_claude_sonnet_think` | Claude 4.6 Sonnet |
 | `pplx_claude_opus` / `pplx_claude_opus_think` | Claude 4.6 Opus (Max tier) |

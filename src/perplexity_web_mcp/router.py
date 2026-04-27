@@ -215,7 +215,7 @@ class SmartRouter:
             model_name="sonar",
             search_type="standard",
             intent=Intent.QUICK,
-            reason=f"Quick lookup — using Sonar (pro: {quota.pro_remaining}/{self._pro_max})",
+            reason=f"Quick lookup — using Sonar 2 (pro: {quota.pro_remaining}/{self._pro_max})",
             was_downgraded=False,
             quota_snapshot=snapshot,
         )
@@ -240,7 +240,7 @@ class SmartRouter:
             search_type="standard",
             intent=Intent.STANDARD,
             reason=(
-                f"Standard query — pro exhausted, downgraded to Sonar"
+                f"Standard query — pro exhausted, downgraded to Sonar 2"
                 f" ({quota.pro_remaining}/{self._pro_max})"
             ),
             was_downgraded=True,
@@ -280,7 +280,7 @@ class SmartRouter:
             search_type="standard",
             intent=Intent.DETAILED,
             reason=(
-                f"Detailed query — pro exhausted, downgraded to Sonar"
+                f"Detailed query — pro exhausted, downgraded to Sonar 2"
                 f" ({quota.pro_remaining}/{self._pro_max})"
             ),
             was_downgraded=True,
@@ -320,7 +320,7 @@ class SmartRouter:
             search_type="standard",
             intent=Intent.RESEARCH,
             reason=(
-                f"Research query — research and pro exhausted, downgraded to Sonar"
+                f"Research query — research and pro exhausted, downgraded to Sonar 2"
                 f" ({quota.pro_remaining}/{self._pro_max})"
             ),
             was_downgraded=True,

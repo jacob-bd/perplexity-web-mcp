@@ -34,16 +34,17 @@ mcp = FastMCP(
         "Search the web with Perplexity AI. QUOTA IS LIMITED — read these rules.\n\n"
 
         "COST MODEL (critical):\n"
-        "- pplx_sonar / pplx_smart_query(intent='quick'): FREE — no Pro quota used\n"
+        "- pplx_sonar / pplx_smart_query(intent='quick'): Sonar 2 (in-house). Still uses your "
+        "Perplexity session; limits depend on your plan — call pplx_usage() first.\n"
         "- pplx_ask / pplx_query / all model-specific tools: 1 PRO SEARCH each (weekly pool)\n"
         "- pplx_deep_research: 1 DEEP RESEARCH each (small monthly pool, ~5-10 total)\n\n"
 
         "MANDATORY PROTOCOL:\n"
         "1. On your FIRST query of the session, call pplx_usage() to check remaining quotas.\n"
-        "2. DEFAULT to pplx_smart_query(intent='quick') for most lookups — it uses Sonar "
-        "(free) and only upgrades to Pro when the query genuinely needs it.\n"
+        "2. DEFAULT to pplx_smart_query(intent='quick') for most lookups — it prefers Sonar 2 "
+        "before premium models when that fits the question.\n"
         "3. Only use 'standard' or 'detailed' intent when the question requires synthesis, "
-        "comparison, multi-step reasoning, or very current data that Sonar can't handle.\n"
+        "comparison, multi-step reasoning, or very current data that Sonar 2 can't handle.\n"
         "4. Reserve pplx_deep_research for user-requested deep dives only — NEVER use it "
         "autonomously without asking the user first.\n"
         "5. Avoid model-specific tools (pplx_gpt54, pplx_claude_sonnet, etc.) unless the "
@@ -98,7 +99,7 @@ def pplx_query(
 
 @mcp.tool
 def pplx_ask(query: str, source_focus: SourceFocusName = "web") -> str:
-    """Quick Q&A with auto model. COSTS 1 PRO SEARCH QUERY. Prefer pplx_smart_query(intent='quick') for free lookups."""
+    """Quick Q&A with auto model. COSTS 1 PRO SEARCH QUERY. Prefer pplx_smart_query(intent='quick') for simple lookups (Sonar 2 first)."""
     return ask(query, Models.BEST, source_focus)
 
 
@@ -110,7 +111,7 @@ def pplx_deep_research(query: str, source_focus: SourceFocusName = "web") -> str
 
 @mcp.tool
 def pplx_sonar(query: str, source_focus: SourceFocusName = "web") -> str:
-    """Sonar — Perplexity's latest model. FREE: does NOT consume Pro Search quota."""
+    """Sonar 2 — Perplexity's latest in-house model. Subject to your plan and Perplexity usage counters (see pplx_usage)."""
     return ask(query, Models.SONAR, source_focus)
 
 
@@ -195,11 +196,11 @@ def pplx_smart_query(
     """RECOMMENDED DEFAULT TOOL. Quota-aware query — checks limits and picks the best model automatically.
 
     USE THIS FOR EVERY QUERY unless the user explicitly requests a specific model.
-    Default to intent='quick' for most lookups — it uses Sonar (FREE, no Pro quota).
+    Default to intent='quick' for most lookups — it routes to Sonar 2 when appropriate.
     Only escalate intent when the question genuinely requires it.
 
     Intent guide (choose the LOWEST sufficient level):
-    - quick: Facts, definitions, simple lookups, 'what is X' → FREE (Sonar, no Pro cost)
+    - quick: Facts, definitions, simple lookups, 'what is X' → Sonar 2 (check pplx_usage)
     - standard: How-to, comparisons, explanations needing web sources → 1 Pro Search
     - detailed: Complex multi-source analysis, technical deep-dives → 1 Pro Search (premium model)
     - research: Comprehensive report → 1 Deep Research (scarce monthly quota, user must request)
@@ -231,8 +232,8 @@ def pplx_council(
     IMPORTANT — BEFORE calling this tool, you MUST:
     1. Tell the user the available models: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26
     2. Ask the user WHICH models they want in their council and HOW MANY
-    3. Inform them of the cost: each model = 1 Pro Search query, plus 1 free Sonar for synthesis
-       (e.g., 3 models = 3 Pro Searches + 1 free Sonar = 3 Pro total)
+    3. Inform them of the cost: each council model = 1 Pro Search query, plus synthesis
+       (default chairman sonar = Sonar 2 pass — still counts as a normal query toward limits)
     4. Get explicit confirmation before executing
 
     Default council: GPT-5.4, Claude Opus 4.7, Gemini 3.1 Pro (3 diverse providers).
@@ -242,12 +243,12 @@ def pplx_council(
         source_focus: Source type for all models (none/web/academic/social/finance/all)
         models: Comma-separated model names to use as council members.
                 Available: gpt54, gpt55, claude_sonnet, claude_opus, gemini_pro, nemotron, kimi_k26.
-                Default: "gpt54,claude_opus,gemini_pro" (3 models = 3 Pro Searches)
+                Default: "gpt54,claude_opus,gemini_pro" (3 models + synthesis = 4 Pro Searches)
         synthesize: Whether to synthesize a consensus from all responses.
-                    Set false to get only individual responses (saves 1 Sonar call).
+                    Set false to get only individual responses (saves 1 Sonar 2 call).
         thinking: Enable extended thinking for council models (gpt54, gpt55, claude_sonnet,
                   claude_opus, kimi_k26 support toggle; gemini_pro and nemotron are always thinking).
-        chairman: Model to use for synthesis (default: "sonar", FREE).
+        chairman: Model to use for synthesis (default: "sonar" / Sonar 2).
                   Non-sonar chairmen cost 1 extra Pro Search query.
     """
     # Parse custom model list if provided
@@ -286,7 +287,7 @@ def pplx_usage(refresh: bool = False) -> str:
 
     CALL THIS AT THE START OF EVERY SESSION before making any queries.
     Shows remaining Pro Search (weekly), Deep Research (monthly), and other quotas.
-    Use the results to decide whether to conserve Pro quota by using quick/Sonar queries.
+    Use the results to decide whether to conserve Pro quota (e.g. quick intent before premium models).
 
     Args:
         refresh: Force refresh from Perplexity (ignores cache). Default False.

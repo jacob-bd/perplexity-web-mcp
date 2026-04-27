@@ -4,12 +4,31 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.10.7] - 2026-04-27
+
+### Changed
+
+- **Sonar → Sonar 2** — Perplexity renamed their in-house model. Updated all user-facing labels, docstrings, CLI help, MCP tool descriptions, and skill docs. The backend API identifier remains `experimental`.
+- **Sonar 2 costs 1 Pro Search** — Live testing confirmed Sonar / `pplx_sonar` / `intent='quick'` consumes 1 Pro Search query (previously documented as free). All cost tables, quota protocols, decision flowcharts, and council math corrected across every doc and skill file.
+- **Council default cost: 4 Pro Searches** — Default council (3 models + Sonar 2 synthesis) now correctly documented as N+1 Pro Searches instead of N. Affects CLI help, MCP docstrings, SKILL.md, mcp-tools.md, and README.
+- **Quota footer for Sonar** — `ask()` now shows "Sonar 2 query completed" instead of "Used 1 Pro Search query" for Sonar queries, distinguishing them from premium model calls while still showing the Pro counter decrement.
+
+### Added
+
+- **Integration test: Sonar Pro Search consumption** — New `TestIntegrationSonarProSearch` in `test_rate_limits.py` fetches `remaining_pro` before and after a live Sonar 2 query, asserts delta, and records observed values in the pytest report (`pytest -rA`).
+
+### Fixed
+
+- **Reference model config** — Updated `experimental` entry label from "Sonar" to "Sonar 2" and description to "Perplexity's latest in-house model." to match live API config.
+
+---
+
 ## [0.10.6] - 2026-04-26
 
 ### Added
 
 - **GPT-5.5** — OpenAI's latest model, available for Max subscribers. CLI `-m gpt55`, MCP `pplx_gpt55` / `pplx_gpt55_thinking`, API server aliases (`gpt-5.5`, `gpt-55`, etc.), and Model Council support. Thinking toggle supported.
-- **Configurable Council Chairman** — The synthesis model (previously hardcoded to Sonar) is now configurable. CLI `--chairman MODEL`, MCP `chairman` parameter on `pplx_council`. Default remains Sonar (free). Non-Sonar chairmen cost 1 extra Pro Search and a warning is displayed.
+- **Configurable Council Chairman** — The synthesis model (previously hardcoded to Sonar) is now configurable. CLI `--chairman MODEL`, MCP `chairman` parameter on `pplx_council`. Default remains Sonar 2. Non-Sonar chairmen cost 1 extra Pro Search and a warning is displayed.
 
 ### Fixed
 
@@ -194,14 +213,14 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 - **Quota-aware usage protocol** — Comprehensive AI agent guidelines for conserving Pro Search and Deep Research quotas. Includes a cost model table, mandatory check-before-query protocol, intent classification rubric with concrete examples, and a decision flowchart.
 - **Quota footer on all direct tool responses** — Every `ask()` response now appends a footer showing the query cost (Pro Search or Deep Research), remaining quotas, and warnings when Pro quota is running low (<20%) or exhausted. Helps AI agents track usage in real-time even when bypassing smart routing.
-- **Cost labels on all MCP tool docstrings** — Every tool now declares its quota cost: `pplx_sonar` marked FREE, model-specific tools marked "COSTS 1 PRO SEARCH QUERY", `pplx_deep_research` marked "COSTS 1 DEEP RESEARCH QUERY (limited monthly pool)".
+- **Cost labels on all MCP tool docstrings** — Every tool now declares its quota cost: model-specific tools marked "COSTS 1 PRO SEARCH QUERY", `pplx_deep_research` marked "COSTS 1 DEEP RESEARCH QUERY (limited monthly pool)".
 - **Quota-aware querying section in `pwm --ai`** — New section in the AI reference doc covering cost model, mandatory protocol, intent guide, and decision rules.
 - **Cost summary table in `mcp-tools.md`** — Reference doc now includes per-tool cost information.
 
 ### Changed
 
 - **MCP server instructions rewritten** — Now lead with cost model, mandatory quota-check protocol, intent classification guidance, and explicit "default to quick" directive. Previously only mentioned `pplx_smart_query` as "recommended".
-- **`pplx_smart_query` docstring** — Rewritten to emphasize it is the "RECOMMENDED DEFAULT TOOL" and that `intent='quick'` is free.
+- **`pplx_smart_query` docstring** — Rewritten to emphasize it is the "RECOMMENDED DEFAULT TOOL" and that `intent='quick'` uses Sonar 2.
 - **`pplx_usage` docstring** — Now says "CALL THIS AT THE START OF EVERY SESSION".
 - **SKILL.md overhauled** — Critical Rules section updated with quota-first behavior. New "Quota-Aware Usage Protocol (MANDATORY)" section with cost table, session checklist, classification rubric (7+ quick examples, 5 standard, 3 detailed, explicit research rules), decision flowchart, and automatic quota protection details. MCP Tools Summary table now includes a Cost column.
 - Skill metadata version bumped to 0.9.0.

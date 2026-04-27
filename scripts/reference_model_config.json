@@ -20,8 +20,8 @@
       "provider": "PERPLEXITY"
     },
     "experimental": {
-      "label": "Sonar",
-      "description": "Perplexity's latest model",
+      "label": "Sonar 2",
+      "description": "Perplexity's latest in-house model.",
       "mode": "search",
       "provider": "PERPLEXITY"
     },

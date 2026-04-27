@@ -11,12 +11,12 @@ Complete list of models available through Perplexity Web MCP.
 - **MCP:** `pplx_ask(query)` or `pplx_query(query, model="auto")`
 - **Notes:** Perplexity auto-selects the optimal model for the query.
 
-### sonar (Perplexity Sonar)
-- **Identifier:** `experimental`
+### sonar (Perplexity Sonar 2)
+- **Identifier:** `experimental` (unchanged from legacy Sonar; UI label is Sonar 2)
 - **Thinking:** No
 - **CLI:** `pwm ask "query" -m sonar`
 - **MCP:** `pplx_sonar(query)` or `pplx_query(query, model="sonar")`
-- **Notes:** Perplexity's latest proprietary model.
+- **Notes:** Perplexity's latest in-house model.
 
 ### deep_research (Deep Research)
 - **Identifier:** `pplx_alpha`

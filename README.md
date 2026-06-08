@@ -4,6 +4,13 @@
 
 # Perplexity Web MCP & CLI
 
+[![PyPI version](https://img.shields.io/pypi/v/perplexity-web-mcp-cli)](https://pypi.org/project/perplexity-web-mcp-cli/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/perplexity-web-mcp-cli)](https://pypistats.org/packages/perplexity-web-mcp-cli)
+[![Total downloads](https://static.pepy.tech/badge/perplexity-web-mcp-cli)](https://pepy.tech/projects/perplexity-web-mcp-cli)
+[![Python](https://img.shields.io/pypi/pyversions/perplexity-web-mcp-cli)](https://pypi.org/project/perplexity-web-mcp-cli/)
+[![License](https://img.shields.io/pypi/l/perplexity-web-mcp-cli)](https://github.com/jacob-bd/perplexity-web-mcp/blob/main/LICENSE)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jacobbd)
+
 <p align="center">
   <a href="https://youtu.be/9xyClDvmoZ0">
     <img src="https://img.youtube.com/vi/9xyClDvmoZ0/maxresdefault.jpg" alt="Perplexity Powerhouse + Model Council Demo" width="400">

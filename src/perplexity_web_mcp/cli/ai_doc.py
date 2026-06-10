@@ -284,7 +284,8 @@ COST MODEL:
 MANDATORY PROTOCOL:
   1. CHECK QUOTA FIRST: Call pplx_usage() before your first query each session.
   2. DEFAULT TO QUICK: Use pplx_smart_query(intent='quick') for most lookups.
-      It prefers Sonar 2 first (using concise mode to guarantee grounding) and only escalates when the query needs a premium model.
+     It prefers Sonar 2 first (using concise mode to guarantee grounding) and
+     only escalates when the query needs a premium model.
   3. ESCALATE ONLY WHEN NEEDED: Use 'standard' for multi-source synthesis,
      'detailed' for complex analysis, 'research' only when user requests it.
   4. NEVER USE DEEP RESEARCH AUTONOMOUSLY — always ask the user first.

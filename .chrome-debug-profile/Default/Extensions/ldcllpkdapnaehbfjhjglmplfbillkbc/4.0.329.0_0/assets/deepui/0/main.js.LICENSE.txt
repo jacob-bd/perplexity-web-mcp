@@ -1,0 +1,12 @@
+/*!
+         * Sizzle CSS Selector Engine v@VERSION
+         * https://sizzlejs.com/
+         *
+         * Copyright JS Foundation and other contributors
+         * Released under the MIT license
+         * https://js.foundation/
+         *
+         * Date: @DATE
+         */
+
+/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */

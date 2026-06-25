@@ -1,0 +1,57 @@
+{
+   "action": {
+      "default_icon": {
+         "128": "action_page/icons/disabled_icon_128.png",
+         "16": "action_page/icons/disabled_icon_16.png",
+         "32": "action_page/icons/disabled_icon_32.png",
+         "48": "action_page/icons/disabled_icon_48.png"
+      },
+      "default_popup": "action_page/popup.html"
+   },
+   "background": {
+      "service_worker": "background_wrapper.js"
+   },
+   "content_scripts": [ {
+      "all_frames": true,
+      "js": [ "walkme_loading_content_script.js", "dti_content_script.js" ],
+      "matches": [ "https://*/*", "http://*/*" ],
+      "run_at": "document_start"
+   }, {
+      "all_frames": true,
+      "js": [ "walkme_workday_content_script.js" ],
+      "matches": [ "*://*.workday.com/*", "*://*.myworkday.com/*" ],
+      "run_at": "document_start"
+   } ],
+   "default_locale": "en",
+   "description": "__MSG_extensionDescription__",
+   "host_permissions": [ "https://*/*", "http://*/*" ],
+   "icons": {
+      "128": "icons/walkme_icon_128.png",
+      "16": "icons/walkme_icon_16.png",
+      "32": "icons/walkme_icon_32.png",
+      "48": "icons/walkme_icon_48.png"
+   },
+   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiKBV5k96XheN0d26MSH96eJ28W+h4miLdI46jGwXdqy6Bc8gcinC/skv5HbJhq+3lkiHVRZmda7UGEukcCjQyww24phh0NZqyHoIte/Q2G655AGZkat6XSEXKTxGIn++KXiUwUPcDaEPBqgyoRq4w1Ki2tsFppH/pR5E6mMSxonAT2exVYpVqgi6/k5EkpfK3nAA8uBw0B+GIvaouq3ms/cxhxDBGNUV3P/8Zt/Q4rzTxljrN1dm5vclvdB0d3zBgSWuNaPZzKd6xo3FAU9IHIHTH/FHglaDBUcWUuz1eRUUK6fE8yt6Q/6Ozovz944uCEuugxMwEDSWLMh6TGt/pQIDAQAB",
+   "manifest_version": 3,
+   "name": "__MSG_extensionName__",
+   "options_ui": {
+      "open_in_tab": true,
+      "page": "options/options.html"
+   },
+   "permissions": [ "browsingData", "webRequest", "webRequestBlocking", "tabs", "storage", "cookies", "scripting", "offscreen", "declarativeNetRequestWithHostAccess" ],
+   "sandbox": {
+      "pages": [ "jsonp/jsonp_wrapper.html" ]
+   },
+   "storage": {
+      "managed_schema": "schema.json"
+   },
+   "update_url": "https://cdn.walkme.com/private-bucket/ibm/extension/custom/b51871f0d53011f0b6f6dfb710fdc869/walkme_extension_update.xml",
+   "version": "4.0.329.0",
+   "web_accessible_resources": [ {
+      "matches": [ "*://*/*" ],
+      "resources": [ "walkme_loading_web_accessible.js", "walkme_snippet_blocking_web_accessible.js", "resource/walkme_ext_snippet.js", "assets/*" ]
+   }, {
+      "matches": [ "*://*.workday.com/*", "*://*.myworkday.com/*" ],
+      "resources": [ "resource/workdayAjaxCapture.js" ]
+   } ]
+}

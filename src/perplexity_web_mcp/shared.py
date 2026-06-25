@@ -8,13 +8,14 @@ Both the MCP server (mcp/server.py) and CLI (cli/main.py) import from here.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from os import environ
 from threading import Lock
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
 from .config import ClientConfig, ConversationConfig
 from .core import Perplexity
-from .enums import CitationMode, SearchFocus, SourceFocus
+from .enums import CitationMode, LogLevel, SearchFocus, SourceFocus
 from .models import Model, Models
 from .rate_limits import RateLimitCache
 from .router import Intent, SmartResponse, SmartRouter
@@ -175,6 +176,28 @@ _client_token: str | None = None
 _client_lock = Lock()
 
 
+def _shared_client_config_from_env() -> ClientConfig:
+    """Build shared CLI/MCP client config from supported environment variables."""
+
+    log_level_raw = environ.get("LOG_LEVEL", "").strip().upper()
+    pwm_debug = environ.get("PWM_DEBUG", "").strip().lower()
+
+    logging_level = LogLevel.DISABLED
+    if pwm_debug in {"1", "true", "yes", "on"}:
+        logging_level = LogLevel.DEBUG
+    elif log_level_raw:
+        try:
+            logging_level = LogLevel(log_level_raw)
+        except ValueError:
+            logging_level = LogLevel.DISABLED
+
+    return ClientConfig(
+        rotate_fingerprint=False,
+        requests_per_second=0,
+        logging_level=logging_level,
+    )
+
+
 def get_client() -> Perplexity:
     """Get or create a cached Perplexity client.
 
@@ -191,10 +214,7 @@ def get_client() -> Perplexity:
                     _client.close()
                 except Exception:
                     pass
-            config = ClientConfig(
-                rotate_fingerprint=False,
-                requests_per_second=0,
-            )
+            config = _shared_client_config_from_env()
             _client = Perplexity(token, config=config)
             _client_token = token
         return _client
@@ -446,10 +466,7 @@ def _format_error(error: Exception) -> str:
             token_status = "No token found"
         else:
             user_info = get_user_info(token)
-            if user_info:
-                token_status = f"Token valid for {user_info.email}"
-            else:
-                token_status = "Token exists but invalid"
+            token_status = f"valid for {user_info.email}" if user_info else "Token exists but invalid"
 
     limit_context = get_limit_context_for_error()
 
@@ -462,11 +479,21 @@ def _format_error(error: Exception) -> str:
         )
 
     if is_auth_error:
+        endpoint = getattr(error, "url", None)
+        endpoint_line = f"Failed endpoint: {endpoint}\n" if endpoint else ""
+        network_hint = ""
+        if token_status.startswith("valid for"):
+            network_hint = (
+                "Likely cause: token is valid, but the query endpoint returned 403. "
+                "Check network/IP/proxy/datacenter restrictions.\n"
+            )
         return (
             f"Error: Access forbidden (403).\n\n"
             f"Token status: {token_status}\n"
+            f"{endpoint_line}"
             f"Error type: {error_type}\n"
             f"Error details: {error_str}\n"
+            f"{network_hint}"
             f"{limit_context}\n"
             f"Re-authenticate with: pwm login\n"
             f"Or via MCP: pplx_auth_request_code -> pplx_auth_complete"

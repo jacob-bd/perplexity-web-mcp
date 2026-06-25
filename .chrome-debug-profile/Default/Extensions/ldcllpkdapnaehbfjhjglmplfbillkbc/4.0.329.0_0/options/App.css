@@ -1,0 +1,22 @@
+.stack-padding {
+    margin-top: 30px;
+    max-height: 40px;
+}
+
+.buttons-padding {
+    margin-top: 30px;
+}
+
+.main-container {
+    margin: 30px;
+}
+
+.toggle-explanation {
+    color: #6D7AA4;
+    font-size: 14px;
+    margin-left:12px;
+}
+
+hr {
+    margin-top: 16px;
+}

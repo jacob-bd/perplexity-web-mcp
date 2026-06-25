@@ -129,9 +129,17 @@ class HTTPClient:
                 response_body = None
 
         if status_code == 403:
-            raise AuthenticationError() from error
+            raise AuthenticationError(
+                f"{context}returned 403 Forbidden.",
+                url=str(url) if url else None,
+                response_body=response_body,
+            ) from error
         elif status_code == 429:
-            raise RateLimitError() from error
+            raise RateLimitError(
+                f"{context}returned 429 Rate Limited.",
+                url=str(url) if url else None,
+                response_body=response_body,
+            ) from error
         elif status_code is not None:
             raise HTTPError(
                 f"{context}HTTP {status_code}: {error!s}",
@@ -171,7 +179,7 @@ class HTTPClient:
             except (RateLimitError, AuthenticationError):
                 raise  # Already mapped; let tenacity handle retry
             except Exception as error:
-                self._handle_error(error, f"GET {endpoint}: ")
+                self._handle_error(error, f"GET {endpoint} ")
                 raise  # Unreachable (defensive); _handle_error always raises
 
         return _do_get()
@@ -204,7 +212,7 @@ class HTTPClient:
             except (RateLimitError, AuthenticationError):
                 raise  # Already mapped; let tenacity handle retry
             except Exception as error:
-                self._handle_error(error, f"POST {endpoint}: ")
+                self._handle_error(error, f"POST {endpoint} ")
                 raise  # Unreachable (defensive); _handle_error always raises
 
         return _do_post()
@@ -248,10 +256,24 @@ class HTTPClient:
             elapsed_ms = (monotonic() - request_start) * 1000
             log_response("GET", url, response.status_code, elapsed_ms=elapsed_ms)
 
+            response_body = None
+            try:
+                response_body = response.text if hasattr(response, "text") else None
+            except Exception:
+                response_body = None
+
             if response.status_code == 403:
-                raise AuthenticationError()
+                raise AuthenticationError(
+                    f"GET {ENDPOINT_SEARCH_INIT} returned 403 Forbidden.",
+                    url=str(getattr(response, "url", url)),
+                    response_body=response_body,
+                )
             if response.status_code == 429:
-                raise RateLimitError()
+                raise RateLimitError(
+                    f"GET {ENDPOINT_SEARCH_INIT} returned 429 Rate Limited.",
+                    url=str(getattr(response, "url", url)),
+                    response_body=response_body,
+                )
             response.raise_for_status()
 
         _do_init()

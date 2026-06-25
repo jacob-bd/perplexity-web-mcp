@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from perplexity_web_mcp import shared
+from perplexity_web_mcp.enums import LogLevel
 from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
 from perplexity_web_mcp.models import Model, Models
 from perplexity_web_mcp.rate_limits import RateLimits
@@ -16,6 +17,7 @@ from perplexity_web_mcp.shared import (
     MODEL_NAMES,
     SOURCE_FOCUS_MAP,
     SOURCE_FOCUS_NAMES,
+    _format_error,
     ask,
     resolve_model,
     smart_ask,
@@ -121,10 +123,10 @@ class TestResolveModel:
         assert resolve_model("auto", thinking=True) is Models.BEST
 
     def test_nemotron_base(self) -> None:
-        assert resolve_model("nemotron") is Models.NEMOTRON_3_SUPER
+        assert resolve_model("nemotron") is Models.NEMOTRON_3_ULTRA
 
     def test_nemotron_thinking(self) -> None:
-        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_SUPER
+        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_ULTRA
 
     def test_claude_sonnet_base(self) -> None:
         assert resolve_model("claude_sonnet") is Models.CLAUDE_46_SONNET
@@ -139,8 +141,8 @@ class TestResolveModel:
 
     def test_nemotron_always_thinking(self) -> None:
         # nemotron is reasoning-only, always thinking
-        assert resolve_model("nemotron") is Models.NEMOTRON_3_SUPER
-        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_SUPER
+        assert resolve_model("nemotron") is Models.NEMOTRON_3_ULTRA
+        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_ULTRA
 
     def test_unknown_model_falls_back_to_best(self) -> None:
         assert resolve_model("nonexistent") is Models.BEST
@@ -443,6 +445,59 @@ class TestAskErrorPropagation:
         result = ask("question", Models.BEST)
         assert isinstance(result, str)
         assert "Network failure" in result
+
+
+class TestSharedClientConfig:
+    """Verify CLI query clients honor debug environment variables."""
+
+    @patch.dict("perplexity_web_mcp.shared.environ", {"LOG_LEVEL": "debug"}, clear=True)
+    @patch("perplexity_web_mcp.shared.Perplexity")
+    @patch("perplexity_web_mcp.shared.get_token_or_raise", return_value="token")
+    def test_log_level_env_enables_debug_logging(self, mock_token: MagicMock, mock_perplexity: MagicMock) -> None:
+        shared.reset_client()
+        shared.get_client()
+
+        config = mock_perplexity.call_args.kwargs["config"]
+        assert config.logging_level is LogLevel.DEBUG
+
+    @patch.dict("perplexity_web_mcp.shared.environ", {"PWM_DEBUG": "1"}, clear=True)
+    @patch("perplexity_web_mcp.shared.Perplexity")
+    @patch("perplexity_web_mcp.shared.get_token_or_raise", return_value="token")
+    def test_pwm_debug_env_enables_debug_logging(self, mock_token: MagicMock, mock_perplexity: MagicMock) -> None:
+        shared.reset_client()
+        shared.get_client()
+
+        config = mock_perplexity.call_args.kwargs["config"]
+        assert config.logging_level is LogLevel.DEBUG
+
+
+class TestErrorFormatting:
+    """Verify 403 messages distinguish token and endpoint failures."""
+
+    @patch("perplexity_web_mcp.cli.auth.get_user_info")
+    @patch("perplexity_web_mcp.shared.load_token", return_value="token")
+    @patch("perplexity_web_mcp.shared.get_limit_context_for_error", return_value="")
+    def test_valid_token_403_points_to_endpoint_and_network(
+        self,
+        mock_limit_context: MagicMock,
+        mock_load_token: MagicMock,
+        mock_user_info_fn: MagicMock,
+    ) -> None:
+        mock_user_info = MagicMock()
+        mock_user_info.email = "user@example.com"
+        mock_user_info_fn.return_value = mock_user_info
+
+        err = AuthenticationError(
+            "GET /search/new returned 403 Forbidden.",
+            url="https://www.perplexity.ai/search/new?q=test",
+            response_body="forbidden",
+        )
+
+        message = _format_error(err)
+
+        assert "Token status: valid for user@example.com" in message
+        assert "Failed endpoint: https://www.perplexity.ai/search/new?q=test" in message
+        assert "network/IP/proxy/datacenter" in message
 
 
 class TestSmartAskErrorPropagation:

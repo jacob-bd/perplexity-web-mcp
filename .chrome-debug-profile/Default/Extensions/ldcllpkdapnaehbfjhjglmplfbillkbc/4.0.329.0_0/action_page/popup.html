@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<link rel="stylesheet" type="text/css" href="popup.css">
+	<link rel="stylesheet" type="text/css" href="../shared/style/fonts/fonts.css">
+</head>
+
+<body>
+	<div id="actions-notification">
+		<div class="actions-notification-description">
+			<img class="actions-notification-info-icon" src="icons/info_icon_blue.png">
+			<label id="actions-notification-description-label"></label>
+		</div>
+		<button class="actions-notification-button" id="actions-notification-button"></button>
+	</div>
+	<div class="div-header">
+		<img class="img-walkme-icon" src="./icons/walkme_menu_icon.png">
+		<div id="actions-container-id">
+			<div id="env-change-container-id">
+				<button id="env-change-select-button">
+					<label class="ellipsis" id="env-change-current-env-id"></label>
+					<svg class="env-change-select-button-icon" width="7" height="4" viewBox="0 0 7 4" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M3.64745 3.64645L6.44034 0.853553C6.75533 0.538571 6.53224 0 6.08679 0H0.501003C0.0555506 0 -0.167534 0.53857 0.147449 0.853553L2.94034 3.64645C3.1356 3.84171 3.45219 3.84171 3.64745 3.64645Z" fill="#616F8F" />
+					</svg>
+				</button>
+				<div id="env-change-select-dropdown"></div>
+			</div>
+			<div id="refresh-button-div">
+				<div id="refresh-button" title="Refresh Extension Settings">
+					<svg id="img-refresh-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
+						xmlns="http://www.w3.org/2000/svg">
+						<path
+							d="M13.1465 5.85352C13.3417 5.65832 13.6583 5.65829 13.8535 5.85352L15.1465 7.14648C15.4613 7.46145 15.2383 7.9999 14.793 8H14L13.9922 8.30859C13.8316 11.4789 11.2102 14 7.99998 14C6.62284 14 5.35264 13.5356 4.33983 12.7549C4.1212 12.5864 4.08064 12.2724 4.249 12.0537C4.4176 11.835 4.73148 11.7943 4.95018 11.9629C5.79422 12.6135 6.85134 13 7.99998 13C10.6752 13 12.8595 10.8989 12.9931 8.25684L13 8H12.207C11.7616 7.99998 11.5385 7.46146 11.8535 7.14648L13.1465 5.85352Z"
+							fill="#616F8F" />
+						<path
+							d="M7.99998 2C9.5292 2.00001 10.9259 2.57272 11.9853 3.51465C12.1916 3.69807 12.2105 4.01435 12.0273 4.2207C11.8439 4.42696 11.5276 4.44591 11.3213 4.2627C10.4378 3.47708 9.27508 3.00001 7.99998 3C5.23856 3 2.99998 5.23858 2.99998 8H3.79295C4.23829 8.0001 4.46133 8.53855 4.14647 8.85352L2.8535 10.1465C2.65825 10.3417 2.34173 10.3417 2.14647 10.1465L0.853497 8.85352C0.538539 8.53854 0.761584 8.00002 1.20701 8H1.99998C1.99998 4.68629 4.68627 2 7.99998 2Z"
+							fill="#616F8F" />
+					</svg>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div id="main-content-container-id">
+		<div class="div-status" id="div-status-id">
+			<img class="loading-image" id="img-status-id" src="icons/progress.png">
+			<div class="div-status-details" id="div-status-details-id">
+				<div id="status-id">
+					<h1 class="h1-loading-status" id="h1-status-id">Loading...</h1>
+					<div class="sub-status-container" id="sub-status-container-id">
+						<img id="sub-status-img-id">
+						<p id="sub-status-text-id">This may take a few seconds</p>
+					</div>
+					<button class='status-action-button' id="revert-settings-button-id">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path
+								d="M9.0001 2C12.3138 2.00003 15.0001 4.68631 15.0001 8C15.0001 11.3137 12.3138 14 9.0001 14C8.72396 14 8.5001 13.7761 8.5001 13.5C8.5001 13.2239 8.72396 13 9.0001 13C11.7615 13 14.0001 10.7614 14.0001 8C14.0001 5.23859 11.7615 3.00003 9.0001 3C6.23868 3 4.0001 5.23858 4.0001 8H5.29307C5.73841 8.0001 5.96145 8.53855 5.64659 8.85352L3.85362 10.6465C3.65838 10.8417 3.34185 10.8417 3.14659 10.6465L1.35362 8.85352C1.03866 8.53854 1.26171 8.00002 1.70713 8H3.0001C3.0001 4.68629 5.68639 2 9.0001 2Z"
+								fill="#385FEB" />
+						</svg>
+						Revert to original settings
+					</button>
+					<button class='status-action-button' id="enable-extension-button-id">
+						Enable Extension
+					</button>
+				</div>
+			</div>
+		</div>
+		<div id="next-steps-container-id">
+			<button class="collapsible" id="next-steps-button-id">
+				Next Steps
+				<svg width="6" height="10" viewBox="0 0 6 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M0.5 0.5L5 5L0.5 9.5" stroke="#616F8F" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			</button>
+			<div class="content"></div>
+		</div>
+		<div class="div-anonymous-mode" id="div-anonymous-mode-id">
+			<div class="anonymous-mode-input-container">
+				<div class="anonymous-mode-description-container">
+					<label class="anonymous-mode-description">Turn on anonymous mode</label>
+					<img class="info-icon" src="icons/info_icon.png"
+						title="In Anonymous mode, WalkMe doesn't send your personal data">
+				</div>
+				<div class="anonymous-mode-checkbox-container">
+					<label class="switch" for="anonymous-mode-checkbox">
+						<input class="toggle-input" id="anonymous-mode-checkbox" type="checkbox">
+						<span class="slider round"></span>
+					</label>
+				</div>
+			</div>
+			<div class="anonymous-mode-enabled-info" id="anonymous-mode-enabled-info-id">
+				<div class="anonymous-mode-restart-disclaimer">
+					<img class="info-icon" src="icons/info_icon_blue.png"
+						title="In Anonymous mode, WalkMe doesn't send your personal data">
+					<label>Restart your browser to apply changes to anonymous mode.</label>
+				</div>
+				<a href="#" target="_blank" class="anonymous-mode-info-link" id="anonymous-mode-info-link-id">
+					Learn more about anonymous mode
+					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path
+							d="M5.41016 2C5.68614 2.00018 5.91016 2.22397 5.91016 2.5C5.91016 2.77603 5.68614 2.99982 5.41016 3H3C2.44772 3 2 3.44772 2 4V9C2 9.55228 2.44772 10 3 10H8C8.55228 10 9 9.55228 9 9V6.59082C9 6.31468 9.22386 6.09082 9.5 6.09082C9.77614 6.09082 10 6.31468 10 6.59082V9C10 10.1046 9.10457 11 8 11H3C1.89543 11 1 10.1046 1 9V4C1 2.89543 1.89543 2 3 2H5.41016Z"
+							fill="#616F8F" />
+						<path
+							d="M10.5 1C10.7761 1 11 1.22386 11 1.5V3.79297C10.9999 4.23835 10.4615 4.46139 10.1465 4.14648L9.35352 3.35352L6.85352 5.85352C6.65825 6.04876 6.34174 6.04877 6.14648 5.85352C5.95124 5.65825 5.95123 5.34174 6.14648 5.14648L8.64648 2.64648L7.85352 1.85352C7.53861 1.53855 7.76165 1.00006 8.20703 1H10.5Z"
+							fill="#616F8F" />
+					</svg>
+				</a>
+			</div>
+		</div>
+		<div id="extension-data-container-id">
+			<div class="extension-guids-container" id="extension-guids-container-id">
+				<h4 id="extension-guids-title-id" class="extension-guids-title">Extension ID</h4>
+			</div>
+			<div class="extension-details-container" id="extension-details-container-id"></div>
+			<div class="extension-end-user-id-container" id="extension-end-user-id-container-id">
+				<h4 id="extension-end-user-id-title-id" class="extension-end-user-id-title">User ID</h4>
+				<div id="extension-guid-wrapper-id" class="extension-guid-wrapper"></div>
+			</div>
+		</div>
+	</div>
+	<div id="feedback-and-info-container-id">
+	</div>
+	<div id="env-change-backdrop"></div>
+	<script src="../action_page.js"></script>
+</body>
+
+</html>

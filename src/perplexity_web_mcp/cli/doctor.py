@@ -8,7 +8,9 @@ before using the tool.
 from __future__ import annotations
 
 from importlib import metadata
+import os
 import shutil
+import sys
 
 from perplexity_web_mcp.token_store import TOKEN_FILE, load_token
 
@@ -96,7 +98,7 @@ def _check_connectivity(token: str | None, token_exists: bool) -> bool:
                 "Search endpoint",
                 False,
                 "403 Forbidden",
-                'Check for VPN/proxy; try: LOG_LEVEL=debug pwm ask "test"',
+                'Check VPN/proxy/network/IP restrictions; try: LOG_LEVEL=debug pwm ask "test"',
             )
         return _check(
             "Search endpoint",
@@ -182,6 +184,39 @@ def _check_security(verbose: bool) -> bool:
     return _check("Token permissions", secure, mode, "chmod 600 ~/.config/perplexity-web-mcp/token")
 
 
+def _check_environment(verbose: bool) -> bool:
+    """Print local runtime diagnostics in verbose mode."""
+
+    if not verbose:
+        return True
+
+    print("\nEnvironment")
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    _check("Python", True, python_version)
+
+    try:
+        curl_cffi_version = metadata.version("curl-cffi")
+        _check("curl-cffi", True, curl_cffi_version)
+    except metadata.PackageNotFoundError:
+        _check("curl-cffi", False, "not installed", "reinstall perplexity-web-mcp-cli")
+
+    proxy_keys = ("HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY")
+    set_proxy_keys = [key for key in proxy_keys if os.environ.get(key)]
+    if set_proxy_keys:
+        _check("Proxy env", False, ", ".join(set_proxy_keys), "unset proxy env vars and retry")
+    else:
+        _check("Proxy env", True, "none set")
+
+    debug_values = []
+    for key in ("LOG_LEVEL", "PWM_DEBUG"):
+        value = os.environ.get(key)
+        if value:
+            debug_values.append(f"{key}={value}")
+    _check("Debug env", True, ", ".join(debug_values) if debug_values else "none set")
+
+    return True
+
+
 def cmd_doctor(args: list[str]) -> int:
     """Handle: pwm doctor [--verbose]"""
     verbose = "-v" in args or "--verbose" in args
@@ -197,6 +232,7 @@ def cmd_doctor(args: list[str]) -> int:
     all_ok = _check_rate_limits(token, token_exists) and all_ok
     all_ok = _check_mcp_config() and all_ok
     _check_skills(verbose)
+    all_ok = _check_environment(verbose) and all_ok
     all_ok = _check_security(verbose) and all_ok
 
     print()

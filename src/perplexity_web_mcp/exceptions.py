@@ -44,22 +44,36 @@ class HTTPError(PerplexityError):
 
 
 class AuthenticationError(HTTPError):
-    """Raised when session token is invalid or expired (HTTP 403)."""
+    """Raised when Perplexity returns HTTP 403."""
 
-    def __init__(self, message: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str | None = None,
+        url: str | None = None,
+        response_body: str | None = None,
+    ) -> None:
         super().__init__(
-            message or "Access forbidden (403). Session token invalid or expired.",
+            message or "Access forbidden (403). Session token may be invalid, expired, or blocked by network policy.",
             status_code=403,
+            url=url,
+            response_body=response_body,
         )
 
 
 class RateLimitError(HTTPError):
     """Raised when rate limit is exceeded (HTTP 429)."""
 
-    def __init__(self, message: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str | None = None,
+        url: str | None = None,
+        response_body: str | None = None,
+    ) -> None:
         super().__init__(
             message or "Rate limit exceeded (429). Please wait before retrying.",
             status_code=429,
+            url=url,
+            response_body=response_body,
         )
 
 

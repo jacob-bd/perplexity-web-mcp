@@ -253,3 +253,8 @@ class TestDoctorVerbose:
         out = capsys.readouterr().out
         assert "Security" in out
         assert "Token permissions" in out
+        assert "Environment" in out
+        assert "Python" in out
+        assert "curl-cffi" in out
+        assert "Proxy env" in out
+        assert "Debug env" in out

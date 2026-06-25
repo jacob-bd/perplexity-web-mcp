@@ -1,0 +1,12 @@
+[
+  "*google.com/recaptcha/api2/anchor",
+  "*google.com/recaptcha/api2/bframe",
+  "*google.com/recaptcha/enterprise/anchor",
+  "*google.com/recaptcha/enterprise/bframe",
+  "*recaptcha.net/recaptcha/api2/anchor",
+  "*recaptcha.net/recaptcha/api2/bframe",
+  "*recaptcha.net/recaptcha/enterprise/anchor",
+  "*recaptcha.net/recaptcha/enterprise/bframe",
+  "*hcaptcha.com/captcha/*",
+  "*challenges.cloudflare.com/*"
+]

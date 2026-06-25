@@ -1,0 +1,49 @@
+@font-face {
+    font-family: poppins-bold;
+    src: url("./poppins_semiBold.ttf");
+}
+
+@font-face {
+    font-family: poppins-medium;
+    src: url("./poppins_medium.ttf");
+}
+
+@font-face {
+    font-family: poppins-regular;
+    src: url("./poppins_regular.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-regular;
+    src: url("./proximanova-regular.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-bold;
+    src: url("./proximanova-semibold.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-bolder;
+    src: url("./proximanova-bold.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-extrabold;
+    src: url("./proximanova-extrabold.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-medium;
+    src: url("./proximanova-medium.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-light;
+    src: url("./proximanova-light.ttf");
+}
+
+@font-face {
+    font-family: proxima-nova-thin;
+    src: url("./proximanova-thin.ttf");
+}

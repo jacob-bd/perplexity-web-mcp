@@ -1,0 +1,43 @@
+{
+  "name": "Chrome built-in text-to-speech extension",
+  "manifest_version": 3,
+  "version": "13.2",
+  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDlKEJseIIbKFyX0BCWNYOWlPEUt1IxBvIoW1PI7DTmipbwyVr3s2EprewYdtr9hCO5Yzs5w/ai1Xnhet5PLAsMje6ZP0Kvq0tlVfaYF8oQHBPF+ifx31RBT7Cn+ZVKLq1fxrwzY063GVhW+CAr06Ar8YRFXtFoC4FHlUNDIoSb4wIDAQAB",
+  "background": {
+    "service_worker": "background_compiled.js",
+    "type": "module"
+  },
+  "permissions": [
+    "ttsEngine",
+    "unlimitedStorage",
+    "offscreen",
+    "webRequest",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.gvt1.com/",
+    "https://dl.google.com/"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "description": "The Google Text to Speech Engine.",
+  "tts_engine": {
+    "voices": [
+      {
+        "voice_name": "Chrome OS US English",
+        "lang": "en-US",
+        "event_types": ["start", "end", "error", "word"]
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "bindings_main.js",
+        "bindings_main.wasm"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

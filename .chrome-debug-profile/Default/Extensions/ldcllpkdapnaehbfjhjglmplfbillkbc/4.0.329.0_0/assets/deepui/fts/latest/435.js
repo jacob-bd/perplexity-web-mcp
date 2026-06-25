@@ -1,0 +1,62 @@
+(function(a) {
+      if(a && typeof a['cb-platformFTs'] !== 'undefined') {
+        var obj = {};
+        obj.getData = function() {
+          return {
+            '47441516': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("[role='menuitem']").filter("[aria-label='"+fixed._menuItemLabel+"']");},
+'111226381': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".ui-grid-header-cell-label").filter(":containsTextNode("+fixed.headerText+")");},
+'221562848': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".control-label").filter(":containsTextNode("+fixed.labelText+")");},
+'291626968': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".control-label").filter(":containsTextNode("+fixed.labelText+")");},
+'323997278': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".list-item-text").filter(":containsTextNode("+fixed.elemText+")");},
+'331378941': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn").filter("[title="+fixed.btnTitle+"]");},
+'342597964': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".title").filter(":containsTextNode("+fixed.titleText+")").closest("div[role='link']");},
+'425775899': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".timeframe-title h3").filter(":containsTextNode("+fixed.titleText+")");},
+'570871123': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".category-header").filter("[id="+fixed._headerID+"]");},
+'780457373': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn").filter("[id="+fixed._btnId+"]");},
+'917894992': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".timeframe-title h3").filter(":containsTextNode("+fixed.titleText+")");},
+'1003649685': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("input[type='checkbox']").filter("[Id="+fixed._elemId+"]");},
+'1041307437': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("h2").filter("[id="+fixed._h2Id+"]");},
+'1083066322': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".widget-button").filter("[Id='"+fixed._btnId+"']");},
+'1134171028': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".addons-tile__button[title='"+fixed.idAttr+"']");},
+'1155567512': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn").filter("[id="+fixed._btnId+"]");},
+'1158330731': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".widget-button").filter("[Id='"+fixed._btnId+"']");},
+'1369658901': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".tile-title").filter("[id="+fixed._titleID+"]");},
+'1383448444': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".icon-label span").filter(":containsTextNode("+fixed.iconText+")");},
+'1425287052': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".addons-tile__button[title='"+fixed.idAttr+"']");},
+'1455124694': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".icon-label span").filter(":containsTextNode("+fixed.iconText+")");},
+'1490993210': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".ui-grid-header-cell-label").filter(":containsTextNode("+fixed.columnLabel+")");},
+'1641789313': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("input[type='checkbox']").filter("[Id="+fixed._elemId+"]");},
+'1649206275': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn").filter("[type="+fixed._submitBtn+"]");},
+'1673905161': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-primary").filter("[type="+fixed._btnAttr+"]");},
+'1726858175': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("div.btn-text").filter(":containsTextNode("+fixed.buttonText+")").closest(".btn").filter("[id="+fixed._elemID+"]");},
+'1767161237': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn").filter("[title="+fixed.btnTitle+"]");},
+'2025963423': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".category-header").filter(":containsTextNode("+fixed.elemText+")");},
+'-1918252499': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-primary").filter(":containsTextNode("+fixed.btnText+")");},
+'-1674588288': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-primary").filter("[type="+fixed._btnAttr+"]");},
+'-2100416575': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("[role='menuitem']").filter("[automation-id="+fixed._menuItemAttr+"]");},
+'-1501561166': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("[role='menuitem']").filter("[aria-label='"+fixed._menuItemLabel+"']");},
+'-339362011': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".tile-title").filter("[id="+fixed._titleID+"]");},
+'-1778490075': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".list-item-text").filter(":containsTextNode("+fixed.elemText+")");},
+'-982782592': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-primary").filter("[title="+fixed.btnTitle+"]");},
+'-1953329937': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("input[type='checkbox']").filter("[name="+fixed._nameAttr+"]");},
+'-1857619463': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-group").filter("[id='"+fixed._elemID+"']");},
+'-1247617870': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".category-header").filter("[id="+fixed._headerID+"]");},
+'-994175187': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-primary").filter(":containsTextNode("+fixed.btnText+")");},
+'-2002596468': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("#form-title").filter(":containsTextNode("+fixed.headerText+")").closest(".slideout-container-content").find(".slideout__content");},
+'-597317876': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".title").filter(":containsTextNode("+fixed.titleText+")").closest(".orgmap-node-link-group");},
+'-115798163': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("[role='menuitem']").filter("[automation-id="+fixed._menuItemAttr+"]");},
+'-65574665': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".ui-grid-header-cell-label").filter(":containsTextNode("+fixed.columnLabel+")");},
+'-1021416780': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("h2").filter("[id="+fixed._h2Id+"]");},
+'-1883731153': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn").filter("[type="+fixed._submitBtn+"]");},
+'-542141641': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".header-title").filter("[title="+fixed.elemTitle+"]");},
+'-1602742030': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-primary").filter("[title="+fixed.btnTitle+"]");},
+'-973290898': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("div.btn-text").filter(":containsTextNode("+fixed.buttonText+")").closest(".btn").filter("[id="+fixed._elemID+"]");},
+'-592145849': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("input[type='checkbox']").filter("[name="+fixed._nameAttr+"]");},
+'-295086237': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".btn-group").filter("[id='"+fixed._elemID+"']");},
+'-1549223442': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery(".category-header").filter(":containsTextNode("+fixed.elemText+")");},
+'-1709807536': function(fixed, dollars, __ctx, ftHelper, wmjQuery) {return wmjQuery("span").filter(":containsTextNode("+fixed.labelText+")").parent("[role='menuitem']").find(".menu-expander");}
+          };
+        };
+        a['cb-platformFTs'](obj);
+      }
+    })(window && window._walkmeInternals);

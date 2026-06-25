@@ -119,7 +119,7 @@ def _cline_config_path() -> Path:
 
 
 def _antigravity_config_path() -> Path:
-    return Path.home() / ".gemini" / "antigravity" / "mcp_config.json"
+    return Path.home() / ".gemini" / "config" / "mcp_config.json"
 
 
 def _codex_config_path() -> Path:

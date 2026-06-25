@@ -1,0 +1,150 @@
+{
+   "checksum": "8700681fd6cea23f3bbb2b258e7997bf",
+   "roots": {
+      "bookmark_bar": {
+         "children": [ {
+            "date_added": "13057175708000000",
+            "date_last_used": "0",
+            "guid": "f796425b-082d-4341-8cac-0f2c0089c5ca",
+            "id": "5",
+            "name": "Rover Apps",
+            "type": "url",
+            "url": "https://rover.redhat.com/apps"
+         }, {
+            "date_added": "13104864392000000",
+            "date_last_used": "0",
+            "guid": "cccc75f1-b54f-45e3-a688-158b04758615",
+            "id": "6",
+            "name": "The Source",
+            "type": "url",
+            "url": "https://source.redhat.com/"
+         }, {
+            "date_added": "13425572953896978",
+            "date_last_used": "0",
+            "guid": "ff49107d-ec80-4b68-9cdb-a595403eaa8d",
+            "id": "7",
+            "name": "IT Toolbox",
+            "type": "url",
+            "url": "https://source.redhat.com/departments/it/it-toolbox"
+         }, {
+            "date_added": "13104864392000000",
+            "date_last_used": "0",
+            "guid": "c4b5209d-f448-404f-b24b-51c835ce3e3f",
+            "id": "8",
+            "name": "IT New Hire Hub",
+            "type": "url",
+            "url": "https://redhat.service-now.com/help?id=kb_article_view&sysparm_article=KB0001704"
+         }, {
+            "date_added": "13057175827000000",
+            "date_last_used": "0",
+            "guid": "c6d7b689-81a2-4dd3-9b6d-c6b07062ffd5",
+            "id": "9",
+            "name": "Support",
+            "type": "url",
+            "url": "https://help.redhat.com/"
+         }, {
+            "children": [ {
+               "date_added": "13104948524000000",
+               "date_last_used": "0",
+               "guid": "90d72b13-fa7e-4962-bb47-72a828ff3fe9",
+               "id": "11",
+               "name": "Red Hat Presentation Checklist",
+               "type": "url",
+               "url": "https://drive.google.com/open?id=16vz85Qq8Fyi95sKLjUkn0i92BoRj-Ih6"
+            }, {
+               "date_added": "13104948526000000",
+               "date_last_used": "0",
+               "guid": "535e4ca5-c392-487e-8b7f-d66347959c81",
+               "id": "12",
+               "name": "Red Hat Presentation Guidelines",
+               "type": "url",
+               "url": "https://drive.google.com/file/d/1MqdgUSpM8BgnU3Ic9t7YtgJGEc2GivTo/view"
+            }, {
+               "date_added": "13104948622000000",
+               "date_last_used": "0",
+               "guid": "84e72506-b90a-4a5b-8fde-7d26d4f1132d",
+               "id": "13",
+               "name": "Red Hat Presentation Templates",
+               "type": "url",
+               "url": "https://docs.google.com/presentation/u/0/?ftv=1&folder=0AHm2IMzAUM1kUk9PVA&tgif=d"
+            } ],
+            "date_added": "13425572953897297",
+            "date_last_used": "0",
+            "date_modified": "0",
+            "guid": "88866889-3076-4ed1-bce1-306c452a77ea",
+            "id": "10",
+            "name": "Presentation Resources",
+            "type": "folder"
+         }, {
+            "children": [ {
+               "date_added": "12812501562000000",
+               "date_last_used": "0",
+               "guid": "2eef96a7-bbd3-4d3b-bbcd-60f1d97257f0",
+               "id": "15",
+               "name": "Red Hat",
+               "type": "url",
+               "url": "https://www.redhat.com/"
+            }, {
+               "date_added": "12812501612000000",
+               "date_last_used": "0",
+               "guid": "dc678503-e1a3-4e44-b883-58edf9213209",
+               "id": "16",
+               "name": "Customer Portal",
+               "type": "url",
+               "url": "https://access.redhat.com/"
+            }, {
+               "date_added": "12812501667000000",
+               "date_last_used": "0",
+               "guid": "102ebff0-66c5-4380-9704-4868d651e93d",
+               "id": "17",
+               "name": "Developers",
+               "type": "url",
+               "url": "https://developers.redhat.com/"
+            }, {
+               "date_added": "12812501667000000",
+               "date_last_used": "0",
+               "guid": "70dd360f-a6a0-481d-a8e2-067f93f5377b",
+               "id": "18",
+               "name": "Partners",
+               "type": "url",
+               "url": "https://connect.redhat.com/"
+            } ],
+            "date_added": "13425572953897335",
+            "date_last_used": "0",
+            "date_modified": "0",
+            "guid": "969d4a84-f131-4033-8dae-9ade6ebe2117",
+            "id": "14",
+            "name": "Red Hat External",
+            "type": "folder"
+         } ],
+         "date_added": "13425572953452486",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "Bookmarks Bar",
+         "type": "folder"
+      },
+      "other": {
+         "children": [  ],
+         "date_added": "13425572953452486",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "Other Bookmarks",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13425572953452486",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "Mobile Bookmarks",
+         "type": "folder"
+      }
+   },
+   "version": 1
+}

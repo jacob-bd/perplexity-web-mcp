@@ -1,0 +1,25 @@
+2026/06/10-09:50:11.450 23023d0 Reusing MANIFEST /Users/jbendavi/dev_projects/perplexity-web-mcp/.chrome-debug-profile/Default/IndexedDB/https_www.perplexity.ai_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/10-09:50:11.451 23023d0 Recovering log #4
+2026/06/10-09:50:11.456 23023d0 Reusing old log /Users/jbendavi/dev_projects/perplexity-web-mcp/.chrome-debug-profile/Default/IndexedDB/https_www.perplexity.ai_0.indexeddb.leveldb/000004.log 
+2026/06/10-09:50:11.794 23023bf Manual compaction at level-0 from '\x00\x05\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x06\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/10-09:50:20.920 23023bd Level-0 table #8: started
+2026/06/10-09:50:20.929 23023bd Level-0 table #8: 1575895 bytes OK
+2026/06/10-09:50:20.934 23023bd Delete type=0 #4
+2026/06/10-09:50:20.934 23023bd Manual compaction at level-0 from '\x00\x06\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x07\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/06/10-09:51:22.641 23023cc Level-0 table #10: started
+2026/06/10-09:51:22.655 23023cc Level-0 table #10: 1613379 bytes OK
+2026/06/10-09:51:22.658 23023cc Delete type=0 #7
+2026/06/10-09:51:25.244 23023bf Level-0 table #12: started
+2026/06/10-09:51:25.249 23023bf Level-0 table #12: 970395 bytes OK
+2026/06/10-09:51:25.254 23023bf Delete type=0 #9
+2026/06/10-09:51:25.576 23023bf Level-0 table #14: started
+2026/06/10-09:51:25.580 23023bf Level-0 table #14: 981020 bytes OK
+2026/06/10-09:51:25.581 23023bf Delete type=0 #11
+2026/06/10-09:51:25.679 23023bf Compacting 3@0 + 1@1 files
+2026/06/10-09:51:25.689 23023bf Generated table #15@0: 6868 keys, 636655 bytes
+2026/06/10-09:51:25.689 23023bf Compacted 3@0 + 1@1 files => 636655 bytes
+2026/06/10-09:51:25.691 23023bf compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/06/10-09:51:25.691 23023bf Delete type=2 #14
+2026/06/10-09:51:25.691 23023bf Delete type=2 #12
+2026/06/10-09:51:25.691 23023bf Delete type=2 #10
+2026/06/10-09:51:25.691 23023bf Delete type=2 #8

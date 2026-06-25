@@ -1,0 +1,1 @@
+<!DOCTYPE html><html lang="en"><body><script>if(window.Worker){const e=new Worker("./httpWorker.js");e.onmessage=function(e){window.parent.postMessage(["deepui",e.data],"*")},window.onmessage=function(t){const n=t.data[0],o=t.data[1];"compress"===n&&e.postMessage(o),"terminate"===n&&e.terminate()}}</script></body></html>

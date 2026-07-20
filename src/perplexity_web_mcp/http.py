@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from curl_cffi.requests import Response as CurlResponse
 from curl_cffi.requests import Session
 
-from .constants import API_BASE_URL, DEFAULT_HEADERS, ENDPOINT_ASK, ENDPOINT_SEARCH_INIT, SESSION_COOKIE_NAME
+from .constants import API_BASE_URL, API_VERSION, DEFAULT_HEADERS, ENDPOINT_ASK, ENDPOINT_SEARCH_INIT, SESSION_COOKIE_NAME
 from .exceptions import AuthenticationError, HTTPError, PerplexityError, RateLimitError
 from .limits import DEFAULT_TIMEOUT
 from .logging import get_logger, log_request, log_response, log_retry
@@ -75,6 +75,8 @@ class HTTPClient:
             **DEFAULT_HEADERS,
             "Referer": f"{API_BASE_URL}/",
             "Origin": API_BASE_URL,
+            "x-app-apiclient": "default",
+            "x-app-apiversion": API_VERSION,
         }
         cookies: dict[str, str] = {SESSION_COOKIE_NAME: self._session_token}
 

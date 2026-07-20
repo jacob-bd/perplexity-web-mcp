@@ -277,6 +277,9 @@ def _shared_client_config_from_env() -> ClientConfig:
         logging_level=logging_level,
     )
 
+# рядом с _shared_client_config_from_env()
+def _save_to_library_from_env() -> bool:
+    return environ.get("PWM_SAVE_TO_LIBRARY", "").strip().lower() in {"1", "true", "yes", "on"}
 
 def get_client() -> Perplexity:
     """Get or create a cached Perplexity client.
@@ -390,6 +393,7 @@ def _execute_query(
             citation_mode=CitationMode.DEFAULT,
             search_focus=search_focus,
             source_focus=sources,
+            save_to_library=_save_to_library_from_env(),
         )
     )
 

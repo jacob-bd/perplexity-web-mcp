@@ -4,6 +4,8 @@
 
 # Perplexity Web MCP & CLI
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fjacob-bd%2Fperplexity-web-mcp.svg)](https://mcptoplist.com/server/glama%2Fjacob-bd%2Fperplexity-web-mcp)
+
 [![PyPI version](https://img.shields.io/pypi/v/perplexity-web-mcp-cli)](https://pypi.org/project/perplexity-web-mcp-cli/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/perplexity-web-mcp-cli)](https://pypistats.org/packages/perplexity-web-mcp-cli)
 [![Total downloads](https://static.pepy.tech/badge/perplexity-web-mcp-cli)](https://pepy.tech/projects/perplexity-web-mcp-cli)

@@ -608,6 +608,34 @@ class Conversation:
         if "text" not in data and "blocks" not in data:
             return None
 
+        # Handle 'blocks' format (Perplexity sends blocks without text)
+        if "text" not in data and "blocks" in data:
+            blocks = data["blocks"]
+            answer_data: dict[str, Any] = {}
+            if isinstance(blocks, list):
+                for block in blocks:
+                    if not isinstance(block, dict):
+                        continue
+                    # markdown_block contains the answer text
+                    md = block.get("markdown_block")
+                    if isinstance(md, dict):
+                        answer = md.get("answer")
+                        if answer:
+                            answer_data["answer"] = answer
+                        chunks = md.get("chunks")
+                        if chunks:
+                            answer_data["chunks"] = chunks
+                    # web_result_block contains search results
+                    wrb = block.get("web_result_block")
+                    if isinstance(wrb, dict):
+                        web_results = wrb.get("web_results")
+                        if web_results:
+                            answer_data["web_results"] = web_results
+            if answer_data:
+                title = data.get("thread_title")
+                self._update_state(title, answer_data)
+            return None
+
         try:
             json_data = loads(data["text"])
         except KeyError as error:

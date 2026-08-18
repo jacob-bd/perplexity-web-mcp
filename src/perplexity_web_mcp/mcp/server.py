@@ -769,10 +769,40 @@ def pplx_auth_complete(email: str, code: str = "", totp_code: str | None = None)
         return f"ERROR: {e}"
 
 
-def main() -> None:
-    """Run the MCP server."""
-    mcp.run()
+def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000) -> None:
+    """Run the MCP server with optional transport override."""
+    import os
+    import sys
+
+    # Support CLI arguments for transport options
+    if transport is None:
+        if "--sse" in sys.argv:
+            transport = "sse"
+        elif "--streamable-http" in sys.argv or "--http" in sys.argv:
+            transport = "streamable-http"
+        elif "PWM_MCP_TRANSPORT" in os.environ:
+            transport = os.environ["PWM_MCP_TRANSPORT"]
+        else:
+            transport = "stdio"
+
+    # Extract optional host and port flags if present
+    for i, arg in enumerate(sys.argv):
+        if arg == "--host" and i + 1 < len(sys.argv):
+            host = sys.argv[i + 1]
+        elif arg == "--port" and i + 1 < len(sys.argv):
+            try:
+                port = int(sys.argv[i + 1])
+            except ValueError:
+                pass
+
+    if transport == "sse":
+        mcp.run(transport="sse", host=host, port=port)
+    elif transport in ("streamable-http", "http"):
+        mcp.run(transport="streamable-http", host=host, port=port)
+    else:
+        mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":
     main()
+

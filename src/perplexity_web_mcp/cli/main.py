@@ -922,6 +922,30 @@ def doctor(verbose):
     raise SystemExit(code)
 
 
+# ── Serve MCP (Daemon Mode) ────────────────────────────────────────────────
+
+
+@cli.command(name="serve-mcp")
+@click.option("--transport", "-t", type=click.Choice(["stdio", "sse", "streamable-http"]), default="sse", help="Transport protocol (sse, streamable-http, or stdio).")
+@click.option("--host", default="127.0.0.1", help="Bind address for HTTP/SSE daemon.")
+@click.option("-p", "--port", default=8000, type=int, help="Port number for HTTP/SSE daemon.")
+def serve_mcp(transport, host, port):
+    """Run the Perplexity Web MCP server as a shared daemon (SSE or stdio).
+
+    Enables multiple AI tool clients (or multi-thread Codex sessions) to connect
+    to a single shared background MCP process, preventing duplicate process spawn
+    and high memory usage on Windows.
+
+    \b
+    Examples:
+      pwm serve-mcp                     # Start SSE daemon on 127.0.0.1:8000
+      pwm serve-mcp --port 8080         # Custom port
+      pwm serve-mcp --transport stdio   # Standard stdio mode
+    """
+    from perplexity_web_mcp.mcp.server import main as mcp_server_main
+
+    mcp_server_main(transport=transport, host=host, port=port)
+
 # ── Setup (Click subgroup) ─────────────────────────────────────────────────
 
 
@@ -1067,3 +1091,4 @@ def main() -> NoReturn:
 
 if __name__ == "__main__":
     main()
+

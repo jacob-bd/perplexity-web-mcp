@@ -34,13 +34,13 @@ def mock_curl_cffi_globally():
     mock_session_inst.cookies = MagicMock()
     mock_session_inst.get.return_value = MagicMock(
         status_code=200,
-        json=lambda: {},
+        json=dict,
         text="",
         url="https://www.perplexity.ai",
     )
     mock_session_inst.post.return_value = MagicMock(
         status_code=200,
-        json=lambda: {},
+        json=dict,
         text="",
         url="https://www.perplexity.ai",
     )

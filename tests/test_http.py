@@ -5,11 +5,12 @@ Network calls are mocked; these tests verify error context only.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
-from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
+from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError, TLSCertificateError
 from perplexity_web_mcp.http import HTTPClient
 
 
@@ -55,3 +56,55 @@ class TestHTTPDiagnostics:
         assert "POST /rest/sse/perplexity_ask returned 429" in str(exc.value)
         assert exc.value.url == "https://www.perplexity.ai/rest/sse/perplexity_ask"
         assert exc.value.response_body == "rate limit"
+
+
+class TestTLSAndCABundle:
+    """Verify TLS certificate error handling and CA bundle discovery."""
+
+    def test_get_tls_error_fails_fast_without_retry(self) -> None:
+        client = HTTPClient("token", requests_per_second=0, max_retries=3, rotate_fingerprint=False)
+        client._session = MagicMock()
+        client._session.get.side_effect = Exception("curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate")
+
+        with pytest.raises(TLSCertificateError) as exc:
+            client.get("/test")
+
+        assert "TLS certificate verification failed" in str(exc.value)
+        # Should fail on first attempt without retrying 3 times
+        assert client._session.get.call_count == 1
+
+    def test_post_tls_error_fails_fast_without_retry(self) -> None:
+        client = HTTPClient("token", requests_per_second=0, max_retries=3, rotate_fingerprint=False)
+        client._session = MagicMock()
+        client._session.post.side_effect = Exception("curl: (60) SSL certificate OpenSSL verify result")
+
+        with pytest.raises(TLSCertificateError) as exc:
+            client.post("/test", json={})
+
+        assert "TLS certificate verification failed" in str(exc.value)
+        assert client._session.post.call_count == 1
+
+    def test_ca_bundle_respects_env_var(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from perplexity_web_mcp.http import get_system_ca_bundle_path
+
+        fake_cert = tmp_path / "my_ca.pem"
+        fake_cert.write_text("FAKE CERT")
+        monkeypatch.setenv("CURL_CA_BUNDLE", str(fake_cert))
+
+        bundle = get_system_ca_bundle_path()
+        assert bundle == str(fake_cert)
+
+    def test_ca_bundle_generation_on_windows(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        import sys
+
+        from perplexity_web_mcp import http
+        monkeypatch.setattr(http, "CONFIG_DIR", tmp_path)
+        monkeypatch.delenv("CURL_CA_BUNDLE", raising=False)
+        monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+        monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+
+        if sys.platform == "win32":
+            bundle = http.get_system_ca_bundle_path()
+            assert bundle is not None
+            assert Path(bundle).exists()
+            assert (tmp_path / "system-ca-bundle.pem").exists()

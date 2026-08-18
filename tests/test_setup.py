@@ -366,3 +366,16 @@ class TestBackwardCompat:
 
         assert _is_configured_compat(codex_tool) is False
         mock_configured.assert_called_once_with("codex")
+
+
+def test_serve_mcp_cli_command() -> None:
+    """Test pwm serve-mcp invocation."""
+    from click.testing import CliRunner
+
+    from perplexity_web_mcp.cli.main import cli
+
+    runner = CliRunner()
+    with patch("perplexity_web_mcp.mcp.server.main") as mock_main:
+        result = runner.invoke(cli, ["serve-mcp", "--transport", "sse", "--port", "8123"])
+        assert result.exit_code == 0
+        mock_main.assert_called_once_with(transport="sse", host="127.0.0.1", port=8123)

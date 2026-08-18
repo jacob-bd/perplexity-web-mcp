@@ -53,3 +53,19 @@ def test_mcp_auth_preserves_totp_challenge_between_calls() -> None:
         verify.assert_called_once_with(session, "challenge-123", "123456")
     finally:
         server._clear_auth_session()
+
+
+def test_mcp_server_main_transports() -> None:
+    """Test that mcp main correctly forwards transport choices."""
+    with patch.object(server.mcp, "run") as mock_run:
+        # Default stdio
+        server.main()
+        mock_run.assert_called_with(transport="stdio")
+
+        # Explicit SSE
+        server.main(transport="sse", host="0.0.0.0", port=9000)
+        mock_run.assert_called_with(transport="sse", host="0.0.0.0", port=9000)
+
+        # Explicit streamable-http
+        server.main(transport="streamable-http", host="127.0.0.1", port=8000)
+        mock_run.assert_called_with(transport="streamable-http", host="127.0.0.1", port=8000)

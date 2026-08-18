@@ -255,7 +255,9 @@ class HTTPClient:
             except Exception as error:
                 err_msg = str(error).lower()
                 if "certificate" in err_msg or "ssl" in err_msg or "curl: (60)" in err_msg:
-                    raise TLSCertificateError(f"GET {endpoint} TLS certificate verification failed", reason=str(error)) from error
+                    raise TLSCertificateError(
+                        f"GET {endpoint} TLS certificate verification failed", reason=str(error)
+                    ) from error
                 self._handle_error(error, f"GET {endpoint} ")
                 raise  # Unreachable (defensive); _handle_error always raises
 
@@ -291,7 +293,9 @@ class HTTPClient:
             except Exception as error:
                 err_msg = str(error).lower()
                 if "certificate" in err_msg or "ssl" in err_msg or "curl: (60)" in err_msg:
-                    raise TLSCertificateError(f"POST {endpoint} TLS certificate verification failed", reason=str(error)) from error
+                    raise TLSCertificateError(
+                        f"POST {endpoint} TLS certificate verification failed", reason=str(error)
+                    ) from error
                 self._handle_error(error, f"POST {endpoint} ")
                 raise  # Unreachable (defensive); _handle_error always raises
 

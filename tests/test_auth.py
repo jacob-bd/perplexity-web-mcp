@@ -13,7 +13,9 @@ from perplexity_web_mcp.auth import (
     follow_auth_callback,
     verify_totp,
 )
+from perplexity_web_mcp.cli.auth import get_user_info
 from perplexity_web_mcp.constants import API_BASE_URL, API_VERSION, SESSION_COOKIE_NAME
+from perplexity_web_mcp.limits import REST_API_TIMEOUT
 
 
 def response(status: int = 200, *, data: dict | None = None, headers: dict | None = None) -> SimpleNamespace:
@@ -35,9 +37,10 @@ def test_create_auth_session_uses_app_headers_and_returns_csrf() -> None:
 
     assert result_session is session
     assert csrf == "csrf-token"
-    headers = session_class.call_args.kwargs["headers"]
-    assert headers["x-app-apiclient"] == "default"
-    assert headers["x-app-apiversion"] == API_VERSION
+    kwargs = session_class.call_args.kwargs
+    assert kwargs["headers"]["x-app-apiclient"] == "default"
+    assert kwargs["headers"]["x-app-apiversion"] == API_VERSION
+    assert kwargs["timeout"] == REST_API_TIMEOUT
 
 
 def test_follow_auth_callback_follows_normal_redirect() -> None:
@@ -96,3 +99,50 @@ def test_extract_session_token_reassembles_numeric_cookie_chunks() -> None:
     ]
 
     assert extract_session_token(session) == "firstsecond"
+
+
+class TestGetUserInfo:
+    """Verify get_user_info REST request configuration and parsing."""
+
+    def test_get_user_info_passes_timeout_headers_and_cookie(self) -> None:
+        user_data = {
+            "email": "user@example.com",
+            "subscription_tier": "pro",
+            "subscription_status": "active",
+        }
+        mock_resp = response(200, data=user_data)
+        session = MagicMock()
+        session.get.return_value = mock_resp
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=session) as mock_session_cls:
+            user_info = get_user_info("my-secret-token")
+
+        assert user_info is not None
+        assert user_info.email == "user@example.com"
+        assert user_info.subscription_tier.value == "pro"
+
+        kwargs = mock_session_cls.call_args.kwargs
+        assert kwargs["timeout"] == REST_API_TIMEOUT
+        assert kwargs["cookies"][SESSION_COOKIE_NAME] == "my-secret-token"
+        assert kwargs["headers"]["x-app-apiclient"] == "default"
+
+    def test_get_user_info_non_200_returns_none(self) -> None:
+        mock_resp = response(401, data={"error": "unauthorized"})
+        session = MagicMock()
+        session.get.return_value = mock_resp
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=session):
+            assert get_user_info("invalid-token") is None
+
+    def test_get_user_info_exception_returns_none(self) -> None:
+        session = MagicMock()
+        session.get.side_effect = Exception("network error")
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=session):
+            assert get_user_info("error-token") is None

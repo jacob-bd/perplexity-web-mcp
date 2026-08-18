@@ -119,6 +119,7 @@ class StreamingError(PerplexityError):
     def __init__(self, message: str) -> None:
         super().__init__(f"Streaming error: {message}")
 
+
 class TLSCertificateError(PerplexityError):
     """Raised when SSL/TLS certificate verification fails."""
 

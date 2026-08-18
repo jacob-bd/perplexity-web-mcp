@@ -14,14 +14,13 @@ from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError, T
 from perplexity_web_mcp.http import HTTPClient
 
 
-
-
 @pytest.fixture(autouse=True)
 def mock_curl_cffi_session():
     """Automatically mock curl_cffi Session for all HTTP tests to prevent native Windows socket hangs."""
     with patch("perplexity_web_mcp.http.Session") as mock_session:
         mock_session.return_value.headers = {}
         yield mock_session
+
 
 class TestHTTPDiagnostics:
     """Verify HTTP errors preserve endpoint context."""
@@ -73,7 +72,9 @@ class TestTLSAndCABundle:
     def test_get_tls_error_fails_fast_without_retry(self) -> None:
         client = HTTPClient("token", requests_per_second=0, max_retries=3, rotate_fingerprint=False)
         client._session = MagicMock()
-        client._session.get.side_effect = Exception("curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate")
+        client._session.get.side_effect = Exception(
+            "curl: (60) SSL certificate OpenSSL verify result: unable to get local issuer certificate"
+        )
 
         with pytest.raises(TLSCertificateError) as exc:
             client.get("/test")
@@ -107,6 +108,7 @@ class TestTLSAndCABundle:
         import sys
 
         from perplexity_web_mcp import http
+
         monkeypatch.setattr(http, "CONFIG_DIR", tmp_path)
         monkeypatch.delenv("CURL_CA_BUNDLE", raising=False)
         monkeypatch.delenv("SSL_CERT_FILE", raising=False)

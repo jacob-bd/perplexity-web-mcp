@@ -149,7 +149,7 @@ class TestValidateFiles:
         result = conv._validate_files([str(f)])
 
         assert len(result) == 1
-        assert result[0].path == str(f.resolve())
+        assert Path(result[0].path).resolve() == f.resolve()
         assert result[0].size == 11
         assert result[0].mimetype
         assert result[0].is_image is False

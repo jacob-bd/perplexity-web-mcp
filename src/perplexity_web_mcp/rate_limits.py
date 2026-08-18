@@ -25,6 +25,8 @@ from .constants import (
     ENDPOINT_USER_SETTINGS,
     SESSION_COOKIE_NAME,
 )
+from .http import get_system_ca_bundle_path
+from .limits import REST_API_TIMEOUT
 from .logging import get_logger
 
 
@@ -309,16 +311,21 @@ class Credits:
 
 def _create_session(token: str) -> Session:
     """Create a minimal session for REST API calls."""
-    return Session(
-        impersonate="chrome",
-        headers={
+    verify_bundle = get_system_ca_bundle_path()
+    session_kwargs: dict[str, Any] = {
+        "impersonate": "chrome",
+        "headers": {
             **APP_HEADERS,
             "Referer": API_BASE_URL,
             "Origin": API_BASE_URL,
             "Accept": "application/json",
         },
-        cookies={SESSION_COOKIE_NAME: token},
-    )
+        "cookies": {SESSION_COOKIE_NAME: token},
+        "timeout": REST_API_TIMEOUT,
+    }
+    if verify_bundle:
+        session_kwargs["verify"] = verify_bundle
+    return Session(**session_kwargs)
 
 
 def fetch_rate_limits(token: str) -> RateLimits | None:

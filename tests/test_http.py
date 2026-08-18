@@ -6,7 +6,7 @@ Network calls are mocked; these tests verify error context only.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -14,14 +14,23 @@ from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError, T
 from perplexity_web_mcp.http import HTTPClient
 
 
+
+
+@pytest.fixture(autouse=True)
+def mock_curl_cffi_session():
+    """Automatically mock curl_cffi Session for all HTTP tests to prevent native Windows socket hangs."""
+    with patch("perplexity_web_mcp.http.Session") as mock_session:
+        mock_session.return_value.headers = {}
+        yield mock_session
+
 class TestHTTPDiagnostics:
     """Verify HTTP errors preserve endpoint context."""
 
-    def test_session_includes_perplexity_app_headers(self) -> None:
+    def test_session_includes_perplexity_app_headers(self, mock_curl_cffi_session) -> None:
         client = HTTPClient("token", requests_per_second=0, max_retries=0, rotate_fingerprint=False)
 
-        assert client._session.headers["x-app-apiclient"] == "default"
-        assert client._session.headers["x-app-apiversion"] == "2.18"
+        assert mock_curl_cffi_session.call_args[1]["headers"]["x-app-apiclient"] == "default"
+        assert mock_curl_cffi_session.call_args[1]["headers"]["x-app-apiversion"] == "2.18"
 
     def test_init_search_403_includes_endpoint_context(self) -> None:
         client = HTTPClient("token", requests_per_second=0, max_retries=0, rotate_fingerprint=False)

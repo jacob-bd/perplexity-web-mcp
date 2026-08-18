@@ -40,7 +40,7 @@ from perplexity_web_mcp.shared import (
     resolve_source_focus,
     smart_ask,
 )
-from perplexity_web_mcp.token_store import load_token, save_token
+from perplexity_web_mcp.token_store import CONFIG_DIR, load_token, save_token
 
 
 mcp = FastMCP(
@@ -768,13 +768,94 @@ def pplx_auth_complete(email: str, code: str = "", totp_code: str | None = None)
     except Exception as e:
         return f"ERROR: {e}"
 
+import atexit
+import os
+from pathlib import Path
+import signal
+import socket
+import sys
+
+
+def get_daemon_pid_path(port: int) -> Path:
+    """Get path to daemon PID file for a given port."""
+    return CONFIG_DIR / f"daemon-{port}.pid"
+
+
+def is_pid_running(pid: int) -> bool:
+    """Check if a process with the given PID is currently running."""
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, OSError):
+        return False
+
+
+def get_running_daemon_pid(port: int) -> int | None:
+    """Return PID of running daemon on port if active, otherwise None."""
+    pid_path = get_daemon_pid_path(port)
+    if not pid_path.exists():
+        return None
+    try:
+        pid = int(pid_path.read_text().strip())
+        if is_pid_running(pid):
+            return pid
+        pid_path.unlink(missing_ok=True)
+    except Exception:
+        pid_path.unlink(missing_ok=True)
+    return None
+
+
+def is_port_in_use(host: str, port: int) -> bool:
+    """Check if a TCP port is currently occupied."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        try:
+            s.bind((host, port))
+            return False
+        except OSError:
+            return True
+
+
+def acquire_daemon_lock(port: int) -> bool:
+    """Record current process PID in daemon lockfile."""
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        pid_path = get_daemon_pid_path(port)
+        pid_path.write_text(str(os.getpid()), encoding="utf-8")
+        atexit.register(release_daemon_lock, port)
+        return True
+    except Exception:
+        return False
+
+
+def release_daemon_lock(port: int) -> None:
+    """Clean up daemon lockfile."""
+    try:
+        pid_path = get_daemon_pid_path(port)
+        if pid_path.exists():
+            pid_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def stop_daemon(port: int) -> tuple[bool, str]:
+    """Stop running daemon on port."""
+    pid = get_running_daemon_pid(port)
+    if pid is None:
+        return False, f"No active MCP daemon found on port {port}."
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+        release_daemon_lock(port)
+        return True, f"Stopped MCP daemon (PID {pid}) on port {port}."
+    except Exception as e:
+        return False, f"Failed to stop MCP daemon (PID {pid}): {e}"
+
 
 def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000) -> None:
     """Run the MCP server with optional transport override."""
-    import os
-    import sys
-
-    # Support CLI arguments for transport options
     if transport is None:
         if "--sse" in sys.argv:
             transport = "sse"
@@ -785,7 +866,6 @@ def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000
         else:
             transport = "stdio"
 
-    # Extract optional host and port flags if present
     for i, arg in enumerate(sys.argv):
         if arg == "--host" and i + 1 < len(sys.argv):
             host = sys.argv[i + 1]
@@ -795,14 +875,32 @@ def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000
             except ValueError:
                 pass
 
-    if transport == "sse":
-        mcp.run(transport="sse", host=host, port=port)
-    elif transport in ("streamable-http", "http"):
-        mcp.run(transport="streamable-http", host=host, port=port)
+    if transport in ("sse", "streamable-http", "http"):
+        existing_pid = get_running_daemon_pid(port)
+        if existing_pid is not None and existing_pid != os.getpid():
+            sys.stderr.write(
+                f"Error: MCP daemon is already running on port {port} (PID {existing_pid}).\n"
+                f"Use 'pwm serve-mcp --port {port} --status' or 'pwm serve-mcp --port {port} --stop' to manage it.\n"
+            )
+            sys.exit(1)
+
+        if is_port_in_use(host, port):
+            sys.stderr.write(
+                f"Error: Port {port} on {host} is already in use by another process.\n"
+            )
+            sys.exit(1)
+
+        acquire_daemon_lock(port)
+        try:
+            if transport == "sse":
+                mcp.run(transport="sse", host=host, port=port)
+            else:
+                mcp.run(transport="streamable-http", host=host, port=port)
+        finally:
+            release_daemon_lock(port)
     else:
         mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":
     main()
-

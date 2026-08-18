@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from perplexity_web_mcp.mcp import server
@@ -69,3 +70,51 @@ def test_mcp_server_main_transports() -> None:
         # Explicit streamable-http
         server.main(transport="streamable-http", host="127.0.0.1", port=8000)
         mock_run.assert_called_with(transport="streamable-http", host="127.0.0.1", port=8000)
+
+
+def test_daemon_pid_lifecycle(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "CONFIG_DIR", tmp_path)
+
+    port = 8999
+    assert server.get_running_daemon_pid(port) is None
+
+    # Acquire lock
+    assert server.acquire_daemon_lock(port) is True
+    pid_path = server.get_daemon_pid_path(port)
+    assert pid_path.exists()
+    assert server.get_running_daemon_pid(port) is not None
+
+    # Release lock
+    server.release_daemon_lock(port)
+    assert not pid_path.exists()
+    assert server.get_running_daemon_pid(port) is None
+
+
+def test_daemon_stale_pid_cleanup(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "CONFIG_DIR", tmp_path)
+    port = 8998
+    pid_path = server.get_daemon_pid_path(port)
+    pid_path.write_text("99999999", encoding="utf-8")
+
+    with patch.object(server, "is_pid_running", return_value=False):
+        assert server.get_running_daemon_pid(port) is None
+        assert not pid_path.exists()
+
+
+def test_mcp_server_main_duplicate_daemon_guard() -> None:
+    import pytest
+
+    with patch.object(server, "get_running_daemon_pid", return_value=12345):
+        with pytest.raises(SystemExit) as exc:
+            server.main(transport="sse", port=8000)
+        assert exc.value.code == 1
+
+
+def test_mcp_server_main_port_in_use_guard() -> None:
+    import pytest
+
+    with patch.object(server, "get_running_daemon_pid", return_value=None):
+        with patch.object(server, "is_port_in_use", return_value=True):
+            with pytest.raises(SystemExit) as exc:
+                server.main(transport="sse", port=8000)
+            assert exc.value.code == 1

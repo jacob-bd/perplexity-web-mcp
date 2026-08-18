@@ -231,13 +231,17 @@ class TestSetupCommands:
         assert "Unknown client" in result.output
 
     def test_add_codex_configures_mcp(self) -> None:
-        result = self._run("add", "codex")
-        assert result.exit_code == 0
-        assert "codex" in result.output.lower()
+        with patch("perplexity_web_mcp.cli.setup._setup_codex", return_value=True) as mock_setup:
+            result = self._run("add", "codex")
+            assert result.exit_code == 0
+            assert "codex" in result.output.lower()
+            mock_setup.assert_called_once()
 
     def test_remove_codex_removes_mcp(self) -> None:
-        result = self._run("remove", "codex")
-        assert result.exit_code == 0
+        with patch("perplexity_web_mcp.cli.setup._remove_codex", return_value=True) as mock_remove:
+            result = self._run("remove", "codex")
+            assert result.exit_code == 0
+            mock_remove.assert_called_once()
 
     def test_add_opencode_configures_mcp(self, tmp_path: Path) -> None:
         cfg_path = tmp_path / "opencode.json"
@@ -379,3 +383,32 @@ def test_serve_mcp_cli_command() -> None:
         result = runner.invoke(cli, ["serve-mcp", "--transport", "sse", "--port", "8123"])
         assert result.exit_code == 0
         mock_main.assert_called_once_with(transport="sse", host="127.0.0.1", port=8123)
+
+
+def test_serve_mcp_cli_status_and_stop() -> None:
+    """Test pwm serve-mcp --status and --stop options."""
+    from click.testing import CliRunner
+
+    from perplexity_web_mcp.cli.main import cli
+
+    runner = CliRunner()
+
+    # Status when running
+    with patch("perplexity_web_mcp.mcp.server.get_running_daemon_pid", return_value=12345):
+        result = runner.invoke(cli, ["serve-mcp", "--status", "--port", "8000"])
+        assert result.exit_code == 0
+        assert "running" in result.output
+        assert "12345" in result.output
+
+    # Status when stopped
+    with patch("perplexity_web_mcp.mcp.server.get_running_daemon_pid", return_value=None):
+        with patch("perplexity_web_mcp.mcp.server.is_port_in_use", return_value=False):
+            result = runner.invoke(cli, ["serve-mcp", "--status", "--port", "8000"])
+            assert result.exit_code == 0
+            assert "No active MCP daemon detected" in result.output
+
+    # Stop running daemon
+    with patch("perplexity_web_mcp.mcp.server.stop_daemon", return_value=(True, "Stopped MCP daemon (PID 12345)")):
+        result = runner.invoke(cli, ["serve-mcp", "--stop", "--port", "8000"])
+        assert result.exit_code == 0
+        assert "Stopped MCP daemon" in result.output

@@ -113,6 +113,21 @@ pwm setup add gemini
 
 After setup, restart your AI tool. You'll have access to `pplx_*` MCP tools.
 
+### Shared MCP daemon (optional)
+
+Use a shared local SSE daemon when multiple MCP clients or Codex sessions should
+connect to one MCP process:
+
+```bash
+pwm serve-mcp                         # Start SSE on 127.0.0.1:8000
+pwm setup add codex --sse             # Configure Codex for the SSE endpoint
+pwm serve-mcp --status                # Check daemon status
+pwm serve-mcp --stop                  # Stop the daemon
+```
+
+The HTTP transports bind to loopback by default. Keep the daemon on a loopback
+address unless you put an authenticated reverse proxy in front of it.
+
 ### Install the Agent Skill
 
 The Agent Skill gives your AI tool built-in knowledge about how to use Perplexity:

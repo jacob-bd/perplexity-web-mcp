@@ -270,6 +270,19 @@ pwm setup remove all       # Remove from all configured tools
 pwm setup remove cursor    # Remove MCP server from a tool
 ```
 
+For clients that support HTTP/SSE, or when multiple sessions should share one
+MCP process, run the local daemon:
+
+```bash
+pwm serve-mcp                         # Start SSE on 127.0.0.1:8000
+pwm serve-mcp --status                # Check daemon status
+pwm serve-mcp --stop                  # Stop the daemon
+pwm setup add codex --sse             # Configure Codex to use the daemon
+```
+
+The HTTP transports bind to loopback by default. Keep the daemon on a loopback
+address unless you put an authenticated reverse proxy in front of it.
+
 ### Skill Management
 
 ```bash

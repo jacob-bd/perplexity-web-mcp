@@ -4,6 +4,20 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.14.10] - 2026-08-19
+
+### Added
+
+- **Shared MCP daemon** — Added `pwm serve-mcp` with SSE, Streamable HTTP, and stdio transport selection, daemon status/stop controls, multi-client sharing, and atomic process locking. ([#22](https://github.com/jacob-bd/perplexity-web-mcp/pull/22) — thanks to [Ronald Hickman (@Derivedbetter)](https://github.com/Derivedbetter))
+- **Codex SSE setup** — Added `pwm setup add codex --sse` to connect Codex to the local MCP daemon without duplicating existing Codex configuration. ([#22](https://github.com/jacob-bd/perplexity-web-mcp/pull/22))
+
+### Fixed
+
+- **REST API reliability** — Added bounded timeouts and consistent CA-bundle handling to REST-backed authentication, diagnostics, and rate-limit requests. ([#24](https://github.com/jacob-bd/perplexity-web-mcp/pull/24) — thanks to [Ronald Hickman (@Derivedbetter)](https://github.com/Derivedbetter); related [#23](https://github.com/jacob-bd/perplexity-web-mcp/pull/23) work was also contributed by Ronald)
+- **TLS diagnostics** — Detects certificate verification failures and reports an actionable TLS error instead of allowing an opaque transport exception to escape. ([#23](https://github.com/jacob-bd/perplexity-web-mcp/pull/23), included in [#24](https://github.com/jacob-bd/perplexity-web-mcp/pull/24))
+- **Windows certificate handling** — Filters exported Windows certificate-store entries to certificates trusted for server authentication. ([#24](https://github.com/jacob-bd/perplexity-web-mcp/pull/24))
+- **Test isolation** — Keeps unit tests offline while allowing explicitly marked integration tests to run against live services. ([#23](https://github.com/jacob-bd/perplexity-web-mcp/pull/23), included in [#24](https://github.com/jacob-bd/perplexity-web-mcp/pull/24))
+
 ## [0.14.9] - 2026-08-14
 
 ### Fixed

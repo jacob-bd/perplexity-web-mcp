@@ -412,3 +412,19 @@ def test_serve_mcp_cli_status_and_stop() -> None:
         result = runner.invoke(cli, ["serve-mcp", "--stop", "--port", "8000"])
         assert result.exit_code == 0
         assert "Stopped MCP daemon" in result.output
+
+
+def test_setup_codex_sse_does_not_duplicate_existing_toml_config(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    config_path = tmp_path / "config.toml"
+    original = '[mcp_servers.perplexity]\nurl = "http://127.0.0.1:8000/sse"\nenabled = true\n'
+    config_path.write_text(original)
+
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value=None),
+    ):
+        assert _setup_codex(sse=True) is True
+
+    assert config_path.read_text() == original

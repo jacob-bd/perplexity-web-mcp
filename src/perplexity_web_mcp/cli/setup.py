@@ -268,6 +268,16 @@ def _setup_codex(sse: bool = False, port: int = 8000) -> bool:
             except Exception:
                 pass
         config_path = _codex_config_path() / "config.toml"
+        if config_path.exists():
+            try:
+                config = tomllib.loads(config_path.read_text())
+            except Exception as exc:
+                console.print(f"[yellow]Warning:[/yellow] Could not read Codex config: {exc}")
+                return False
+            mcp_servers = config.get("mcp_servers", {})
+            if MCP_SERVER_KEY in mcp_servers or "perplexity-web-mcp" in mcp_servers:
+                console.print("[green]✓[/green] Already configured in Codex CLI")
+                return True
         section = f'''
 # Perplexity Web MCP server (SSE daemon mode)
 [mcp_servers.{MCP_SERVER_KEY}]
@@ -992,5 +1002,3 @@ def _is_configured_compat(tool) -> bool:
     Accepts a _ToolInfo or any object with a .name attribute.
     """
     return _is_already_configured(tool.name)
-
-

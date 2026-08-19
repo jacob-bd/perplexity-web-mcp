@@ -926,7 +926,13 @@ def doctor(verbose):
 
 
 @cli.command(name="serve-mcp")
-@click.option("--transport", "-t", type=click.Choice(["stdio", "sse", "streamable-http"]), default="sse", help="Transport protocol (sse, streamable-http, or stdio).")
+@click.option(
+    "--transport",
+    "-t",
+    type=click.Choice(["stdio", "sse", "streamable-http"]),
+    default="sse",
+    help="Transport protocol (sse, streamable-http, or stdio).",
+)
 @click.option("--host", default="127.0.0.1", help="Bind address for HTTP/SSE daemon.")
 @click.option("-p", "--port", default=8000, type=int, help="Port number for HTTP/SSE daemon.")
 @click.option("--status", is_flag=True, help="Check status of running MCP daemon on specified port.")
@@ -962,12 +968,10 @@ def serve_mcp(transport, host, port, status, stop):
         port_busy = is_port_in_use(host, port)
         if pid is not None:
             console.print(
-                f"[green]✓[/green] Perplexity MCP daemon is [bold green]running[/bold green] (PID {pid}) on [cyan]http://{host}:{port}/sse[/cyan]"
+                f"[green]✓[/green] Perplexity MCP daemon is [bold green]running[/bold green] (PID {pid}) on [cyan]http://{host}:{port}[/cyan]"
             )
         elif port_busy:
-            console.print(
-                f"[yellow]![/yellow] Port {port} is in use on {host}, but no managed PID lockfile found."
-            )
+            console.print(f"[yellow]![/yellow] Port {port} is in use on {host}, but no managed PID lockfile found.")
         else:
             console.print(f"[dim]No active MCP daemon detected on port {port}.[/dim]")
         return
@@ -981,6 +985,7 @@ def serve_mcp(transport, host, port, status, stop):
         return
 
     mcp_server_main(transport=transport, host=host, port=port)
+
 
 # ── Setup (Click subgroup) ─────────────────────────────────────────────────
 
@@ -1127,4 +1132,3 @@ def main() -> NoReturn:
 
 if __name__ == "__main__":
     main()
-

@@ -768,7 +768,9 @@ def pplx_auth_complete(email: str, code: str = "", totp_code: str | None = None)
     except Exception as e:
         return f"ERROR: {e}"
 
+
 import atexit
+import ipaddress
 import os
 from pathlib import Path
 import signal
@@ -789,6 +791,16 @@ def is_pid_running(pid: int) -> bool:
         os.kill(pid, 0)
         return True
     except (ProcessLookupError, OSError):
+        return False
+
+
+def is_loopback_host(host: str) -> bool:
+    """Return whether a host resolves to a loopback address."""
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
         return False
 
 
@@ -819,22 +831,28 @@ def is_port_in_use(host: str, port: int) -> bool:
 
 
 def acquire_daemon_lock(port: int) -> bool:
-    """Record current process PID in daemon lockfile."""
+    """Atomically record current process PID in daemon lockfile."""
     try:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         pid_path = get_daemon_pid_path(port)
-        pid_path.write_text(str(os.getpid()), encoding="utf-8")
-        atexit.register(release_daemon_lock, port)
+        fd = os.open(pid_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as pid_file:
+            pid_file.write(str(os.getpid()))
+        atexit.register(release_daemon_lock, port, os.getpid())
         return True
+    except FileExistsError:
+        return False
     except Exception:
         return False
 
 
-def release_daemon_lock(port: int) -> None:
+def release_daemon_lock(port: int, owner_pid: int | None = None) -> None:
     """Clean up daemon lockfile."""
     try:
         pid_path = get_daemon_pid_path(port)
         if pid_path.exists():
+            if owner_pid is not None and pid_path.read_text(encoding="utf-8").strip() != str(owner_pid):
+                return
             pid_path.unlink(missing_ok=True)
     except Exception:
         pass
@@ -848,7 +866,7 @@ def stop_daemon(port: int) -> tuple[bool, str]:
 
     try:
         os.kill(pid, signal.SIGTERM)
-        release_daemon_lock(port)
+        release_daemon_lock(port, pid)
         return True, f"Stopped MCP daemon (PID {pid}) on port {port}."
     except Exception as e:
         return False, f"Failed to stop MCP daemon (PID {pid}): {e}"
@@ -876,6 +894,13 @@ def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000
                 pass
 
     if transport in ("sse", "streamable-http", "http"):
+        if not is_loopback_host(host):
+            sys.stderr.write(
+                "Error: Refusing to bind the unauthenticated MCP daemon to a non-loopback host. "
+                "Use a loopback address or place an authenticated reverse proxy in front of it.\n"
+            )
+            sys.exit(1)
+
         existing_pid = get_running_daemon_pid(port)
         if existing_pid is not None and existing_pid != os.getpid():
             sys.stderr.write(
@@ -885,19 +910,19 @@ def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000
             sys.exit(1)
 
         if is_port_in_use(host, port):
-            sys.stderr.write(
-                f"Error: Port {port} on {host} is already in use by another process.\n"
-            )
+            sys.stderr.write(f"Error: Port {port} on {host} is already in use by another process.\n")
             sys.exit(1)
 
-        acquire_daemon_lock(port)
+        if not acquire_daemon_lock(port):
+            sys.stderr.write(f"Error: MCP daemon lock for port {port} is already held by another process.\n")
+            sys.exit(1)
         try:
             if transport == "sse":
                 mcp.run(transport="sse", host=host, port=port)
             else:
                 mcp.run(transport="streamable-http", host=host, port=port)
         finally:
-            release_daemon_lock(port)
+            release_daemon_lock(port, os.getpid())
     else:
         mcp.run(transport="stdio")
 

@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from perplexity_web_mcp.mcp import server
 from perplexity_web_mcp.models import Models
 
@@ -58,14 +60,20 @@ def test_mcp_auth_preserves_totp_challenge_between_calls() -> None:
 
 def test_mcp_server_main_transports() -> None:
     """Test that mcp main correctly forwards transport choices."""
-    with patch.object(server.mcp, "run") as mock_run:
+    with (
+        patch.object(server.mcp, "run") as mock_run,
+        patch.object(server, "get_running_daemon_pid", return_value=None),
+        patch.object(server, "is_port_in_use", return_value=False),
+        patch.object(server, "acquire_daemon_lock", return_value=True),
+        patch.object(server, "release_daemon_lock"),
+    ):
         # Default stdio
         server.main()
         mock_run.assert_called_with(transport="stdio")
 
         # Explicit SSE
-        server.main(transport="sse", host="0.0.0.0", port=9000)
-        mock_run.assert_called_with(transport="sse", host="0.0.0.0", port=9000)
+        server.main(transport="sse", host="127.0.0.1", port=9000)
+        mock_run.assert_called_with(transport="sse", host="127.0.0.1", port=9000)
 
         # Explicit streamable-http
         server.main(transport="streamable-http", host="127.0.0.1", port=8000)
@@ -101,9 +109,27 @@ def test_daemon_stale_pid_cleanup(tmp_path: Path, monkeypatch) -> None:
         assert not pid_path.exists()
 
 
-def test_mcp_server_main_duplicate_daemon_guard() -> None:
-    import pytest
+def test_daemon_lock_acquisition_is_atomic(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "CONFIG_DIR", tmp_path)
+    port = 8997
 
+    assert server.acquire_daemon_lock(port) is True
+    assert server.acquire_daemon_lock(port) is False
+
+
+def test_mcp_server_rejects_remote_binding_without_authentication() -> None:
+    with (
+        patch.object(server, "get_running_daemon_pid", return_value=None),
+        patch.object(server, "is_port_in_use", return_value=False),
+        patch.object(server.mcp, "run"),
+        pytest.raises(SystemExit) as exc,
+    ):
+        server.main(transport="sse", host="0.0.0.0", port=8996)
+
+    assert exc.value.code == 1
+
+
+def test_mcp_server_main_duplicate_daemon_guard() -> None:
     with patch.object(server, "get_running_daemon_pid", return_value=12345):
         with pytest.raises(SystemExit) as exc:
             server.main(transport="sse", port=8000)
@@ -111,8 +137,6 @@ def test_mcp_server_main_duplicate_daemon_guard() -> None:
 
 
 def test_mcp_server_main_port_in_use_guard() -> None:
-    import pytest
-
     with patch.object(server, "get_running_daemon_pid", return_value=None):
         with patch.object(server, "is_port_in_use", return_value=True):
             with pytest.raises(SystemExit) as exc:

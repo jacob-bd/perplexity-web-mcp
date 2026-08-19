@@ -12,8 +12,12 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def block_all_network():
+def block_all_network(request: pytest.FixtureRequest):
     """Fail fast on any unmocked external network connection while allowing asyncio internal loopback."""
+    if "TestIntegration" in request.node.nodeid:
+        yield
+        return
+
     orig_connect = socket.socket.connect
 
     def guarded_connect(self, address, *args, **kwargs):
@@ -27,23 +31,21 @@ def block_all_network():
 
 
 @pytest.fixture(autouse=True)
-def mock_curl_cffi_globally():
+def mock_curl_cffi_globally(request: pytest.FixtureRequest):
     """Globally intercept curl_cffi Session across all modules to prevent native Windows socket hangs."""
+    if "TestIntegration" in request.node.nodeid:
+        yield None
+        return
+
     mock_session_inst = MagicMock()
     mock_session_inst.headers = {}
     mock_session_inst.cookies = MagicMock()
-    mock_session_inst.get.return_value = MagicMock(
-        status_code=200,
-        json=dict,
-        text="",
-        url="https://www.perplexity.ai",
-    )
-    mock_session_inst.post.return_value = MagicMock(
-        status_code=200,
-        json=dict,
-        text="",
-        url="https://www.perplexity.ai",
-    )
+    get_response = MagicMock(status_code=200, text="", url="https://www.perplexity.ai")
+    get_response.json.return_value = {}
+    post_response = MagicMock(status_code=200, text="", url="https://www.perplexity.ai")
+    post_response.json.return_value = {}
+    mock_session_inst.get.return_value = get_response
+    mock_session_inst.post.return_value = post_response
     mock_session_inst.__enter__.return_value = mock_session_inst
     mock_session_inst.__exit__.return_value = None
 

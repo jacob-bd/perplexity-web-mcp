@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+import ssl
+import sys
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +17,7 @@ from .exceptions import AuthenticationError, HTTPError, PerplexityError, RateLim
 from .limits import DEFAULT_TIMEOUT
 from .logging import get_logger, log_request, log_response, log_retry
 from .resilience import RateLimiter, RetryConfig, create_retry_decorator, get_random_browser_profile
+from .token_store import CONFIG_DIR
 from .trace import log_trace
 
 
@@ -25,12 +30,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-import os
-from pathlib import Path
-import ssl
-import sys
-
-from .token_store import CONFIG_DIR
+_SERVER_AUTH_EKU = "1.3.6.1.5.5.7.3.1"
 
 
 def _convert_der_to_pem(der: bytes) -> str | None:
@@ -43,7 +43,11 @@ def _convert_der_to_pem(der: bytes) -> str | None:
 def _extract_windows_store_certs(store: str) -> list[str]:
     """Extract certificates from a Windows certificate store in PEM format."""
     try:
-        converted = (_convert_der_to_pem(der) for der, _, _ in ssl.enum_certificates(store))
+        converted = (
+            _convert_der_to_pem(der)
+            for der, encoding, trust in ssl.enum_certificates(store)
+            if encoding == "x509_asn" and (trust is True or (isinstance(trust, set) and _SERVER_AUTH_EKU in trust))
+        )
         return [c for c in converted if c is not None]
     except Exception:
         return []

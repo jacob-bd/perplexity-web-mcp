@@ -104,6 +104,25 @@ class TestTLSAndCABundle:
         bundle = get_system_ca_bundle_path()
         assert bundle == str(fake_cert)
 
+    def test_windows_store_only_includes_server_trusted_certificates(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from perplexity_web_mcp import http
+
+        server_auth_oid = "1.3.6.1.5.5.7.3.1"
+        monkeypatch.setattr(
+            http.ssl,
+            "enum_certificates",
+            lambda store: [
+                (b"trusted", "x509_asn", True),
+                (b"server-auth", "x509_asn", {server_auth_oid}),
+                (b"client-only", "x509_asn", {"1.3.6.1.5.5.7.3.2"}),
+                (b"untrusted", "x509_asn", False),
+            ],
+            raising=False,
+        )
+        monkeypatch.setattr(http, "_convert_der_to_pem", lambda der: der.decode())
+
+        assert http._extract_windows_store_certs("ROOT") == ["trusted", "server-auth"]
+
     def test_ca_bundle_generation_on_windows(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         import sys
 

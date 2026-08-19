@@ -830,8 +830,7 @@ def _has_valid_token() -> bool:
     return token is not None and len(token) > 10
 
 
-@pytest.mark.skip(reason="Strict 100% mocked testing enforced. Live tests disabled to prevent Windows lockups.")
-# @pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
+@pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
 class TestIntegrationRateLimits:
     """Live API integration tests. These hit the real Perplexity endpoints."""
 
@@ -938,8 +937,7 @@ class TestIntegrationRateLimits:
         assert len(settings_summary) > 50
 
 
-@pytest.mark.skip(reason="Strict 100% mocked testing enforced. Live tests disabled to prevent Windows lockups.")
-# @pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
+@pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
 class TestIntegrationMCPServer:
     """Integration tests for MCP server rate limit features."""
 
@@ -974,8 +972,7 @@ class TestIntegrationMCPServer:
         assert "remaining" in context
 
 
-@pytest.mark.skip(reason="Strict 100% mocked testing enforced. Live tests disabled to prevent Windows lockups.")
-# @pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
+@pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
 class TestIntegrationSonarProSearch:
     """Live check: does one Sonar 2 (experimental) query change ``remaining_pro``?
 

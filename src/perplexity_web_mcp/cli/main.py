@@ -922,6 +922,71 @@ def doctor(verbose):
     raise SystemExit(code)
 
 
+# ── Serve MCP (Daemon Mode) ────────────────────────────────────────────────
+
+
+@cli.command(name="serve-mcp")
+@click.option(
+    "--transport",
+    "-t",
+    type=click.Choice(["stdio", "sse", "streamable-http"]),
+    default="sse",
+    help="Transport protocol (sse, streamable-http, or stdio).",
+)
+@click.option("--host", default="127.0.0.1", help="Bind address for HTTP/SSE daemon.")
+@click.option("-p", "--port", default=8000, type=int, help="Port number for HTTP/SSE daemon.")
+@click.option("--status", is_flag=True, help="Check status of running MCP daemon on specified port.")
+@click.option("--stop", is_flag=True, help="Stop running MCP daemon on specified port.")
+def serve_mcp(transport, host, port, status, stop):
+    """Run the Perplexity Web MCP server as a shared daemon (SSE or stdio).
+
+    Enables multiple AI tool clients (or multi-thread Codex sessions) to connect
+    to a single shared background MCP process, preventing duplicate process spawn
+    and high memory usage on Windows.
+
+    \b
+    Examples:
+      pwm serve-mcp                     # Start SSE daemon on 127.0.0.1:8000
+      pwm serve-mcp --port 8080         # Custom port
+      pwm serve-mcp --status            # Check daemon status on port 8000
+      pwm serve-mcp --stop              # Stop daemon on port 8000
+      pwm serve-mcp --transport stdio   # Standard stdio mode
+    """
+    from rich.console import Console
+
+    from perplexity_web_mcp.mcp.server import (
+        get_running_daemon_pid,
+        is_port_in_use,
+        stop_daemon,
+    )
+    from perplexity_web_mcp.mcp.server import main as mcp_server_main
+
+    console = Console()
+
+    if status:
+        pid = get_running_daemon_pid(port)
+        port_busy = is_port_in_use(host, port)
+        if pid is not None:
+            console.print(
+                f"[green]✓[/green] Perplexity MCP daemon is [bold green]running[/bold green] (PID {pid}) on [cyan]http://{host}:{port}[/cyan]"
+            )
+        elif port_busy:
+            console.print(f"[yellow]![/yellow] Port {port} is in use on {host}, but no managed PID lockfile found.")
+        else:
+            console.print(f"[dim]No active MCP daemon detected on port {port}.[/dim]")
+        return
+
+    if stop:
+        success, message = stop_daemon(port)
+        if success:
+            console.print(f"[green]✓[/green] {message}")
+        else:
+            console.print(f"[yellow]![/yellow] {message}")
+        return
+
+    mcp_server_main(transport=transport, host=host, port=port)
+
+
 # ── Setup (Click subgroup) ─────────────────────────────────────────────────
 
 

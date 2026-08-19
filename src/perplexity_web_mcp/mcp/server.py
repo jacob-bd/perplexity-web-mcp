@@ -40,7 +40,7 @@ from perplexity_web_mcp.shared import (
     resolve_source_focus,
     smart_ask,
 )
-from perplexity_web_mcp.token_store import load_token, save_token
+from perplexity_web_mcp.token_store import CONFIG_DIR, load_token, save_token
 
 
 mcp = FastMCP(
@@ -769,9 +769,162 @@ def pplx_auth_complete(email: str, code: str = "", totp_code: str | None = None)
         return f"ERROR: {e}"
 
 
-def main() -> None:
-    """Run the MCP server."""
-    mcp.run()
+import atexit
+import ipaddress
+import os
+from pathlib import Path
+import signal
+import socket
+import sys
+
+
+def get_daemon_pid_path(port: int) -> Path:
+    """Get path to daemon PID file for a given port."""
+    return CONFIG_DIR / f"daemon-{port}.pid"
+
+
+def is_pid_running(pid: int) -> bool:
+    """Check if a process with the given PID is currently running."""
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, OSError):
+        return False
+
+
+def is_loopback_host(host: str) -> bool:
+    """Return whether a host resolves to a loopback address."""
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def get_running_daemon_pid(port: int) -> int | None:
+    """Return PID of running daemon on port if active, otherwise None."""
+    pid_path = get_daemon_pid_path(port)
+    if not pid_path.exists():
+        return None
+    try:
+        pid = int(pid_path.read_text().strip())
+        if is_pid_running(pid):
+            return pid
+        pid_path.unlink(missing_ok=True)
+    except Exception:
+        pid_path.unlink(missing_ok=True)
+    return None
+
+
+def is_port_in_use(host: str, port: int) -> bool:
+    """Check if a TCP port is currently occupied."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        try:
+            s.bind((host, port))
+            return False
+        except OSError:
+            return True
+
+
+def acquire_daemon_lock(port: int) -> bool:
+    """Atomically record current process PID in daemon lockfile."""
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        pid_path = get_daemon_pid_path(port)
+        fd = os.open(pid_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as pid_file:
+            pid_file.write(str(os.getpid()))
+        atexit.register(release_daemon_lock, port, os.getpid())
+        return True
+    except FileExistsError:
+        return False
+    except Exception:
+        return False
+
+
+def release_daemon_lock(port: int, owner_pid: int | None = None) -> None:
+    """Clean up daemon lockfile."""
+    try:
+        pid_path = get_daemon_pid_path(port)
+        if pid_path.exists():
+            if owner_pid is not None and pid_path.read_text(encoding="utf-8").strip() != str(owner_pid):
+                return
+            pid_path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+def stop_daemon(port: int) -> tuple[bool, str]:
+    """Stop running daemon on port."""
+    pid = get_running_daemon_pid(port)
+    if pid is None:
+        return False, f"No active MCP daemon found on port {port}."
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+        release_daemon_lock(port, pid)
+        return True, f"Stopped MCP daemon (PID {pid}) on port {port}."
+    except Exception as e:
+        return False, f"Failed to stop MCP daemon (PID {pid}): {e}"
+
+
+def main(transport: str | None = None, host: str = "127.0.0.1", port: int = 8000) -> None:
+    """Run the MCP server with optional transport override."""
+    if transport is None:
+        if "--sse" in sys.argv:
+            transport = "sse"
+        elif "--streamable-http" in sys.argv or "--http" in sys.argv:
+            transport = "streamable-http"
+        elif "PWM_MCP_TRANSPORT" in os.environ:
+            transport = os.environ["PWM_MCP_TRANSPORT"]
+        else:
+            transport = "stdio"
+
+    for i, arg in enumerate(sys.argv):
+        if arg == "--host" and i + 1 < len(sys.argv):
+            host = sys.argv[i + 1]
+        elif arg == "--port" and i + 1 < len(sys.argv):
+            try:
+                port = int(sys.argv[i + 1])
+            except ValueError:
+                pass
+
+    if transport in ("sse", "streamable-http", "http"):
+        if not is_loopback_host(host):
+            sys.stderr.write(
+                "Error: Refusing to bind the unauthenticated MCP daemon to a non-loopback host. "
+                "Use a loopback address or place an authenticated reverse proxy in front of it.\n"
+            )
+            sys.exit(1)
+
+        existing_pid = get_running_daemon_pid(port)
+        if existing_pid is not None and existing_pid != os.getpid():
+            sys.stderr.write(
+                f"Error: MCP daemon is already running on port {port} (PID {existing_pid}).\n"
+                f"Use 'pwm serve-mcp --port {port} --status' or 'pwm serve-mcp --port {port} --stop' to manage it.\n"
+            )
+            sys.exit(1)
+
+        if is_port_in_use(host, port):
+            sys.stderr.write(f"Error: Port {port} on {host} is already in use by another process.\n")
+            sys.exit(1)
+
+        if not acquire_daemon_lock(port):
+            sys.stderr.write(f"Error: MCP daemon lock for port {port} is already held by another process.\n")
+            sys.exit(1)
+        try:
+            if transport == "sse":
+                mcp.run(transport="sse", host=host, port=port)
+            else:
+                mcp.run(transport="streamable-http", host=host, port=port)
+        finally:
+            release_daemon_lock(port, os.getpid())
+    else:
+        mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":

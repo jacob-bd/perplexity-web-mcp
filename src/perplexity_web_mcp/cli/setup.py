@@ -245,9 +245,53 @@ def _setup_json_client(client_id: str) -> bool:
     return True
 
 
-def _setup_codex() -> bool:
+def _setup_codex(sse: bool = False, port: int = 8000) -> bool:
     """Add MCP to Codex CLI via `codex mcp add` (preferred) or config.toml fallback."""
     codex_cmd = shutil.which("codex")
+    if sse:
+        url = f"http://127.0.0.1:{port}/sse"
+        if codex_cmd:
+            try:
+                result = subprocess.run(
+                    [codex_cmd, "mcp", "add", MCP_SERVER_KEY, "--url", url],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode == 0:
+                    console.print(f"[green]✓[/green] Added to Codex CLI (SSE daemon mode: {url})")
+                    console.print("  [dim]Start daemon with: pwm serve-mcp[/dim]")
+                    return True
+                elif "already exists" in result.stderr.lower():
+                    console.print(f"[green]✓[/green] Already configured in Codex CLI (SSE: {url})")
+                    return True
+            except Exception:
+                pass
+        config_path = _codex_config_path() / "config.toml"
+        if config_path.exists():
+            try:
+                config = tomllib.loads(config_path.read_text())
+            except Exception as exc:
+                console.print(f"[yellow]Warning:[/yellow] Could not read Codex config: {exc}")
+                return False
+            mcp_servers = config.get("mcp_servers", {})
+            if MCP_SERVER_KEY in mcp_servers or "perplexity-web-mcp" in mcp_servers:
+                console.print("[green]✓[/green] Already configured in Codex CLI")
+                return True
+        section = f'''
+# Perplexity Web MCP server (SSE daemon mode)
+[mcp_servers.{MCP_SERVER_KEY}]
+url = "{url}"
+enabled = true
+'''
+        content = config_path.read_text() if config_path.exists() else ""
+        new_content = content.rstrip() + "\n" + section if content.strip() else section.lstrip()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(new_content)
+        console.print("[green]✓[/green] Added to Codex CLI (SSE daemon mode in config.toml)")
+        console.print("  [dim]Start daemon with: pwm serve-mcp[/dim]")
+        return True
+
     if codex_cmd:
         try:
             result = subprocess.run(
@@ -761,7 +805,9 @@ def setup():
 
 @setup.command("add")
 @click.argument("client")
-def setup_add(client):
+@click.option("--sse", is_flag=True, help="Configure client to connect via SSE daemon (http://127.0.0.1:8000/sse).")
+@click.option("--port", default=8000, type=int, help="Port for SSE daemon (default: 8000).")
+def setup_add(client, sse, port):
     """Add Perplexity MCP server to an AI tool.
 
     Supported clients: claude-code, gemini, cursor,
@@ -798,7 +844,7 @@ def setup_add(client):
     if client == "claude-code":
         success = _setup_claude_code()
     elif client == "codex":
-        success = _setup_codex()
+        success = _setup_codex(sse=sse, port=port)
     elif client == "opencode":
         success = _setup_opencode()
     else:

@@ -13,6 +13,7 @@ __all__: list[str] = [
     "ResearchClarifyingQuestionsError",
     "ResponseParsingError",
     "StreamingError",
+    "TLSCertificateError",
 ]
 
 
@@ -117,3 +118,23 @@ class StreamingError(PerplexityError):
 
     def __init__(self, message: str) -> None:
         super().__init__(f"Streaming error: {message}")
+
+
+class TLSCertificateError(PerplexityError):
+    """Raised when SSL/TLS certificate verification fails."""
+
+    def __init__(
+        self,
+        message: str | None = None,
+        url: str | None = None,
+        reason: str | None = None,
+    ) -> None:
+        self.url = url
+        self.reason = reason
+        default_msg = (
+            "SSL/TLS certificate verification failed. "
+            "If you are behind a corporate proxy, VPN, or antivirus with HTTPS inspection (e.g. Norton, Zscaler), "
+            "ensure your root certificate is installed or set the CURL_CA_BUNDLE environment variable."
+        )
+        full_msg = f"{message} ({reason})" if reason and message else (message or default_msg)
+        super().__init__(full_msg)

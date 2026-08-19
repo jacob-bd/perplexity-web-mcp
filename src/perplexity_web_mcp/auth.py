@@ -8,6 +8,8 @@ from urllib.parse import parse_qs, urlparse
 from curl_cffi.requests import Session
 
 from .constants import API_BASE_URL, API_VERSION, APP_HEADERS, SESSION_COOKIE_NAME
+from .http import get_system_ca_bundle_path
+from .limits import REST_API_TIMEOUT
 
 
 AUTH_CSRF_ENDPOINT = "/api/auth/csrf"
@@ -19,10 +21,15 @@ _REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 
 def create_auth_session() -> tuple[Session, str]:
     """Create a browser-like session and return it with a CSRF token."""
-    session = Session(
-        impersonate="chrome",
-        headers={**APP_HEADERS, "Referer": API_BASE_URL, "Origin": API_BASE_URL},
-    )
+    verify_bundle = get_system_ca_bundle_path()
+    session_kwargs: dict[str, Any] = {
+        "impersonate": "chrome",
+        "headers": {**APP_HEADERS, "Referer": API_BASE_URL, "Origin": API_BASE_URL},
+        "timeout": REST_API_TIMEOUT,
+    }
+    if verify_bundle:
+        session_kwargs["verify"] = verify_bundle
+    session = Session(**session_kwargs)
     session.get(API_BASE_URL)
     response = session.get(f"{API_BASE_URL}{AUTH_CSRF_ENDPOINT}")
 

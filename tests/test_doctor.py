@@ -13,7 +13,8 @@ from unittest.mock import MagicMock as _MagicMock  # AITool removed, using mock
 
 import pytest
 
-from perplexity_web_mcp.cli.doctor import cmd_doctor
+from perplexity_web_mcp.cli.doctor import _check_connectivity, cmd_doctor
+from perplexity_web_mcp.limits import REST_API_TIMEOUT
 from perplexity_web_mcp.rate_limits import RateLimits
 
 
@@ -28,6 +29,12 @@ def _base_patches():
 # ============================================================================
 # 1. Full doctor run (all green)
 # ============================================================================
+
+
+@pytest.fixture(autouse=True)
+def mock_doctor_connectivity():
+    with patch("perplexity_web_mcp.cli.doctor._check_connectivity", return_value=True) as mock:
+        yield mock
 
 
 class TestDoctorAllGreen:
@@ -258,3 +265,41 @@ class TestDoctorVerbose:
         assert "curl-cffi" in out
         assert "Proxy env" in out
         assert "Debug env" in out
+
+
+# ============================================================================
+# 7. Direct connectivity check
+# ============================================================================
+
+
+class TestCheckConnectivity:
+    """Verify _check_connectivity REST request configuration and failure handling."""
+
+    def test_check_connectivity_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = MagicMock()
+        resp = MagicMock(status_code=200)
+        session.get.return_value = resp
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+
+        with patch("curl_cffi.requests.Session", return_value=session) as mock_session_cls:
+            result = _check_connectivity("test-token", token_exists=True)
+
+        assert result is True
+        kwargs = mock_session_cls.call_args.kwargs
+        assert kwargs["timeout"] == REST_API_TIMEOUT
+        assert kwargs["impersonate"] == "chrome"
+
+    def test_check_connectivity_no_token_returns_true(self) -> None:
+        assert _check_connectivity(None, token_exists=False) is True
+
+    def test_check_connectivity_exception_returns_false(self) -> None:
+        session = MagicMock()
+        session.get.side_effect = Exception("connection failure")
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+
+        with patch("curl_cffi.requests.Session", return_value=session):
+            result = _check_connectivity("test-token", token_exists=True)
+
+        assert result is False

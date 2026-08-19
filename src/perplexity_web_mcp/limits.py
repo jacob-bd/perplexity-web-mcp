@@ -13,3 +13,6 @@ MAX_FILE_SIZE: Final[int] = 50 * 1024 * 1024
 
 DEFAULT_TIMEOUT: Final[int] = 30 * 60
 """Default request timeout in seconds (30 minutes)."""
+
+REST_API_TIMEOUT: Final[float] = 15.0
+"""Default timeout in seconds for REST API metadata and authentication requests."""

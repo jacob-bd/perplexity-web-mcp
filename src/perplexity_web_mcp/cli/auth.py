@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from sys import exit
-from typing import NoReturn
+from typing import Any, NoReturn
 
 from curl_cffi.requests import Session
 from rich.console import Console
@@ -22,6 +22,8 @@ from perplexity_web_mcp.auth import (
     verify_totp,
 )
 from perplexity_web_mcp.constants import API_BASE_URL, APP_HEADERS, SESSION_COOKIE_NAME
+from perplexity_web_mcp.http import get_system_ca_bundle_path
+from perplexity_web_mcp.limits import REST_API_TIMEOUT
 from perplexity_web_mcp.token_store import load_token
 from perplexity_web_mcp.token_store import save_token as save_token_to_config
 
@@ -100,12 +102,18 @@ def get_user_info(token: str) -> UserInfo | None:
 
     _logger = logging.getLogger(__name__)
 
+    verify_bundle = get_system_ca_bundle_path()
+    session_kwargs: dict[str, Any] = {
+        "impersonate": "chrome",
+        "headers": {**APP_HEADERS, "Referer": BASE_URL, "Origin": BASE_URL},
+        "cookies": {SESSION_COOKIE_NAME: token},
+        "timeout": REST_API_TIMEOUT,
+    }
+    if verify_bundle:
+        session_kwargs["verify"] = verify_bundle
+
     try:
-        with Session(
-            impersonate="chrome",
-            headers={**APP_HEADERS, "Referer": BASE_URL, "Origin": BASE_URL},
-            cookies={SESSION_COOKIE_NAME: token},
-        ) as session:
+        with Session(**session_kwargs) as session:
             response = session.get(f"{BASE_URL}/api/user")
             if response.status_code == 200:
                 return UserInfo.from_api(response.json())

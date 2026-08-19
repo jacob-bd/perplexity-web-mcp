@@ -83,13 +83,25 @@ def _check_connectivity(token: str | None, token_exists: bool) -> bool:
         return True
 
     try:
+        from typing import Any
+
         from curl_cffi.requests import Session as CurlSession
 
         from perplexity_web_mcp.constants import API_BASE_URL, ENDPOINT_SEARCH_INIT, SESSION_COOKIE_NAME
+        from perplexity_web_mcp.http import get_system_ca_bundle_path
+        from perplexity_web_mcp.limits import REST_API_TIMEOUT
 
-        with CurlSession(impersonate="chrome") as s:
+        verify_bundle = get_system_ca_bundle_path()
+        session_kwargs: dict[str, Any] = {
+            "impersonate": "chrome",
+            "timeout": REST_API_TIMEOUT,
+        }
+        if verify_bundle:
+            session_kwargs["verify"] = verify_bundle
+
+        with CurlSession(**session_kwargs) as s:
             s.cookies.set(SESSION_COOKIE_NAME, token)  # type: ignore[arg-type]
-            resp = s.get(f"{API_BASE_URL}{ENDPOINT_SEARCH_INIT}", params={"q": "test"}, timeout=10)
+            resp = s.get(f"{API_BASE_URL}{ENDPOINT_SEARCH_INIT}", params={"q": "test"})
 
         if resp.status_code == 200:
             return _check("Search endpoint", True, "reachable")

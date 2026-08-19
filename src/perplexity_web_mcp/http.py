@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+import ssl
+import sys
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
@@ -9,10 +13,11 @@ from curl_cffi.requests import Response as CurlResponse
 from curl_cffi.requests import Session
 
 from .constants import API_BASE_URL, DEFAULT_HEADERS, ENDPOINT_ASK, ENDPOINT_SEARCH_INIT, SESSION_COOKIE_NAME
-from .exceptions import AuthenticationError, HTTPError, PerplexityError, RateLimitError
+from .exceptions import AuthenticationError, HTTPError, PerplexityError, RateLimitError, TLSCertificateError
 from .limits import DEFAULT_TIMEOUT
 from .logging import get_logger, log_request, log_response, log_retry
 from .resilience import RateLimiter, RetryConfig, create_retry_decorator, get_random_browser_profile
+from .token_store import CONFIG_DIR
 from .trace import log_trace
 
 
@@ -23,6 +28,73 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+_SERVER_AUTH_EKU = "1.3.6.1.5.5.7.3.1"
+
+
+def _convert_der_to_pem(der: bytes) -> str | None:
+    try:
+        return ssl.DER_cert_to_PEM_cert(der)
+    except Exception:
+        return None
+
+
+def _extract_windows_store_certs(store: str) -> list[str]:
+    """Extract certificates from a Windows certificate store in PEM format."""
+    try:
+        converted = (
+            _convert_der_to_pem(der)
+            for der, encoding, trust in ssl.enum_certificates(store)
+            if encoding == "x509_asn" and (trust is True or (isinstance(trust, set) and _SERVER_AUTH_EKU in trust))
+        )
+        return [c for c in converted if c is not None]
+    except Exception:
+        return []
+
+
+def get_system_ca_bundle_path() -> str | None:
+    """Resolve or build a CA bundle that includes the operating system's trusted roots.
+
+    Checks CURL_CA_BUNDLE, SSL_CERT_FILE, and REQUESTS_CA_BUNDLE environment
+    variables first. On Windows, if no explicit environment variable is set,
+    exports trusted root and intermediate CA certificates from the Windows
+    Certificate Store alongside certifi roots into a cached bundle at
+    ~/.config/perplexity-web-mcp/system-ca-bundle.pem.
+    """
+    for env_var in ("CURL_CA_BUNDLE", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE"):
+        bundle = os.environ.get(env_var)
+        if bundle and Path(bundle).is_file():
+            return bundle
+
+    if sys.platform == "win32":
+        try:
+            cached_bundle = CONFIG_DIR / "system-ca-bundle.pem"
+            if cached_bundle.is_file() and cached_bundle.stat().st_size > 0:
+                return str(cached_bundle)
+
+            pem_parts: list[str] = []
+
+            try:
+                import certifi
+
+                certifi_file = Path(certifi.where())
+                if certifi_file.is_file():
+                    pem_parts.append(certifi_file.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+            for store in ("ROOT", "CA"):
+                pem_parts.extend(_extract_windows_store_certs(store))
+
+            if pem_parts:
+                CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+                cached_bundle.write_text("\n".join(pem_parts), encoding="utf-8")
+                return str(cached_bundle)
+        except Exception as exc:
+            logger.debug(f"Failed to generate system CA bundle on Windows: {exc}")
+
+    return None
 
 
 class HTTPClient:
@@ -79,12 +151,17 @@ class HTTPClient:
         }
         cookies: dict[str, str] = {SESSION_COOKIE_NAME: self._session_token}
 
-        return Session(
-            headers=headers,
-            cookies=cookies,
-            timeout=self._timeout,
-            impersonate=impersonate,
-        )
+        verify_bundle = get_system_ca_bundle_path()
+        session_kwargs: dict[str, Any] = {
+            "headers": headers,
+            "cookies": cookies,
+            "timeout": self._timeout,
+            "impersonate": impersonate,
+        }
+        if verify_bundle:
+            session_kwargs["verify"] = verify_bundle
+
+        return Session(**session_kwargs)
 
     def _rotate_session(self) -> None:
         """Rotate browser fingerprint."""
@@ -177,9 +254,14 @@ class HTTPClient:
 
                 response.raise_for_status()
                 return response
-            except (RateLimitError, AuthenticationError):
-                raise  # Already mapped; let tenacity handle retry
+            except (RateLimitError, AuthenticationError, TLSCertificateError):
+                raise  # Already mapped; let tenacity handle retry or fail fast
             except Exception as error:
+                err_msg = str(error).lower()
+                if "certificate" in err_msg or "ssl" in err_msg or "curl: (60)" in err_msg:
+                    raise TLSCertificateError(
+                        f"GET {endpoint} TLS certificate verification failed", reason=str(error)
+                    ) from error
                 self._handle_error(error, f"GET {endpoint} ")
                 raise  # Unreachable (defensive); _handle_error always raises
 
@@ -210,9 +292,14 @@ class HTTPClient:
 
                 response.raise_for_status()
                 return response
-            except (RateLimitError, AuthenticationError):
-                raise  # Already mapped; let tenacity handle retry
+            except (RateLimitError, AuthenticationError, TLSCertificateError):
+                raise  # Already mapped; let tenacity handle retry or fail fast
             except Exception as error:
+                err_msg = str(error).lower()
+                if "certificate" in err_msg or "ssl" in err_msg or "curl: (60)" in err_msg:
+                    raise TLSCertificateError(
+                        f"POST {endpoint} TLS certificate verification failed", reason=str(error)
+                    ) from error
                 self._handle_error(error, f"POST {endpoint} ")
                 raise  # Unreachable (defensive); _handle_error always raises
 

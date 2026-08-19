@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from perplexity_web_mcp.limits import REST_API_TIMEOUT
 from perplexity_web_mcp.rate_limits import (
     ConnectorLimits,
     RateLimitCache,
@@ -25,6 +26,7 @@ from perplexity_web_mcp.rate_limits import (
     SourceLimit,
     UserSettings,
     _create_session,
+    fetch_credits,
     fetch_rate_limits,
     fetch_user_settings,
 )
@@ -38,10 +40,75 @@ from perplexity_web_mcp.token_store import load_token
 
 def test_rate_limit_session_includes_perplexity_app_headers() -> None:
     """REST helpers send the headers expected by Perplexity's web app."""
-    with _create_session("token") as session:
-        assert session.headers["x-app-apiclient"] == "default"
-        assert session.headers["x-app-apiversion"] == "2.18"
-        assert session.headers["Accept"] == "application/json"
+    with patch("perplexity_web_mcp.rate_limits.Session") as mock_session_cls:
+        _create_session("token")
+        kwargs = mock_session_cls.call_args.kwargs
+        assert kwargs["headers"]["x-app-apiclient"] == "default"
+        assert kwargs["headers"]["x-app-apiversion"] == "2.18"
+        assert kwargs["headers"]["Accept"] == "application/json"
+        assert kwargs["timeout"] == REST_API_TIMEOUT
+        assert kwargs["cookies"]["__Secure-next-auth.session-token"] == "token"
+
+
+class TestFetchHelpersUnit:
+    """Verify low-level fetch helper functions with mock responses."""
+
+    def test_fetch_rate_limits_success(self, rate_limit_api_response: dict) -> None:
+        mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = rate_limit_api_response
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_resp
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.rate_limits._create_session", return_value=mock_session):
+            limits = fetch_rate_limits("token")
+
+        assert limits is not None
+        assert limits.remaining_pro == 600
+
+    def test_fetch_rate_limits_non_200_returns_none(self) -> None:
+        mock_resp = MagicMock(status_code=403)
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_resp
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.rate_limits._create_session", return_value=mock_session):
+            assert fetch_rate_limits("token") is None
+
+    def test_fetch_user_settings_success(self, user_settings_api_response: dict) -> None:
+        mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = user_settings_api_response
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_resp
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.rate_limits._create_session", return_value=mock_session):
+            settings = fetch_user_settings("token")
+
+        assert settings is not None
+        assert settings.subscription_tier == "yearly"
+
+    def test_fetch_credits_success(self) -> None:
+        mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = {
+            "query_count": 10,
+            "queries_per_month": 500,
+            "monthly_credits": 20,
+            "balance_cents": 1500.0,
+        }
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_resp
+        mock_session.__enter__.return_value = mock_session
+        mock_session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.rate_limits._create_session", return_value=mock_session):
+            credits = fetch_credits("token")
+
+        assert credits is not None
+        assert credits.balance_cents == 1500.0
 
 
 @pytest.fixture

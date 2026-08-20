@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import ctypes
 from pathlib import Path
+import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -96,6 +99,96 @@ def test_daemon_pid_lifecycle(tmp_path: Path, monkeypatch) -> None:
     server.release_daemon_lock(port)
     assert not pid_path.exists()
     assert server.get_running_daemon_pid(port) is None
+
+
+@pytest.mark.parametrize(
+    ("open_result", "last_error", "wait_result", "expected"),
+    (
+        (0, 87, None, False),
+        (0, 5, None, True),
+        (123, 0, 0x00000102, True),
+        (123, 0, 0x00000000, False),
+        (123, 0, 0xFFFFFFFF, True),
+    ),
+)
+def test_windows_pid_probe_is_non_destructive_and_conservative(
+    open_result: int,
+    last_error: int,
+    wait_result: int | None,
+    expected: bool,
+) -> None:
+    kernel32 = MagicMock()
+    kernel32.OpenProcess.return_value = open_result
+    kernel32.WaitForSingleObject.return_value = wait_result
+
+    with (
+        patch.object(ctypes, "WinDLL", return_value=kernel32, create=True) as win_dll,
+        patch.object(ctypes, "get_last_error", return_value=last_error, create=True),
+    ):
+        assert server._is_windows_pid_running(4242) is expected
+
+    win_dll.assert_called_once_with("kernel32", use_last_error=True)
+    kernel32.OpenProcess.assert_called_once_with(0x00100000, False, 4242)
+    if open_result:
+        kernel32.WaitForSingleObject.assert_called_once_with(open_result, 0)
+        kernel32.CloseHandle.assert_called_once_with(open_result)
+    else:
+        kernel32.WaitForSingleObject.assert_not_called()
+        kernel32.CloseHandle.assert_not_called()
+
+
+def test_is_pid_running_uses_windows_probe() -> None:
+    with (
+        patch.object(server.sys, "platform", "win32"),
+        patch.object(server, "_is_windows_pid_running", return_value=True) as probe,
+        patch.object(server.os, "kill") as kill,
+    ):
+        assert server.is_pid_running(4242) is True
+
+    probe.assert_called_once_with(4242)
+    kill.assert_not_called()
+
+
+def test_is_pid_running_rejects_out_of_range_windows_pid() -> None:
+    with (
+        patch.object(server.sys, "platform", "win32"),
+        patch.object(server, "_is_windows_pid_running") as probe,
+        patch.object(server.os, "kill") as kill,
+    ):
+        assert server.is_pid_running(0x100000000) is False
+
+    probe.assert_not_called()
+    kill.assert_not_called()
+
+
+def test_windows_live_pid_file_is_retained_and_blocks_duplicate(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "CONFIG_DIR", tmp_path)
+    port = 8995
+    pid_path = server.get_daemon_pid_path(port)
+    pid_path.write_text("4242", encoding="utf-8")
+
+    with (
+        patch.object(server.sys, "platform", "win32"),
+        patch.object(server, "_is_windows_pid_running", return_value=True) as probe,
+    ):
+        assert server.get_running_daemon_pid(port) == 4242
+        assert pid_path.exists()
+        assert server.acquire_daemon_lock(port) is False
+
+    probe.assert_called_once_with(4242)
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="requires Windows process APIs")
+def test_windows_pid_probe_preserves_live_child() -> None:
+    child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        assert server.is_pid_running(child.pid) is True
+        assert child.poll() is None
+    finally:
+        child.terminate()
+        child.wait(timeout=10)
+
+    assert server.is_pid_running(child.pid) is False
 
 
 def test_daemon_stale_pid_cleanup(tmp_path: Path, monkeypatch) -> None:

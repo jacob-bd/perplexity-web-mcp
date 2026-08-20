@@ -783,10 +783,51 @@ def get_daemon_pid_path(port: int) -> Path:
     return CONFIG_DIR / f"daemon-{port}.pid"
 
 
+def _is_windows_pid_running(pid: int) -> bool:
+    """Check process state without sending a signal on Windows.
+
+    Indeterminate results are treated as running so a valid daemon lock is not
+    discarded merely because the process cannot be inspected.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    synchronize = 0x00100000
+    error_invalid_parameter = 87
+    wait_object_0 = 0x00000000
+    wait_timeout = 0x00000102
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+    kernel32.WaitForSingleObject.restype = wintypes.DWORD
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+
+    handle = kernel32.OpenProcess(synchronize, False, pid)
+    if not handle:
+        return ctypes.get_last_error() != error_invalid_parameter
+
+    try:
+        wait_result = kernel32.WaitForSingleObject(handle, 0)
+        if wait_result == wait_object_0:
+            return False
+        if wait_result == wait_timeout:
+            return True
+        return True
+    finally:
+        kernel32.CloseHandle(handle)
+
+
 def is_pid_running(pid: int) -> bool:
     """Check if a process with the given PID is currently running."""
     if pid <= 0:
         return False
+    if sys.platform == "win32":
+        if pid > 0xFFFFFFFF:
+            return False
+        return _is_windows_pid_running(pid)
     try:
         os.kill(pid, 0)
         return True

@@ -1,8 +1,27 @@
 """Regression coverage for the opt-in live-test safety contract."""
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import conftest
+import pytest
+
+
+pytest_plugins = ["pytester"]
+
+
+PROJECT_CONFTEST = Path(__file__).with_name("conftest.py")
+
+
+def _load_project_conftest(pytester: pytest.Pytester) -> None:
+    pytester.makeini(
+        """
+        [pytest]
+        markers =
+            integration: accesses live external services and requires --run-live-tests
+        """
+    )
+    pytester.makeconftest(PROJECT_CONFTEST.read_text())
 
 
 def _request(*, marked: bool, opted_in: bool) -> MagicMock:
@@ -40,3 +59,44 @@ def test_collection_does_not_skip_live_tests_after_opt_in() -> None:
     conftest.pytest_collection_modifyitems(config, [item])
 
     item.add_marker.assert_not_called()
+
+
+def test_default_subprocess_skips_marked_live_test(pytester: pytest.Pytester) -> None:
+    _load_project_conftest(pytester)
+    pytester.makepyfile(
+        test_live="""
+        import pytest
+
+        @pytest.mark.integration
+        def test_live():
+            raise AssertionError("live test should be skipped")
+        """
+    )
+
+    result = pytester.runpytest_subprocess("-q", "-rs")
+
+    result.assert_outcomes(skipped=1)
+    result.stdout.fnmatch_lines(["*live integration tests require --run-live-tests*"])
+
+
+def test_opt_in_subprocess_runs_only_marked_live_test(pytester: pytest.Pytester) -> None:
+    _load_project_conftest(pytester)
+    pytester.makepyfile(
+        test_safety="""
+        import socket
+
+        import pytest
+
+        @pytest.mark.integration
+        def test_marked_live_test_runs():
+            assert True
+
+        def test_unmarked_network_is_blocked():
+            socket.create_connection(("example.com", 443), timeout=0.1)
+        """
+    )
+
+    result = pytester.runpytest_subprocess("-q", "--run-live-tests")
+
+    result.assert_outcomes(passed=1, failed=1)
+    result.stdout.fnmatch_lines(["*Blocked unmocked external network connection*"])

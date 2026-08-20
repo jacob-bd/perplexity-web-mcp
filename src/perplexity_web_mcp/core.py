@@ -37,7 +37,7 @@ from .exceptions import (
     ResearchClarifyingQuestionsError,
     ResponseParsingError,
 )
-from .http import HTTPClient
+from .http import HTTPClient, get_system_ca_bundle_path
 from .limits import MAX_FILE_SIZE, MAX_FILES
 from .logging import configure_logging, get_logger
 from .models import Model, Models
@@ -264,6 +264,7 @@ class Conversation:
     """Manage a Perplexity conversation with query and follow-up support."""
 
     __slots__ = (
+        "_active_model",
         "_answer",
         "_backend_uuid",
         "_chunks",
@@ -280,6 +281,7 @@ class Conversation:
     def __init__(self, http: HTTPClient, config: ConversationConfig) -> None:
         self._http = http
         self._config = config
+        self._active_model: Model | None = None
         self._citation_mode = CitationMode.DEFAULT
         self._backend_uuid: str | None = None
         self._read_write_token: str | None = None
@@ -384,6 +386,7 @@ class Conversation:
         """
 
         self._reset_response_state()
+        self._active_model = model
 
         file_urls: list[str] = []
         if files:
@@ -765,7 +768,7 @@ class Conversation:
         the thread response nests the research steps as a JSON string under
         ``entries[].text``, so we descend into embedded JSON.
         """
-        if self._config.model is not Models.DEEP_RESEARCH or not self._backend_uuid:
+        if self._active_model is not Models.DEEP_RESEARCH or not self._backend_uuid:
             return None
 
         def _download_url(node: Any) -> str | None:
@@ -806,7 +809,12 @@ class Conversation:
             return None
 
         try:
-            with Session(impersonate="chrome") as session:
+            session_kwargs: dict[str, Any] = {"impersonate": "chrome"}
+            verify_bundle = get_system_ca_bundle_path()
+            if verify_bundle:
+                session_kwargs["verify"] = verify_bundle
+
+            with Session(**session_kwargs) as session:
                 response = session.get(url, timeout=60)
             if response.status_code == 200 and response.text.strip():
                 return response.text

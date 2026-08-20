@@ -1121,8 +1121,26 @@ def _cmd_council(args: list[str]) -> int:
 # ── Entry point ────────────────────────────────────────────────────────────
 
 
+def _configure_windows_stdio() -> None:
+    """Use UTF-8 output on Windows, even when the inherited stream is legacy-encoded."""
+    if sys.platform != "win32":
+        return
+
+    for stream in (sys.stdout, sys.stderr):
+        if stream is None:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            pass
+
+
 def main() -> NoReturn:
     """Main entry point for the unified pwm CLI."""
+    _configure_windows_stdio()
     try:
         cli(standalone_mode=True)
     except SystemExit as e:

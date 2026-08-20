@@ -6,7 +6,7 @@ Test categories:
 3. Properties and formatting
 4. RateLimitCache (TTL, invalidation, token changes, thread safety)
 5. MCP server helpers (_check_limits_before_query, _is_research_model)
-6. Integration tests (live API calls - require valid token, skipped if unavailable)
+6. Integration tests (live API calls - require explicit opt-in and a valid token)
 7. Sonar 2 vs Pro Search counter (live before/after one Sonar query)
 """
 
@@ -830,6 +830,7 @@ def _has_valid_token() -> bool:
     return token is not None and len(token) > 10
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
 class TestIntegrationRateLimits:
     """Live API integration tests. These hit the real Perplexity endpoints."""
@@ -937,6 +938,7 @@ class TestIntegrationRateLimits:
         assert len(settings_summary) > 50
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
 class TestIntegrationMCPServer:
     """Integration tests for MCP server rate limit features."""
@@ -972,6 +974,7 @@ class TestIntegrationMCPServer:
         assert "remaining" in context
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(not _has_valid_token(), reason="No valid Perplexity token available")
 class TestIntegrationSonarProSearch:
     """Live check: does one Sonar 2 (experimental) query change ``remaining_pro``?

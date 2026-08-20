@@ -145,3 +145,8 @@ exclude = ["tests"]
 
 [tool.mypy]
 exclude = ["^tests/"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: accesses live external services and requires --run-live-tests",
+]

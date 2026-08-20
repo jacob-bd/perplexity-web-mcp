@@ -87,11 +87,11 @@ pwm --ai                                       # AI reference doc
 # Install with dev dependencies
 uv pip install -e .
 
-# Run tests
+# Run the default offline test suite
 uv run --group tests pytest tests/ -v
 
-# Run just unit tests (no network calls)
-uv run --group tests pytest tests/ -v -k "not Integration"
+# Deliberately run only live integration tests
+uv run --group tests pytest tests/ -v -m integration --run-live-tests
 ```
 
 ## Credits

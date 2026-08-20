@@ -12,7 +12,10 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import sys
+import tempfile
+import uuid
 
 
 SKILL_DIR_NAME = "perplexity-web-mcp"
@@ -199,17 +202,60 @@ def _get_current_version() -> str:
         return "unknown"
 
 
+def _remove_tree(path: Path) -> None:
+    """Remove a directory tree, clearing Windows read-only attributes when needed."""
+
+    def handle_remove_error(func, failed_path, _exc_info) -> None:
+        try:
+            Path(failed_path).chmod(stat.S_IREAD | stat.S_IWRITE)
+        except OSError:
+            pass
+        func(failed_path)
+
+    shutil.rmtree(path, onerror=handle_remove_error)
+
+
 def _install_skill(source: Path, dest_dir: Path) -> bool:
-    """Copy skill files to the destination directory."""
+    """Copy skill files to the destination directory without a partial replacement."""
+    target = dest_dir / SKILL_DIR_NAME
+    staging_root: Path | None = None
+    backup: Path | None = None
+    target_moved = False
+
     try:
-        target = dest_dir / SKILL_DIR_NAME
+        staging_root = Path(tempfile.mkdtemp(prefix=f".{SKILL_DIR_NAME}-", dir=dest_dir))
+        staging = staging_root / SKILL_DIR_NAME
+        shutil.copytree(source, staging)
+
         if target.exists():
-            shutil.rmtree(target)
-        shutil.copytree(source, target)
+            backup = dest_dir / f".{SKILL_DIR_NAME}.backup-{uuid.uuid4().hex}"
+            target.replace(backup)
+            target_moved = True
+
+        staging.replace(target)
+
+        if backup is not None and backup.exists():
+            try:
+                _remove_tree(backup)
+            except OSError as e:
+                print(f"  Warning: could not remove previous skill backup: {e}", file=sys.stderr)
         return True
     except OSError as e:
+        if target_moved and backup is not None and backup.exists():
+            try:
+                if target.exists():
+                    _remove_tree(target)
+                backup.replace(target)
+            except OSError as restore_error:
+                print(f"  Error restoring previous skill: {restore_error}", file=sys.stderr)
         print(f"  Error: {e}", file=sys.stderr)
         return False
+    finally:
+        if staging_root is not None and staging_root.exists():
+            try:
+                _remove_tree(staging_root)
+            except OSError as e:
+                print(f"  Warning: could not remove temporary skill directory: {e}", file=sys.stderr)
 
 
 def _inject_frontmatter_extras(skill_path: Path, extras: dict[str, str]) -> None:
@@ -561,6 +607,7 @@ def cmd_skill(args: list[str]) -> int:
         updated_tools: list[str] = []
         current_tools: list[str] = []
         not_installed: list[str] = []
+        failed_tools: list[str] = []
 
         for t in targets:
             seen_dests = set()
@@ -582,6 +629,9 @@ def cmd_skill(args: list[str]) -> int:
                         level = "project" if str(Path.cwd()) in abs_path else "user"
                         print(f"  ✓ {t.name} ({level}): v{installed_ver} → v{current_version}")
                         updated_tools.append(t.name)
+                    else:
+                        level = "project" if str(Path.cwd()) in abs_path else "user"
+                        failed_tools.append(f"{t.name} ({level})")
                 else:
                     current_tools.append(t.name)
 
@@ -595,12 +645,16 @@ def cmd_skill(args: list[str]) -> int:
             print(f"  Already current: {', '.join(current_tools)}")
         if not_installed:
             print(f"  Not installed: {', '.join(not_installed)}")
+        if failed_tools:
+            print(f"  Failed: {', '.join(failed_tools)}")
 
-        if not updated_tools:
+        if failed_tools:
+            print(f"\n  Failed to update {len(failed_tools)} skill installation(s).")
+        elif not updated_tools:
             print(f"\n  All installed skills are up to date (v{current_version}).")
         else:
             print(f"\n  Updated {len(updated_tools)} tool(s) to v{current_version}.")
-        return 0
+        return 1 if failed_tools else 0
 
     print(f"Unknown skill action: {action}", file=sys.stderr)
     return 1

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+import stat
 from unittest.mock import patch
 
 import pytest
@@ -84,13 +85,20 @@ class TestGetInstalledVersion:
 class TestIsToolInstalled:
     """Test the two-signal tool detection logic."""
 
-    def test_detected_via_binary_on_path(self) -> None:
+    def test_detected_via_binary_on_path(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        binary = bin_dir / "fake-tool.exe"
+        binary.touch()
+        binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
+        monkeypatch.setenv("PATH", str(bin_dir))
+
         target = SkillTarget(
             name="fake-tool",
             description="T",
             user_dir=Path("/nonexistent/skills"),
             project_dir=".fake/skills",
-            binary="python3",
+            binary=binary.name,
             root_dirs=[],
         )
         assert _is_tool_installed(target) is True

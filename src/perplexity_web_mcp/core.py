@@ -778,11 +778,7 @@ class Conversation:
                 if isinstance(item, dict):
                     info = item.get("download_info")
                     if isinstance(info, list):
-                        found.extend(
-                            entry["url"]
-                            for entry in info
-                            if isinstance(entry, dict) and entry.get("url")
-                        )
+                        found.extend(entry["url"] for entry in info if isinstance(entry, dict) and entry.get("url"))
                     stack.extend(item.values())
                 elif isinstance(item, list):
                     stack.extend(item)

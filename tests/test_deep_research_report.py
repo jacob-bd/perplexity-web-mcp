@@ -44,11 +44,7 @@ class _ResearchHTTP:
     def __init__(self) -> None:
         self.thread = {
             "entries": [
-                {
-                    "text": json.dumps(
-                        {"steps": [{"download_info": [{"url": "https://cdn.example/report.md"}]}]}
-                    )
-                }
+                {"text": json.dumps({"steps": [{"download_info": [{"url": "https://cdn.example/report.md"}]}]})}
             ]
         }
 

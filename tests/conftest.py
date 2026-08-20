@@ -6,6 +6,7 @@ Live integration tests must be marked and explicitly enabled from the command li
 
 from __future__ import annotations
 
+from ipaddress import ip_address
 import socket
 from unittest.mock import MagicMock, patch
 
@@ -51,14 +52,39 @@ def block_all_network(request: pytest.FixtureRequest):
         return
 
     orig_connect = socket.socket.connect
+    orig_getaddrinfo = socket.getaddrinfo
+
+    def is_allowed_host(host) -> bool:
+        if host is None:
+            return True
+        if isinstance(host, bytes):
+            try:
+                host = host.decode("ascii")
+            except UnicodeDecodeError:
+                return False
+        if host == "localhost":
+            return True
+        try:
+            address = ip_address(host)
+        except (TypeError, ValueError):
+            return False
+        return address.is_loopback or address.is_unspecified
 
     def guarded_connect(self, address, *args, **kwargs):
         host = address[0] if isinstance(address, (tuple, list)) else address
-        if host in ("127.0.0.1", "localhost", "::1"):
+        if is_allowed_host(host):
             return orig_connect(self, address, *args, **kwargs)
         raise RuntimeError(f"Blocked unmocked external network connection to {address} during test execution.")
 
-    with patch.object(socket.socket, "connect", guarded_connect):
+    def guarded_getaddrinfo(host, port, *args, **kwargs):
+        if is_allowed_host(host):
+            return orig_getaddrinfo(host, port, *args, **kwargs)
+        raise RuntimeError(f"Blocked unmocked external network connection to {(host, port)} during test execution.")
+
+    with (
+        patch.object(socket, "getaddrinfo", guarded_getaddrinfo),
+        patch.object(socket.socket, "connect", guarded_connect),
+    ):
         yield
 
 

@@ -1,7 +1,7 @@
 """Regression coverage for the opt-in live-test safety contract."""
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import conftest
 import pytest
@@ -59,6 +59,23 @@ def test_collection_does_not_skip_live_tests_after_opt_in() -> None:
     conftest.pytest_collection_modifyitems(config, [item])
 
     item.add_marker.assert_not_called()
+
+
+def test_network_guard_blocks_dns_before_native_resolution() -> None:
+    native_getaddrinfo = MagicMock(return_value=[])
+
+    with patch.object(conftest.socket, "getaddrinfo", native_getaddrinfo):
+        fixture = conftest.block_all_network.__wrapped__(_request(marked=False, opted_in=False))
+        next(fixture)
+        try:
+            with pytest.raises(RuntimeError, match="Blocked unmocked external network connection"):
+                conftest.socket.getaddrinfo("example.com", 443)
+            native_getaddrinfo.assert_not_called()
+
+            assert conftest.socket.getaddrinfo("localhost", 443) == []
+            native_getaddrinfo.assert_called_once_with("localhost", 443)
+        finally:
+            fixture.close()
 
 
 def test_default_subprocess_skips_marked_live_test(pytester: pytest.Pytester) -> None:

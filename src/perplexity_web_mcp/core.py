@@ -37,7 +37,7 @@ from .exceptions import (
     ResearchClarifyingQuestionsError,
     ResponseParsingError,
 )
-from .http import HTTPClient
+from .http import HTTPClient, get_system_ca_bundle_path
 from .limits import MAX_FILE_SIZE, MAX_FILES
 from .logging import configure_logging, get_logger
 from .models import Model, Models
@@ -264,6 +264,7 @@ class Conversation:
     """Manage a Perplexity conversation with query and follow-up support."""
 
     __slots__ = (
+        "_active_model",
         "_answer",
         "_backend_uuid",
         "_chunks",
@@ -280,6 +281,7 @@ class Conversation:
     def __init__(self, http: HTTPClient, config: ConversationConfig) -> None:
         self._http = http
         self._config = config
+        self._active_model: Model | None = None
         self._citation_mode = CitationMode.DEFAULT
         self._backend_uuid: str | None = None
         self._read_write_token: str | None = None
@@ -384,6 +386,7 @@ class Conversation:
         """
 
         self._reset_response_state()
+        self._active_model = model
 
         file_urls: list[str] = []
         if files:
@@ -753,6 +756,84 @@ class Conversation:
             raw_data=self._raw_data,
         )
 
+    def _fetch_research_report(self) -> str | None:
+        """Return the full Deep Research report markdown, or ``None``.
+
+        Deep Research delivers the report as a separate, pre-signed CloudFront
+        ``.md`` file referenced by a ``download_info`` field — the streamed
+        answer is only the one-paragraph intro, so ``self._answer`` alone drops
+        the report. Re-fetch the thread by uuid, pull the download link, and
+        fetch the markdown. Notes: the bare S3 ``url`` in the ``RESEARCH_ANSWER``
+        step 403s (``download_info[].url`` is the working CloudFront link), and
+        the thread response nests the research steps as a JSON string under
+        ``entries[].text``, so we descend into embedded JSON.
+        """
+        if self._active_model is not Models.DEEP_RESEARCH or not self._backend_uuid:
+            return None
+
+        def _download_url(node: Any) -> str | None:
+            stack, found = [node], []
+            while stack:
+                item = stack.pop()
+                if isinstance(item, dict):
+                    info = item.get("download_info")
+                    if isinstance(info, list):
+                        found.extend(
+                            entry["url"]
+                            for entry in info
+                            if isinstance(entry, dict) and entry.get("url")
+                        )
+                    stack.extend(item.values())
+                elif isinstance(item, list):
+                    stack.extend(item)
+                elif isinstance(item, str) and "download_info" in item and item.lstrip()[:1] in "[{":
+                    try:
+                        stack.append(loads(item))
+                    except JSONDecodeError:
+                        pass
+            return found[-1] if found else None
+
+        endpoint = (
+            f"{ENDPOINT_THREAD_DETAIL}/{self._backend_uuid}"
+            f"?version={API_VERSION}&source=default&limit=100&from_first=true"
+        )
+        try:
+            raw = self._http.get(endpoint).json()
+        except Exception as exc:  # noqa: BLE001 - degrade to intro on any failure
+            logger.warning("Deep Research report: thread re-fetch failed: %s", exc)
+            return None
+
+        url = _download_url(raw)
+        if not url:
+            logger.warning("Deep Research report: no download_info for thread %s", self._backend_uuid)
+            return None
+
+        try:
+            session_kwargs: dict[str, Any] = {"impersonate": "chrome"}
+            verify_bundle = get_system_ca_bundle_path()
+            if verify_bundle:
+                session_kwargs["verify"] = verify_bundle
+
+            with Session(**session_kwargs) as session:
+                response = session.get(url, timeout=60)
+            if response.status_code == 200 and response.text.strip():
+                return response.text
+            logger.warning("Deep Research report: download returned HTTP %s", response.status_code)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Deep Research report: download failed: %s", exc)
+        return None
+
+    def _append_research_report(self) -> bool:
+        """Append the full Deep Research report to the answer. Returns True if
+        anything was appended. Appended (not replaced) so streaming consumers
+        that emit suffix deltas stay monotonic."""
+        report = self._fetch_research_report()
+        if not report:
+            return False
+        intro = self._answer or ""
+        self._answer = f"{intro}\n\n---\n\n{report}" if intro.strip() else report
+        return True
+
     def _complete(self, payload: dict[str, Any]) -> None:
         gen = self._http.stream_ask(payload)
         try:
@@ -764,6 +845,8 @@ class Conversation:
                         break
         finally:
             gen.close()
+
+        self._append_research_report()
 
     def _stream(self, payload: dict[str, Any]) -> Generator[Response, None, None]:
         gen = self._http.stream_ask(payload)
@@ -777,3 +860,6 @@ class Conversation:
                         break
         finally:
             gen.close()
+
+        if self._append_research_report():
+            yield self._build_response()

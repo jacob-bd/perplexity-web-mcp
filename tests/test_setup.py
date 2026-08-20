@@ -8,7 +8,10 @@ internal helpers for config path generation.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner, Result
@@ -412,6 +415,36 @@ def test_serve_mcp_cli_status_and_stop() -> None:
         result = runner.invoke(cli, ["serve-mcp", "--stop", "--port", "8000"])
         assert result.exit_code == 0
         assert "Stopped MCP daemon" in result.output
+
+
+def test_serve_mcp_status_handles_legacy_windows_output_encoding() -> None:
+    script = """
+import sys
+from unittest.mock import patch
+
+from perplexity_web_mcp.mcp import server
+from perplexity_web_mcp.cli.main import main
+
+sys.platform = "win32"
+sys.argv = ["pwm", "serve-mcp", "--status", "--port", "8000"]
+with (
+    patch.object(server, "get_running_daemon_pid", return_value=12345),
+    patch.object(server, "is_port_in_use", return_value=False),
+):
+    main()
+"""
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "cp1252"
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+    assert "running" in result.stdout.decode("utf-8")
 
 
 def test_setup_codex_sse_does_not_duplicate_existing_toml_config(tmp_path: Path) -> None:

@@ -58,4 +58,4 @@ jobs:
         run: uv sync --group tests
 
       - name: Run unit tests
-        run: uv run pytest tests/ -v -k "not Integration"
+        run: uv run pytest tests/ -v

@@ -1,6 +1,7 @@
 """Global pytest fixtures and configuration for perplexity-web-mcp tests.
 
-Ensures strict 100% offline testing and prevents native curl_cffi and external socket hangs on Windows.
+Keeps the default suite strictly offline and prevents native curl_cffi and external socket hangs on Windows.
+Live integration tests must be marked and explicitly enabled from the command line.
 """
 
 from __future__ import annotations
@@ -11,10 +12,41 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+LIVE_TEST_MARKER = "integration"
+LIVE_TEST_OPTION = "--run-live-tests"
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Require a deliberate command-line opt-in before live tests can run."""
+    group = parser.getgroup("live integration tests")
+    group.addoption(
+        LIVE_TEST_OPTION,
+        action="store_true",
+        default=False,
+        help="Allow tests marked 'integration' to access live external services.",
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Skip live tests by default, even when local credentials are present."""
+    if config.getoption(LIVE_TEST_OPTION):
+        return
+
+    skip_live = pytest.mark.skip(reason=f"live integration tests require {LIVE_TEST_OPTION}")
+    for item in items:
+        if item.get_closest_marker(LIVE_TEST_MARKER) is not None:
+            item.add_marker(skip_live)
+
+
+def _live_integration_enabled(request: pytest.FixtureRequest) -> bool:
+    """Return whether this marked test has explicit permission to use the network."""
+    return request.node.get_closest_marker(LIVE_TEST_MARKER) is not None and request.config.getoption(LIVE_TEST_OPTION)
+
+
 @pytest.fixture(autouse=True)
 def block_all_network(request: pytest.FixtureRequest):
     """Fail fast on any unmocked external network connection while allowing asyncio internal loopback."""
-    if "TestIntegration" in request.node.nodeid:
+    if _live_integration_enabled(request):
         yield
         return
 
@@ -33,7 +65,7 @@ def block_all_network(request: pytest.FixtureRequest):
 @pytest.fixture(autouse=True)
 def mock_curl_cffi_globally(request: pytest.FixtureRequest):
     """Globally intercept curl_cffi Session across all modules to prevent native Windows socket hangs."""
-    if "TestIntegration" in request.node.nodeid:
+    if _live_integration_enabled(request):
         yield None
         return
 

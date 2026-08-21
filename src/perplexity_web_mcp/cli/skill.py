@@ -215,8 +215,12 @@ def _remove_tree(path: Path) -> None:
     shutil.rmtree(path, onerror=handle_remove_error)
 
 
-def _install_skill(source: Path, dest_dir: Path) -> bool:
-    """Copy skill files to the destination directory without a partial replacement."""
+def _install_skill(
+    source: Path,
+    dest_dir: Path,
+    frontmatter_extras: dict[str, str] | None = None,
+) -> bool:
+    """Copy and customize skill files without exposing a partial replacement."""
     target = dest_dir / SKILL_DIR_NAME
     staging_root: Path | None = None
     backup: Path | None = None
@@ -226,6 +230,10 @@ def _install_skill(source: Path, dest_dir: Path) -> bool:
         staging_root = Path(tempfile.mkdtemp(prefix=f".{SKILL_DIR_NAME}-", dir=dest_dir))
         staging = staging_root / SKILL_DIR_NAME
         shutil.copytree(source, staging)
+        if frontmatter_extras:
+            staged_skill = staging / "SKILL.md"
+            staged_skill.chmod(staged_skill.stat().st_mode | stat.S_IWRITE)
+            _inject_frontmatter_extras(staged_skill, frontmatter_extras)
 
         if target.exists():
             backup = dest_dir / f".{SKILL_DIR_NAME}.backup-{uuid.uuid4().hex}"
@@ -240,7 +248,7 @@ def _install_skill(source: Path, dest_dir: Path) -> bool:
             except OSError as e:
                 print(f"  Warning: could not remove previous skill backup: {e}", file=sys.stderr)
         return True
-    except OSError as e:
+    except (OSError, UnicodeError, ValueError) as e:
         if target_moved and backup is not None and backup.exists():
             try:
                 if target.exists():
@@ -426,9 +434,7 @@ def _install_all(targets: list[SkillTarget], current_version: str) -> int:
             skipped.append(t.name)
             continue
         t.user_dir.mkdir(parents=True, exist_ok=True)
-        if _install_skill(source, t.user_dir):
-            if t.frontmatter_extras:
-                _inject_frontmatter_extras(t.user_dir / SKILL_DIR_NAME / "SKILL.md", t.frontmatter_extras)
+        if _install_skill(source, t.user_dir, t.frontmatter_extras):
             if existing_ver:
                 print(f"  ✓ {t.name}: v{existing_ver} → v{current_version}")
             else:
@@ -572,9 +578,7 @@ def cmd_skill(args: list[str]) -> int:
                 dest = target.user_dir
 
             dest.mkdir(parents=True, exist_ok=True)
-            if _install_skill(source, dest):
-                if target.frontmatter_extras:
-                    _inject_frontmatter_extras(dest / SKILL_DIR_NAME / "SKILL.md", target.frontmatter_extras)
+            if _install_skill(source, dest, target.frontmatter_extras):
                 print(f"  {tool_name}: Skill installed (v{current_version}) at {dest / SKILL_DIR_NAME}")
                 return 0
             return 1
@@ -623,9 +627,7 @@ def cmd_skill(args: list[str]) -> int:
                     continue
                 tool_installed = True
                 if installed_ver != current_version:
-                    if _install_skill(source, dest):
-                        if t.frontmatter_extras:
-                            _inject_frontmatter_extras(dest / SKILL_DIR_NAME / "SKILL.md", t.frontmatter_extras)
+                    if _install_skill(source, dest, t.frontmatter_extras):
                         level = "project" if str(Path.cwd()) in abs_path else "user"
                         print(f"  ✓ {t.name} ({level}): v{installed_ver} → v{current_version}")
                         updated_tools.append(t.name)

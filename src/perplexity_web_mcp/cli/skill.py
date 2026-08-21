@@ -289,7 +289,7 @@ def _uninstall_skill(dest_dir: Path) -> bool:
     if not target.exists():
         return False
     try:
-        shutil.rmtree(target)
+        _remove_tree(target)
         return True
     except OSError as e:
         print(f"  Error: {e}", file=sys.stderr)

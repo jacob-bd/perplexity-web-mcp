@@ -255,6 +255,21 @@ class TestInstallUninstall:
         assert result is True
         assert not installed.exists()
 
+    def test_uninstall_removes_readonly_tree(self, skill_source: Path, dest_dir: Path) -> None:
+        _install_skill(skill_source, dest_dir)
+        installed = dest_dir / SKILL_DIR_NAME
+        readonly_files = [installed / "SKILL.md", installed / "references" / "models.md"]
+        for path in readonly_files:
+            path.chmod(stat.S_IREAD)
+
+        try:
+            assert _uninstall_skill(dest_dir) is True
+            assert not installed.exists()
+        finally:
+            for path in readonly_files:
+                if path.exists():
+                    path.chmod(path.stat().st_mode | stat.S_IWRITE)
+
     def test_uninstall_returns_false_when_not_installed(self, dest_dir: Path) -> None:
         assert _uninstall_skill(dest_dir) is False
 

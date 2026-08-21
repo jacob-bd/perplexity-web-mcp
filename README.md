@@ -274,10 +274,10 @@ For clients that support HTTP/SSE, or when multiple sessions should share one
 MCP process, run the local daemon:
 
 ```bash
-pwm serve-mcp                         # Start SSE on 127.0.0.1:8000
+pwm serve-mcp --transport streamable-http  # Start HTTP MCP on 127.0.0.1:8000/mcp
 pwm serve-mcp --status                # Check daemon status
 pwm serve-mcp --stop                  # Stop the daemon
-pwm setup add codex --sse             # Configure Codex to use the daemon
+pwm setup add codex --http            # Configure Codex for Streamable HTTP
 ```
 
 The HTTP transports bind to loopback by default. Keep the daemon on a loopback

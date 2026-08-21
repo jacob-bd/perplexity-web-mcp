@@ -16,6 +16,12 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner, Result
 
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
+
 from perplexity_web_mcp.cli.setup import (
     CLIENT_REGISTRY,
     MCP_SERVER_KEY,
@@ -238,7 +244,19 @@ class TestSetupCommands:
             result = self._run("add", "codex")
             assert result.exit_code == 0
             assert "codex" in result.output.lower()
-            mock_setup.assert_called_once()
+            mock_setup.assert_called_once_with(streamable_http=False, port=8000)
+
+    def test_add_codex_http_configures_streamable_http(self) -> None:
+        with patch("perplexity_web_mcp.cli.setup._setup_codex", return_value=True) as mock_setup:
+            result = self._run("add", "codex", "--http", "--port", "8123")
+            assert result.exit_code == 0
+            mock_setup.assert_called_once_with(streamable_http=True, port=8123)
+
+    def test_add_codex_sse_remains_a_legacy_alias(self) -> None:
+        with patch("perplexity_web_mcp.cli.setup._setup_codex", return_value=True) as mock_setup:
+            result = self._run("add", "codex", "--sse")
+            assert result.exit_code == 0
+            mock_setup.assert_called_once_with(streamable_http=True, port=8000)
 
     def test_remove_codex_removes_mcp(self) -> None:
         with patch("perplexity_web_mcp.cli.setup._remove_codex", return_value=True) as mock_remove:
@@ -382,10 +400,11 @@ def test_serve_mcp_cli_command() -> None:
     from perplexity_web_mcp.cli.main import cli
 
     runner = CliRunner()
-    with patch("perplexity_web_mcp.mcp.server.main") as mock_main:
-        result = runner.invoke(cli, ["serve-mcp", "--transport", "sse", "--port", "8123"])
-        assert result.exit_code == 0
-        mock_main.assert_called_once_with(transport="sse", host="127.0.0.1", port=8123)
+    for transport in ("sse", "streamable-http"):
+        with patch("perplexity_web_mcp.mcp.server.main") as mock_main:
+            result = runner.invoke(cli, ["serve-mcp", "--transport", transport, "--port", "8123"])
+            assert result.exit_code == 0
+            mock_main.assert_called_once_with(transport=transport, host="127.0.0.1", port=8123)
 
 
 def test_serve_mcp_cli_status_and_stop() -> None:
@@ -447,7 +466,23 @@ with (
     assert "running" in result.stdout.decode("utf-8")
 
 
-def test_setup_codex_sse_does_not_duplicate_existing_toml_config(tmp_path: Path) -> None:
+def test_setup_codex_http_does_not_duplicate_matching_toml_config(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    config_path = tmp_path / "config.toml"
+    original = '[mcp_servers.perplexity]\nurl = "http://127.0.0.1:8000/mcp"\nenabled = true\n'
+    config_path.write_text(original)
+
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value=None),
+    ):
+        assert _setup_codex(streamable_http=True) is True
+
+    assert config_path.read_text() == original
+
+
+def test_setup_codex_http_refuses_to_overwrite_legacy_sse_config(tmp_path: Path) -> None:
     from perplexity_web_mcp.cli.setup import _setup_codex
 
     config_path = tmp_path / "config.toml"
@@ -458,6 +493,88 @@ def test_setup_codex_sse_does_not_duplicate_existing_toml_config(tmp_path: Path)
         patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
         patch("perplexity_web_mcp.cli.setup.shutil.which", return_value=None),
     ):
-        assert _setup_codex(sse=True) is True
+        assert _setup_codex(streamable_http=True) is False
 
     assert config_path.read_text() == original
+
+
+def test_setup_codex_http_refuses_disabled_matching_config(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    config_path = tmp_path / "config.toml"
+    original = '[mcp_servers.perplexity]\nurl = "http://127.0.0.1:8000/mcp"\nenabled = false\n'
+    config_path.write_text(original)
+
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value=None),
+    ):
+        assert _setup_codex(streamable_http=True) is False
+
+    assert config_path.read_text() == original
+
+
+def test_setup_codex_http_writes_mcp_endpoint_without_codex_cli(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value=None),
+    ):
+        assert _setup_codex(streamable_http=True, port=8123) is True
+
+    config = tomllib.loads((tmp_path / "config.toml").read_text())
+    assert config["mcp_servers"]["perplexity"] == {
+        "url": "http://127.0.0.1:8123/mcp",
+        "enabled": True,
+    }
+
+
+def test_setup_codex_http_uses_mcp_endpoint_with_codex_cli(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value="codex") as mock_which,
+        patch("perplexity_web_mcp.cli.setup.subprocess.run", return_value=completed) as mock_run,
+    ):
+        assert _setup_codex(streamable_http=True, port=8123) is True
+
+    mock_which.assert_called_once_with("codex")
+    mock_run.assert_called_once_with(
+        ["codex", "mcp", "add", "perplexity", "--url", "http://127.0.0.1:8123/mcp"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_setup_codex_http_does_not_edit_config_when_codex_cli_fails(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    completed = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="registration failed")
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value="codex"),
+        patch("perplexity_web_mcp.cli.setup.subprocess.run", return_value=completed),
+    ):
+        assert _setup_codex(streamable_http=True) is False
+
+    assert not (tmp_path / "config.toml").exists()
+
+
+def test_setup_codex_http_does_not_edit_config_when_codex_cli_times_out(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value="codex"),
+        patch(
+            "perplexity_web_mcp.cli.setup.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd=["codex", "mcp", "add"], timeout=10),
+        ),
+    ):
+        assert _setup_codex(streamable_http=True) is False
+
+    assert not (tmp_path / "config.toml").exists()

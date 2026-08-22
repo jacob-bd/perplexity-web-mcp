@@ -258,6 +258,9 @@ def _setup_codex(streamable_http: bool = False, port: int = 8000) -> bool:
                 console.print(f"[yellow]Warning:[/yellow] Could not read Codex config: {exc}")
                 return False
             mcp_servers = config.get("mcp_servers", {})
+            if not isinstance(mcp_servers, dict):
+                console.print("[yellow]Warning:[/yellow] Codex mcp_servers configuration is not a table.")
+                return False
             existing_key = next(
                 (key for key in (MCP_SERVER_KEY, "perplexity-web-mcp") if key in mcp_servers),
                 None,
@@ -890,6 +893,9 @@ def setup_add(client, streamable_http, port):
         success = _setup_opencode()
     else:
         success = _setup_json_client(client)
+
+    if client == "codex" and not success:
+        raise click.ClickException("Could not configure Codex MCP server.")
 
     if success:
         console.print(f"\n[dim]Restart {info['name']} to activate the MCP server.[/dim]")

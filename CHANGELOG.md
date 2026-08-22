@@ -4,6 +4,20 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.14.11] - 2026-08-22
+
+### Fixed
+
+- **Windows daemon liveness** — Uses a non-destructive process-handle probe, preserves managed PID files when inspection is indeterminate, and avoids duplicate daemon ownership. ([#39](https://github.com/jacob-bd/perplexity-web-mcp/pull/39))
+- **Codex Streamable HTTP setup** — Registers the daemon at `/mcp`, rejects conflicting or malformed configuration, and reports setup failures with a non-zero exit status. ([#40](https://github.com/jacob-bd/perplexity-web-mcp/pull/40))
+- **Atomic skill updates and read-only uninstall** — Applies target metadata before promotion and removes Windows read-only installations through the safe tree-removal path. ([#41](https://github.com/jacob-bd/perplexity-web-mcp/pull/41), [#42](https://github.com/jacob-bd/perplexity-web-mcp/pull/42))
+
+### Changed
+
+- **Community contributions** — Thanks to [Ronald Hickman (@Derivedbetter)](https://github.com/Derivedbetter) for contributing PRs [#39](https://github.com/jacob-bd/perplexity-web-mcp/pull/39), [#40](https://github.com/jacob-bd/perplexity-web-mcp/pull/40), [#41](https://github.com/jacob-bd/perplexity-web-mcp/pull/41), and [#42](https://github.com/jacob-bd/perplexity-web-mcp/pull/42).
+
+---
+
 ## [0.14.10] - 2026-08-19
 
 ### Added

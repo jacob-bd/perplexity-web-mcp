@@ -784,40 +784,38 @@ def get_daemon_pid_path(port: int) -> Path:
 
 
 def _is_windows_pid_running(pid: int) -> bool:
-    """Check process state without sending a signal on Windows.
-
-    Indeterminate results are treated as running so a valid daemon lock is not
-    discarded merely because the process cannot be inspected.
-    """
-    import ctypes
-    from ctypes import wintypes
-
-    synchronize = 0x00100000
-    error_invalid_parameter = 87
-    wait_object_0 = 0x00000000
-    wait_timeout = 0x00000102
-
-    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
-    kernel32.OpenProcess.restype = wintypes.HANDLE
-    kernel32.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
-    kernel32.WaitForSingleObject.restype = wintypes.DWORD
-    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
-    kernel32.CloseHandle.restype = wintypes.BOOL
-
-    handle = kernel32.OpenProcess(synchronize, False, pid)
-    if not handle:
-        return ctypes.get_last_error() != error_invalid_parameter
-
     try:
-        wait_result = kernel32.WaitForSingleObject(handle, 0)
-        if wait_result == wait_object_0:
-            return False
-        if wait_result == wait_timeout:
+        import ctypes
+        from ctypes import wintypes
+
+        synchronize = 0x00100000
+        error_invalid_parameter = 87
+        wait_object_0 = 0x00000000
+        wait_timeout = 0x00000102
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+        kernel32.WaitForSingleObject.restype = wintypes.DWORD
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+
+        handle = kernel32.OpenProcess(synchronize, False, pid)
+        if not handle:
+            return ctypes.get_last_error() != error_invalid_parameter
+
+        try:
+            wait_result = kernel32.WaitForSingleObject(handle, 0)
+            if wait_result == wait_object_0:
+                return False
+            if wait_result == wait_timeout:
+                return True
             return True
+        finally:
+            kernel32.CloseHandle(handle)
+    except Exception:
         return True
-    finally:
-        kernel32.CloseHandle(handle)
 
 
 def is_pid_running(pid: int) -> bool:
@@ -852,11 +850,23 @@ def get_running_daemon_pid(port: int) -> int | None:
         return None
     try:
         pid = int(pid_path.read_text().strip())
+    except (OSError, ValueError):
+        try:
+            pid_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+
+    try:
         if is_pid_running(pid):
             return pid
-        pid_path.unlink(missing_ok=True)
     except Exception:
+        return pid
+
+    try:
         pid_path.unlink(missing_ok=True)
+    except OSError:
+        pass
     return None
 
 

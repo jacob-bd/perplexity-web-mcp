@@ -178,6 +178,25 @@ def test_windows_live_pid_file_is_retained_and_blocks_duplicate(tmp_path: Path, 
     probe.assert_called_once_with(4242)
 
 
+def test_windows_pid_probe_treats_unexpected_api_error_as_running() -> None:
+    with (
+        patch.object(server.sys, "platform", "win32"),
+        patch.object(ctypes, "WinDLL", side_effect=OSError("probe unavailable"), create=True),
+    ):
+        assert server.is_pid_running(4242) is True
+
+
+def test_windows_pid_probe_error_preserves_pid_file(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "CONFIG_DIR", tmp_path)
+    pid_path = server.get_daemon_pid_path(8994)
+    pid_path.write_text("4242", encoding="utf-8")
+
+    with patch.object(server, "is_pid_running", side_effect=RuntimeError("probe unavailable")):
+        assert server.get_running_daemon_pid(8994) == 4242
+
+    assert pid_path.exists()
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="requires Windows process APIs")
 def test_windows_pid_probe_preserves_live_child() -> None:
     child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])

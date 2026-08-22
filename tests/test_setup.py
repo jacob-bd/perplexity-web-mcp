@@ -258,6 +258,12 @@ class TestSetupCommands:
             assert result.exit_code == 0
             mock_setup.assert_called_once_with(streamable_http=True, port=8000)
 
+    def test_add_codex_http_propagates_setup_failure(self) -> None:
+        with patch("perplexity_web_mcp.cli.setup._setup_codex", return_value=False):
+            result = self._run("add", "codex", "--http")
+
+        assert result.exit_code == 1
+
     def test_remove_codex_removes_mcp(self) -> None:
         with patch("perplexity_web_mcp.cli.setup._remove_codex", return_value=True) as mock_remove:
             result = self._run("remove", "codex")
@@ -503,6 +509,22 @@ def test_setup_codex_http_refuses_disabled_matching_config(tmp_path: Path) -> No
 
     config_path = tmp_path / "config.toml"
     original = '[mcp_servers.perplexity]\nurl = "http://127.0.0.1:8000/mcp"\nenabled = false\n'
+    config_path.write_text(original)
+
+    with (
+        patch("perplexity_web_mcp.cli.setup._codex_config_path", return_value=tmp_path),
+        patch("perplexity_web_mcp.cli.setup.shutil.which", return_value=None),
+    ):
+        assert _setup_codex(streamable_http=True) is False
+
+    assert config_path.read_text() == original
+
+
+def test_setup_codex_http_refuses_non_table_mcp_servers(tmp_path: Path) -> None:
+    from perplexity_web_mcp.cli.setup import _setup_codex
+
+    config_path = tmp_path / "config.toml"
+    original = "mcp_servers = []\n"
     config_path.write_text(original)
 
     with (

@@ -289,6 +289,15 @@ class TestInstallUninstall:
         assert result is True
         assert not installed.exists()
 
+    def test_uninstall_routes_through_readonly_safe_removal(self, skill_source: Path, dest_dir: Path) -> None:
+        _install_skill(skill_source, dest_dir)
+        installed = dest_dir / SKILL_DIR_NAME
+
+        with patch("perplexity_web_mcp.cli.skill._remove_tree") as remove_tree:
+            assert _uninstall_skill(dest_dir) is True
+
+        remove_tree.assert_called_once_with(installed)
+
     def test_uninstall_removes_readonly_tree(self, skill_source: Path, dest_dir: Path) -> None:
         _install_skill(skill_source, dest_dir)
         installed = dest_dir / SKILL_DIR_NAME

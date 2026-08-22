@@ -245,11 +245,42 @@ def _setup_json_client(client_id: str) -> bool:
     return True
 
 
-def _setup_codex(sse: bool = False, port: int = 8000) -> bool:
+def _setup_codex(streamable_http: bool = False, port: int = 8000) -> bool:
     """Add MCP to Codex CLI via `codex mcp add` (preferred) or config.toml fallback."""
     codex_cmd = shutil.which("codex")
-    if sse:
-        url = f"http://127.0.0.1:{port}/sse"
+    if streamable_http:
+        url = f"http://127.0.0.1:{port}/mcp"
+        config_path = _codex_config_path() / "config.toml"
+        if config_path.exists():
+            try:
+                config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, tomllib.TOMLDecodeError) as exc:
+                console.print(f"[yellow]Warning:[/yellow] Could not read Codex config: {exc}")
+                return False
+            mcp_servers = config.get("mcp_servers", {})
+            existing_key = next(
+                (key for key in (MCP_SERVER_KEY, "perplexity-web-mcp") if key in mcp_servers),
+                None,
+            )
+            if existing_key is not None:
+                existing = mcp_servers[existing_key]
+                if (
+                    isinstance(existing, dict)
+                    and existing.get("url") == url
+                    and existing.get("enabled", True) is not False
+                ):
+                    console.print(f"[green]✓[/green] Already configured in Codex CLI (Streamable HTTP: {url})")
+                    console.print(
+                        f"  [dim]Start daemon with: pwm serve-mcp --transport streamable-http --port {port}[/dim]"
+                    )
+                    return True
+                console.print(
+                    f"[yellow]Warning:[/yellow] Codex already has an '{existing_key}' MCP entry using another "
+                    "transport or disabled state."
+                )
+                console.print(f"  [dim]Remove it first: codex mcp remove {existing_key}[/dim]")
+                console.print(f"  [dim]Then rerun: pwm setup add codex --http --port {port}[/dim]")
+                return False
         if codex_cmd:
             try:
                 result = subprocess.run(
@@ -259,37 +290,39 @@ def _setup_codex(sse: bool = False, port: int = 8000) -> bool:
                     timeout=10,
                 )
                 if result.returncode == 0:
-                    console.print(f"[green]✓[/green] Added to Codex CLI (SSE daemon mode: {url})")
-                    console.print("  [dim]Start daemon with: pwm serve-mcp[/dim]")
+                    console.print(f"[green]✓[/green] Added to Codex CLI (Streamable HTTP: {url})")
+                    console.print(
+                        f"  [dim]Start daemon with: pwm serve-mcp --transport streamable-http --port {port}[/dim]"
+                    )
                     return True
-                elif "already exists" in result.stderr.lower():
-                    console.print(f"[green]✓[/green] Already configured in Codex CLI (SSE: {url})")
-                    return True
-            except Exception:
-                pass
-        config_path = _codex_config_path() / "config.toml"
-        if config_path.exists():
-            try:
-                config = tomllib.loads(config_path.read_text())
-            except Exception as exc:
-                console.print(f"[yellow]Warning:[/yellow] Could not read Codex config: {exc}")
+                if "already exists" in result.stderr.lower():
+                    console.print(
+                        f"[yellow]Warning:[/yellow] Codex already has an '{MCP_SERVER_KEY}' MCP entry using another "
+                        "transport or disabled state."
+                    )
+                    console.print(f"  [dim]Remove it first: codex mcp remove {MCP_SERVER_KEY}[/dim]")
+                    console.print(f"  [dim]Then rerun: pwm setup add codex --http --port {port}[/dim]")
+                    return False
+                console.print(
+                    f"[yellow]Warning:[/yellow] Codex CLI could not add the Streamable HTTP server: "
+                    f"{result.stderr.strip() or result.stdout.strip()}"
+                )
                 return False
-            mcp_servers = config.get("mcp_servers", {})
-            if MCP_SERVER_KEY in mcp_servers or "perplexity-web-mcp" in mcp_servers:
-                console.print("[green]✓[/green] Already configured in Codex CLI")
-                return True
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+                console.print(f"[yellow]Warning:[/yellow] Could not run Codex CLI: {exc}")
+                return False
         section = f'''
-# Perplexity Web MCP server (SSE daemon mode)
+# Perplexity Web MCP server (Streamable HTTP daemon mode)
 [mcp_servers.{MCP_SERVER_KEY}]
 url = "{url}"
 enabled = true
 '''
-        content = config_path.read_text() if config_path.exists() else ""
+        content = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
         new_content = content.rstrip() + "\n" + section if content.strip() else section.lstrip()
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        config_path.write_text(new_content)
-        console.print("[green]✓[/green] Added to Codex CLI (SSE daemon mode in config.toml)")
-        console.print("  [dim]Start daemon with: pwm serve-mcp[/dim]")
+        config_path.write_text(new_content, encoding="utf-8")
+        console.print("[green]✓[/green] Added to Codex CLI (Streamable HTTP in config.toml)")
+        console.print(f"  [dim]Start daemon with: pwm serve-mcp --transport streamable-http --port {port}[/dim]")
         return True
 
     if codex_cmd:
@@ -805,9 +838,16 @@ def setup():
 
 @setup.command("add")
 @click.argument("client")
-@click.option("--sse", is_flag=True, help="Configure client to connect via SSE daemon (http://127.0.0.1:8000/sse).")
-@click.option("--port", default=8000, type=int, help="Port for SSE daemon (default: 8000).")
-def setup_add(client, sse, port):
+@click.option(
+    "--http",
+    "--streamable-http",
+    "--sse",
+    "streamable_http",
+    is_flag=True,
+    help="Configure Codex for the shared Streamable HTTP daemon (--sse is a legacy alias).",
+)
+@click.option("--port", default=8000, type=int, help="Port for the shared HTTP daemon (default: 8000).")
+def setup_add(client, streamable_http, port):
     """Add Perplexity MCP server to an AI tool.
 
     Supported clients: claude-code, gemini, cursor,
@@ -819,6 +859,7 @@ def setup_add(client, sse, port):
       pwm setup add claude-code
       pwm setup add gemini
       pwm setup add codex
+      pwm setup add codex --http
       pwm setup add antigravity
       pwm setup add opencode
       pwm setup add json
@@ -844,7 +885,7 @@ def setup_add(client, sse, port):
     if client == "claude-code":
         success = _setup_claude_code()
     elif client == "codex":
-        success = _setup_codex(sse=sse, port=port)
+        success = _setup_codex(streamable_http=streamable_http, port=port)
     elif client == "opencode":
         success = _setup_opencode()
     else:

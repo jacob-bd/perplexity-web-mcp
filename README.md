@@ -278,6 +278,7 @@ pwm serve-mcp --transport streamable-http  # Start HTTP MCP on 127.0.0.1:8000/mc
 pwm serve-mcp --status                # Check daemon status
 pwm serve-mcp --stop                  # Stop the daemon
 pwm setup add codex --http            # Configure Codex for Streamable HTTP
+pwm serve-mcp --transport sse         # Start the legacy SSE transport
 ```
 
 The HTTP transports bind to loopback by default. Keep the daemon on a loopback

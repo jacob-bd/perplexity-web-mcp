@@ -26,6 +26,10 @@ server uses plain HTTP, so remote deployments also need a trusted TLS reverse
 proxy and firewall rules. Clients may authenticate with `x-api-key` or
 `Authorization: Bearer <secret>`.
 
+When an API key is configured, authentication applies to every API endpoint,
+including the `/v1/responses` WebSocket route. Unauthenticated WebSocket
+connections are rejected before the server accepts the connection.
+
 ## Endpoints
 
 ### POST /v1/messages (Anthropic Messages API)

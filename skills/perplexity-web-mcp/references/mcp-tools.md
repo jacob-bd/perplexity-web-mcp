@@ -98,6 +98,8 @@ Do not guess connector IDs. Unknown source values fail instead of falling back t
 
 Connector access inherits the authenticated Perplexity account's permissions and may expose private data to the calling agent. Set `PWM_CONNECTORS_ENABLED=0` to disable all connector queries, or use `PWM_CONNECTOR_ALLOWLIST` with a comma-separated list of approved connector IDs. When unset, reported connectors remain available for backward compatibility.
 
+Local connector policy also applies to direct Python API payloads, not only CLI and MCP source routing.
+
 ### pplx_smart_query
 
 Quota-aware routing — checks limits and picks the best model automatically.

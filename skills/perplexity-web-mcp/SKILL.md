@@ -2,7 +2,7 @@
 name: perplexity-web-mcp
 description: 'Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions "perplexity", "pplx", "pwm", "web search with AI", "deep research", "search the internet", or wants to query premium models like GPT-5.6 Terra, GPT-5.6 Sol, Grok, Claude, Gemini, GLM, or Nemotron through Perplexity''s web interface.'
 metadata:
-  version: "0.14.12"
+  version: "0.14.13"
   author: "Jacob BD"
 
 ---

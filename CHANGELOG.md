@@ -4,6 +4,18 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.14.13] - 2026-09-01
+
+### Fixed
+
+- **API session security:** Requires the configured API key before accepting `/v1/responses` WebSocket connections, so unauthenticated clients cannot reach the request handler.
+- **Rate-limit session security:** Keeps session cookies host-only and HTTPS-only across rate-limit requests, preventing session tokens from following redirects to another host.
+- **Connector policy enforcement:** Applies local connector controls while building direct conversation payloads, so Python API callers receive the same protection as CLI and MCP callers.
+
+### Changed
+
+- **Community contribution:** Thanks to [@beausea](https://github.com/beausea) for contributing PR [#46](https://github.com/jacob-bd/perplexity-web-mcp/pull/46), which found and fixed the API and session boundary issues.
+
 ## [0.14.12] - 2026-08-26
 
 ### Fixed

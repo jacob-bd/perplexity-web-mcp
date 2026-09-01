@@ -98,7 +98,7 @@ Recommended controls:
 - Connector availability, quota, and answer quality are controlled by Perplexity.
 - Live verification requires an account with that connector enabled.
 - Connector IDs may be account-specific and may change if Perplexity changes its web API.
-- Local allowlisting validates source IDs at query routing time; it is not a data-loss-prevention system and cannot inspect or redact connector results.
+- Local connector policy also applies while direct Python API payloads are built. It validates source IDs at query routing time; it is not a data-loss-prevention system and cannot inspect or redact connector results.
 - This project uses an undocumented Perplexity web API, so connector semantics and backend enforcement can change without notice.
 
 ## Troubleshooting

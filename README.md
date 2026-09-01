@@ -459,6 +459,10 @@ TLS reverse proxy and firewall rules because the built-in server serves plain
 HTTP. Clients may send the configured secret as `x-api-key` or
 `Authorization: Bearer <secret>`.
 
+When an API key is configured, the same authentication applies to every API
+endpoint, including the `/v1/responses` WebSocket route. The server rejects
+unauthenticated WebSocket connections before accepting the connection.
+
 ### Anthropic API (Claude Code)
 
 ```bash

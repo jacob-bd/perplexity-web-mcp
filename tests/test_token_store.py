@@ -8,6 +8,7 @@ Test categories:
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -49,6 +50,31 @@ class TestSaveToken:
         assert patch_paths.exists()
         assert (patch_paths / "token").read_text() == token
         assert patch_environ[token_store.ENV_KEY] == token
+
+    def test_secure_creation_uses_exclusive_owner_only_temporary_file(
+        self, patch_paths, patch_environ, monkeypatch
+    ) -> None:
+        """The token is private from creation, before it becomes the final file."""
+        original_open = token_store.os.open
+        observed: list[tuple[Path, int, int]] = []
+
+        def observing_open(path, flags, mode=0o777):
+            observed.append((Path(path), flags, mode))
+            return original_open(path, flags, mode)
+
+        monkeypatch.setattr(token_store.os, "open", observing_open)
+
+        assert token_store.save_token("secret-token") is True
+
+        assert len(observed) == 1
+        temporary, flags, mode = observed[0]
+        assert temporary.parent == patch_paths
+        assert temporary.name.startswith(".token.")
+        assert flags & os.O_CREAT
+        assert flags & os.O_EXCL
+        assert mode == 0o600
+        assert token_store.TOKEN_FILE.read_text(encoding="utf-8") == "secret-token"
+        assert list(patch_paths.glob(".token.*.tmp")) == []
 
     def test_returns_false_on_filesystem_error(self, monkeypatch, tmp_path) -> None:
         """save_token returns False when filesystem operations fail."""

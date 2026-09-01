@@ -55,13 +55,51 @@ pplx_smart_query(
 )
 ```
 
-## Important Behavior
+## Trust Boundary and Local Policy
+
+Connector queries are not equivalent to public web search. They execute with
+the permissions of the Perplexity session stored by this package and may reach
+private organization data, licensed datasets, Google Drive, Box, or other
+account-connected systems. The query text and connector-backed results cross
+the local CLI/MCP/API boundary and are processed by Perplexity and the selected
+connector service.
+
+Treat every process or AI agent that can invoke a query tool as able to request
+data from every connector allowed by local policy. Prompt injection, an exposed
+API compatibility server, or an overly broad MCP client permission can therefore
+increase the impact of the authenticated Perplexity session.
+
+Two environment variables provide defense-in-depth controls:
+
+- `PWM_CONNECTORS_ENABLED=0` denies all connector-backed queries while leaving
+  built-in public sources available.
+- `PWM_CONNECTOR_ALLOWLIST=id_one,id_two` permits only the exact connector IDs
+  listed. Setting it to an empty value denies all connectors. Discover IDs first
+  with `pwm connectors list`; do not guess them.
+
+For backward compatibility, reported connectors remain available when both
+variables are unset. Organizations that require explicit opt-in should set
+`PWM_CONNECTORS_ENABLED=0` globally, or set an empty allowlist and populate it
+only for approved workloads.
+
+Recommended controls:
+
+- Use a dedicated Perplexity account or workspace with only necessary connectors.
+- Keep the API and MCP servers on loopback unless authenticated and protected by TLS.
+- Give agents access only to the specific query tools and connector IDs they need.
+- Avoid sending secrets or unrelated private context in connector query text.
+- Review connector access and quotas in Perplexity; local controls cannot override
+  permissions already granted there.
+
+## Important Behavior and Remaining Limits
 
 - Do not guess connector IDs. Run `pwm connectors list` or `pplx_connectors()` first.
 - Unknown source values fail intentionally. They do not fall back to web search.
 - Connector availability, quota, and answer quality are controlled by Perplexity.
 - Live verification requires an account with that connector enabled.
 - Connector IDs may be account-specific and may change if Perplexity changes its web API.
+- Local allowlisting validates source IDs at query routing time; it is not a data-loss-prevention system and cannot inspect or redact connector results.
+- This project uses an undocumented Perplexity web API, so connector semantics and backend enforcement can change without notice.
 
 ## Troubleshooting
 

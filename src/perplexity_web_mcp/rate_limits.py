@@ -23,9 +23,8 @@ from .constants import (
     ENDPOINT_CREDITS,
     ENDPOINT_RATE_LIMITS,
     ENDPOINT_USER_SETTINGS,
-    SESSION_COOKIE_NAME,
 )
-from .http import get_system_ca_bundle_path
+from .http import _set_session_cookie, get_system_ca_bundle_path
 from .limits import REST_API_TIMEOUT
 from .logging import get_logger
 
@@ -320,12 +319,13 @@ def _create_session(token: str) -> Session:
             "Origin": API_BASE_URL,
             "Accept": "application/json",
         },
-        "cookies": {SESSION_COOKIE_NAME: token},
         "timeout": REST_API_TIMEOUT,
     }
     if verify_bundle:
         session_kwargs["verify"] = verify_bundle
-    return Session(**session_kwargs)
+    session = Session(**session_kwargs)
+    _set_session_cookie(session, token)
+    return session
 
 
 def fetch_rate_limits(token: str) -> RateLimits | None:

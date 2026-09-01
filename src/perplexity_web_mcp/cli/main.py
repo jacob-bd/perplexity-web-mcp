@@ -809,7 +809,7 @@ def _cmd_connectors_list(refresh: bool = False) -> int:
 
 
 @cli.command()
-@click.option("--host", default="0.0.0.0", help="Bind address.")
+@click.option("--host", default="127.0.0.1", help="Bind address. Non-loopback addresses require PWM_API_KEY.")
 @click.option("-p", "--port", default=8080, type=int, help="Port number.")
 @click.option("--model", "default_model", default="auto", help="Default model.")
 @click.option("--log-level", default="info", help="Log level: debug, info, warning, error.")

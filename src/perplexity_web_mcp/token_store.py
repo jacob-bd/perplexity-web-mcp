@@ -7,8 +7,10 @@ across all invocations (CLI, MCP server, API server).
 from __future__ import annotations
 
 import logging
+import os
 from os import environ
 from pathlib import Path
+import secrets
 
 
 # Use stdlib logging to avoid circular import with .logging module
@@ -17,6 +19,39 @@ _logger = logging.getLogger(__name__)
 CONFIG_DIR = Path.home() / ".config" / "perplexity-web-mcp"
 TOKEN_FILE = CONFIG_DIR / "token"
 ENV_KEY = "PERPLEXITY_SESSION_TOKEN"
+
+
+def _secure_replace_text(path: Path, text: str) -> None:
+    """Atomically replace *path* using a file created with mode 0600.
+
+    Creating a private temporary file before the atomic replace avoids the
+    write-then-chmod window in which another local user could read a newly
+    created token file.
+    """
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_BINARY"):
+        flags |= os.O_BINARY
+
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(temporary, flags, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as handle:
+            descriptor = None
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.replace(path)
+        # Windows maps chmod to its limited read-only ACL model; on POSIX this
+        # also repairs permissions when replacing a token created by old versions.
+        path.chmod(0o600)
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def save_token(token: str) -> bool:
@@ -28,10 +63,8 @@ def save_token(token: str) -> bool:
     Returns True if successful, False otherwise.
     """
     try:
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        TOKEN_FILE.write_text(token, encoding="utf-8")
-        # Restrict permissions (owner read/write only)
-        TOKEN_FILE.chmod(0o600)
+        CONFIG_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+        _secure_replace_text(TOKEN_FILE, token)
         # Also update environment so current process uses new token
         environ[ENV_KEY] = token
         return True

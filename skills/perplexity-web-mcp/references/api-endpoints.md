@@ -14,11 +14,17 @@ Default: `http://localhost:8080`
 
 Environment variables:
 
-- `HOST` -- Bind address (default: `0.0.0.0`)
+- `HOST` -- Bind address (default: `127.0.0.1`)
 - `PORT` -- Port number (default: `8080`)
 - `LOG_LEVEL` -- Logging level (default: `INFO`)
 - `DEFAULT_MODEL` -- Default model (default: `auto`)
-- `ANTHROPIC_API_KEY` -- Optional API key for auth validation
+- `PWM_API_KEY` -- Server API key (required for non-loopback binds)
+- `ANTHROPIC_API_KEY` -- Backward-compatible fallback for `PWM_API_KEY`
+
+Non-loopback binds are rejected unless an API key is configured. The built-in
+server uses plain HTTP, so remote deployments also need a trusted TLS reverse
+proxy and firewall rules. Clients may authenticate with `x-api-key` or
+`Authorization: Bearer <secret>`.
 
 ## Endpoints
 

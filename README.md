@@ -350,7 +350,7 @@ pwm ask "recent funding for Stripe" -s pitchbook_mcp_cashmere
 
 MCP clients should call `pplx_connectors()` first, then pass the returned ID as `source_focus`.
 
-Connector access depends on the authenticated Perplexity account. Free accounts may show no connector IDs. Unknown source values fail instead of falling back to web search. See [Account Connector Sources](docs/connectors.md) for details.
+Connector access inherits the authenticated Perplexity account's permissions and may expose private organization or cloud data to whichever local agent can call this tool. Unknown and unreported connector values fail instead of falling back to web search. Administrators can set `PWM_CONNECTORS_ENABLED=0` to disable connector queries or set `PWM_CONNECTOR_ALLOWLIST` to a comma-separated list of exact connector IDs. When these variables are unset, reported connectors remain available for backward compatibility. See [Account Connector Sources](docs/connectors.md) for the full trust-boundary guidance.
 
 ---
 
@@ -451,6 +451,13 @@ Use Perplexity models through Anthropic or OpenAI compatible API endpoints.
 ```bash
 pwm api
 ```
+
+The server binds to `127.0.0.1` by default. A non-loopback `--host` or `HOST`
+value is rejected unless `PWM_API_KEY` (or the legacy `ANTHROPIC_API_KEY`)
+contains a non-empty secret. Remote use should also be protected by a trusted
+TLS reverse proxy and firewall rules because the built-in server serves plain
+HTTP. Clients may send the configured secret as `x-api-key` or
+`Authorization: Bearer <secret>`.
 
 ### Anthropic API (Claude Code)
 

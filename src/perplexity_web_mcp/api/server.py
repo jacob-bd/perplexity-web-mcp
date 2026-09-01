@@ -33,6 +33,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
+import hmac
+import ipaddress
 import json
 import logging
 import os
@@ -40,7 +42,7 @@ import time
 from typing import Any
 import uuid
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -66,16 +68,43 @@ ANTHROPIC_API_VERSION = "2023-06-01"
 # =============================================================================
 
 
+def is_loopback_host(host: str) -> bool:
+    """Return whether *host* is an explicit loopback address.
+
+    Hostnames other than ``localhost`` fail closed rather than being resolved,
+    avoiding DNS changes that could turn an apparently local bind into a remote
+    one.
+    """
+    normalized = host.strip().removeprefix("[").removesuffix("]")
+    if normalized.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(normalized).is_loopback
+    except ValueError:
+        return False
+
+
 @dataclass
 class ServerConfig:
     """Server configuration from environment variables."""
 
     session_token: str
-    api_key: str | None = None  # Optional auth
-    host: str = "0.0.0.0"
+    api_key: str | None = None
+    host: str = "127.0.0.1"
     port: int = 8080
     log_level: str = "INFO"
     default_model: str = "auto"
+
+    def __post_init__(self) -> None:
+        """Normalize configuration and reject unsafe network exposure."""
+        self.host = self.host.strip()
+        self.api_key = self.api_key.strip() if self.api_key and self.api_key.strip() else None
+        if not is_loopback_host(self.host) and not self.api_key:
+            raise ValueError(
+                f"Refusing to bind the API compatibility server to non-loopback host {self.host!r} "
+                "without authentication. Set PWM_API_KEY (or ANTHROPIC_API_KEY) to a strong secret, "
+                "or bind to 127.0.0.1. Use TLS via a trusted reverse proxy for remote access."
+            )
 
     @classmethod
     def from_env(cls) -> ServerConfig:
@@ -87,8 +116,8 @@ class ServerConfig:
 
         return cls(
             session_token=session_token,
-            api_key=os.getenv("ANTHROPIC_API_KEY"),  # For auth validation
-            host=os.getenv("HOST", "0.0.0.0"),
+            api_key=os.getenv("PWM_API_KEY") or os.getenv("ANTHROPIC_API_KEY"),
+            host=os.getenv("HOST", "127.0.0.1"),
             port=int(os.getenv("PORT", "8080")),
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             default_model=os.getenv("DEFAULT_MODEL", "auto"),
@@ -578,7 +607,15 @@ async def lifespan(app: FastAPI):
     )
 
     logging.info(f"Starting Anthropic API server on http://{config.host}:{config.port}")
-    logging.info(f"Auth required: {'Yes' if config.api_key else 'No'}")
+    if config.api_key:
+        logging.info("API authentication required")
+    else:
+        logging.warning("API authentication is disabled; access is limited to the local machine by loopback binding")
+    if not is_loopback_host(config.host):
+        logging.warning(
+            "API server is exposed on a non-loopback interface. Authentication is enabled, but HTTP is not encrypted; "
+            "use a trusted TLS reverse proxy and firewall rules for remote access."
+        )
     logging.info("Fresh client per request, single ask (system prepended), serialized")
 
     yield
@@ -608,28 +645,23 @@ app.add_middleware(
 # =============================================================================
 
 
-def verify_auth(request: Request) -> None:
-    """Verify API key if configured.
+def verify_auth(request: Request | WebSocket) -> None:
+    """Verify the configured API key.
 
     Supports both:
     - x-api-key header (Anthropic style)
     - Authorization: Bearer <key> header (OpenAI style)
-
-    For Claude Code compatibility:
-    - If ANTHROPIC_API_KEY env var is not set, any auth value is accepted
-    - This matches Ollama's behavior for seamless Claude Code integration
     """
-    # If no API key is configured, accept any auth (Claude Code compatibility)
     if not config.api_key:
         return
 
     auth = request.headers.get("x-api-key", "")
     if not auth:
         auth = request.headers.get("Authorization", "")
-        auth = auth.removeprefix("Bearer ")
+        scheme, separator, credentials = auth.partition(" ")
+        auth = credentials.strip() if separator and scheme.lower() == "bearer" else ""
 
-    # If API key is configured, validate it
-    if auth != config.api_key:
+    if not hmac.compare_digest(auth, config.api_key):
         raise HTTPException(status_code=401, detail={"type": "authentication_error", "message": "Invalid API key"})
 
 

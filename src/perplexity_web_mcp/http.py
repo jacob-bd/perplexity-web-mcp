@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from http.cookiejar import Cookie
 import os
 from pathlib import Path
 import ssl
 import sys
 from time import monotonic
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
 from curl_cffi.requests import Response as CurlResponse
 from curl_cffi.requests import Session
@@ -31,6 +33,8 @@ logger = get_logger(__name__)
 
 
 _SERVER_AUTH_EKU = "1.3.6.1.5.5.7.3.1"
+_PERPLEXITY_URL = urlsplit(API_BASE_URL)
+_PERPLEXITY_HOST = _PERPLEXITY_URL.hostname or "www.perplexity.ai"
 
 
 def _convert_der_to_pem(der: bytes) -> str | None:
@@ -97,6 +101,57 @@ def get_system_ca_bundle_path() -> str | None:
     return None
 
 
+def _set_session_cookie(session: Session, session_token: str) -> None:
+    """Install a host-only, HTTPS-only Perplexity session cookie."""
+    session.cookies.jar.set_cookie(
+        Cookie(
+            version=0,
+            name=SESSION_COOKIE_NAME,
+            value=session_token,
+            port=None,
+            port_specified=False,
+            domain=_PERPLEXITY_HOST,
+            domain_specified=False,
+            domain_initial_dot=False,
+            path="/",
+            path_specified=True,
+            secure=True,
+            expires=None,
+            discard=True,
+            comment=None,
+            comment_url=None,
+            rest={"HttpOnly": ""},
+            rfc2109=False,
+        )
+    )
+
+
+def _authenticated_url(endpoint: str) -> str:
+    """Resolve an endpoint and restrict authenticated traffic to Perplexity HTTPS."""
+    url = f"{API_BASE_URL}{endpoint}" if endpoint.startswith("/") else endpoint
+    parsed = urlsplit(url)
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise PerplexityError(f"Refusing authenticated request to malformed URL: {url!r}") from exc
+
+    expected_port = _PERPLEXITY_URL.port or 443
+    actual_port = port or (443 if parsed.scheme.lower() == "https" else None)
+    same_origin = (
+        parsed.scheme.lower() == "https"
+        and parsed.hostname == _PERPLEXITY_HOST
+        and actual_port == expected_port
+        and parsed.username is None
+        and parsed.password is None
+    )
+    if not same_origin:
+        raise PerplexityError(
+            f"Refusing to send an authenticated request outside {API_BASE_URL}. "
+            "Use a separate unauthenticated HTTP client for external URLs."
+        )
+    return url
+
+
 class HTTPClient:
     """HTTP client with retry, rate limiting, and error handling."""
 
@@ -149,19 +204,19 @@ class HTTPClient:
             "Referer": f"{API_BASE_URL}/",
             "Origin": API_BASE_URL,
         }
-        cookies: dict[str, str] = {SESSION_COOKIE_NAME: self._session_token}
 
         verify_bundle = get_system_ca_bundle_path()
         session_kwargs: dict[str, Any] = {
             "headers": headers,
-            "cookies": cookies,
             "timeout": self._timeout,
             "impersonate": impersonate,
         }
         if verify_bundle:
             session_kwargs["verify"] = verify_bundle
 
-        return Session(**session_kwargs)
+        session = Session(**session_kwargs)
+        _set_session_cookie(session, self._session_token)
+        return session
 
     def _rotate_session(self) -> None:
         """Rotate browser fingerprint."""
@@ -237,7 +292,7 @@ class HTTPClient:
     def get(self, endpoint: str, params: dict[str, Any] | None = None) -> CurlResponse:
         """Make a GET request with retry and rate limiting."""
 
-        url = f"{API_BASE_URL}{endpoint}" if endpoint.startswith("/") else endpoint
+        url = _authenticated_url(endpoint)
         log_request("GET", url, params=params)
 
         retryable_exceptions = (RateLimitError, ConnectionError, TimeoutError)
@@ -275,7 +330,7 @@ class HTTPClient:
     ) -> CurlResponse:
         """Make a POST request with retry and rate limiting."""
 
-        url = f"{API_BASE_URL}{endpoint}" if endpoint.startswith("/") else endpoint
+        url = _authenticated_url(endpoint)
         log_request("POST", url, body_size=len(str(json)) if json else 0)
 
         retryable_exceptions = (RateLimitError, ConnectionError, TimeoutError)

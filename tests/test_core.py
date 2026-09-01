@@ -229,6 +229,14 @@ class TestBuildPayload:
 
         assert payload["params"]["sources"] == ["pitchbook_mcp_cashmere"]
 
+    @patch.dict("perplexity_web_mcp.shared.environ", {"PWM_CONNECTORS_ENABLED": "0"}, clear=True)
+    def test_connector_policy_is_enforced_for_direct_conversation_payloads(self) -> None:
+        config = ConversationConfig(source_focus="google_drive")
+        conv = self._conv(config)
+
+        with pytest.raises(ValueError, match="disabled by PWM_CONNECTORS_ENABLED"):
+            conv._build_payload("private query", Models.BEST, [])
+
     def test_followup_includes_uuid_and_token(self) -> None:
         conv = self._conv()
         conv._backend_uuid = "uuid-123"

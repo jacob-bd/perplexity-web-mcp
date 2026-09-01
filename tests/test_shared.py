@@ -139,6 +139,68 @@ class TestResolveSourceFocus:
         assert sources == ["pitchbook_mcp_cashmere"]
         assert search_focus is shared.SearchFocus.WEB
 
+    def test_connector_access_can_be_disabled_locally(self) -> None:
+        cache = MagicMock()
+        cache.get_rate_limits.return_value = RateLimits(
+            source_limits=[SourceLimit(source_id="pitchbook_mcp_cashmere", monthly_limit=5, remaining=3)]
+        )
+        with (
+            patch("perplexity_web_mcp.shared.get_limit_cache", return_value=cache),
+            patch.dict("perplexity_web_mcp.shared.environ", {"PWM_CONNECTORS_ENABLED": "0"}, clear=True),
+            pytest.raises(shared.SourceResolutionError, match="disabled by PWM_CONNECTORS_ENABLED"),
+        ):
+            shared.resolve_source_focus("pitchbook_mcp_cashmere")
+
+    def test_connector_allowlist_rejects_unlisted_reported_connector(self) -> None:
+        cache = MagicMock()
+        cache.get_rate_limits.return_value = RateLimits(
+            source_limits=[
+                SourceLimit(source_id="pitchbook_mcp_cashmere", monthly_limit=5, remaining=3),
+                SourceLimit(source_id="cbinsights_mcp_cashmere", monthly_limit=5, remaining=3),
+            ]
+        )
+        with (
+            patch("perplexity_web_mcp.shared.get_limit_cache", return_value=cache),
+            patch.dict(
+                "perplexity_web_mcp.shared.environ",
+                {"PWM_CONNECTOR_ALLOWLIST": "pitchbook_mcp_cashmere"},
+                clear=True,
+            ),
+            pytest.raises(shared.SourceResolutionError, match="not in PWM_CONNECTOR_ALLOWLIST"),
+        ):
+            shared.resolve_source_focus("cbinsights_mcp_cashmere")
+
+    def test_connector_allowlist_accepts_exact_reported_connector(self) -> None:
+        cache = MagicMock()
+        cache.get_rate_limits.return_value = RateLimits(
+            source_limits=[SourceLimit(source_id="pitchbook_mcp_cashmere", monthly_limit=5, remaining=3)]
+        )
+        with (
+            patch("perplexity_web_mcp.shared.get_limit_cache", return_value=cache),
+            patch.dict(
+                "perplexity_web_mcp.shared.environ",
+                {"PWM_CONNECTOR_ALLOWLIST": "pitchbook_mcp_cashmere"},
+                clear=True,
+            ),
+        ):
+            sources, _ = shared.resolve_source_focus("pitchbook_mcp_cashmere")
+        assert sources == ["pitchbook_mcp_cashmere"]
+
+    @pytest.mark.parametrize("source", ["google_drive", "box"])
+    def test_private_storage_sources_require_account_verification(self, source: str) -> None:
+        with patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None):
+            with pytest.raises(shared.SourceResolutionError, match="Could not verify connector"):
+                shared.resolve_source_focus(source)
+
+    def test_private_storage_sources_are_discoverable_when_reported(self) -> None:
+        source_limits = [
+            SourceLimit(source_id="google_drive", monthly_limit=None, remaining=None),
+            SourceLimit(source_id="box", monthly_limit=None, remaining=None),
+            SourceLimit(source_id="web", monthly_limit=None, remaining=None),
+        ]
+
+        assert [source.source_id for source in shared.get_connector_sources(source_limits)] == ["google_drive", "box"]
+
     def test_connector_like_id_fails_when_limits_unavailable(self) -> None:
         with patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None):
             with pytest.raises(shared.SourceResolutionError, match="Could not verify connector"):

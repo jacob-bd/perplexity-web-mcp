@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError, TLSCertificateError
+from perplexity_web_mcp.exceptions import AuthenticationError, PerplexityError, RateLimitError, TLSCertificateError
 from perplexity_web_mcp.http import HTTPClient
 
 
@@ -30,6 +30,37 @@ class TestHTTPDiagnostics:
 
         assert mock_curl_cffi_session.call_args[1]["headers"]["x-app-apiclient"] == "default"
         assert mock_curl_cffi_session.call_args[1]["headers"]["x-app-apiversion"] == "2.18"
+
+    def test_session_cookie_is_scoped_to_perplexity_https(self, mock_curl_cffi_session) -> None:
+        HTTPClient("token", requests_per_second=0, max_retries=0, rotate_fingerprint=False)
+
+        assert "cookies" not in mock_curl_cffi_session.call_args.kwargs
+        mock_curl_cffi_session.return_value.cookies.jar.set_cookie.assert_called_once()
+        cookie = mock_curl_cffi_session.return_value.cookies.jar.set_cookie.call_args.args[0]
+        assert cookie.name == "__Secure-next-auth.session-token"
+        assert cookie.value == "token"
+        assert cookie.domain == "www.perplexity.ai"
+        assert cookie.domain_specified is False
+        assert cookie.secure is True
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://www.perplexity.ai/rest/test",
+            "https://perplexity.ai/rest/test",
+            "https://www.perplexity.ai.evil.example/rest/test",
+            "https://evil.example/rest/test",
+            "https://www.perplexity.ai:444/rest/test",
+            "https://user@www.perplexity.ai/rest/test",
+        ],
+    )
+    def test_authenticated_requests_reject_non_perplexity_https_origins(self, url: str) -> None:
+        client = HTTPClient("token", requests_per_second=0, max_retries=0, rotate_fingerprint=False)
+
+        with pytest.raises(PerplexityError, match=r"outside https://www\.perplexity\.ai"):
+            client.get(url)
+
+        client._session.get.assert_not_called()
 
     def test_init_search_403_includes_endpoint_context(self) -> None:
         client = HTTPClient("token", requests_per_second=0, max_retries=0, rotate_fingerprint=False)

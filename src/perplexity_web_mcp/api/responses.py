@@ -117,6 +117,12 @@ async def create_response(request: Request, body: ResponsesRequest) -> Any:
 @responses_router.websocket("/v1/responses")
 async def websocket_responses(websocket: WebSocket) -> None:
     """OpenAI Responses API endpoint (WebSocket)."""
+    try:
+        server.verify_auth(websocket)
+    except HTTPException:
+        await websocket.close(code=1008, reason="Invalid API key")
+        return
+
     await websocket.accept()
 
     try:

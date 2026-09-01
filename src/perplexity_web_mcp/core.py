@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from re import Match
 
 from .config import ClientConfig, ConversationConfig
+from .connector_policy import ensure_connector_policy
 from .constants import (
     API_VERSION,
     CITATION_PATTERN,
@@ -548,6 +549,8 @@ class Conversation:
 
         raw_source_focus = cfg.source_focus if isinstance(cfg.source_focus, list) else [cfg.source_focus]
         sources = [source.value if isinstance(source, SourceFocus) else source for source in raw_source_focus]
+        for source in sources:
+            ensure_connector_policy(source)
 
         client_coordinates = None
         if cfg.coordinates is not None:

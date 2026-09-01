@@ -47,7 +47,13 @@ def test_rate_limit_session_includes_perplexity_app_headers() -> None:
         assert kwargs["headers"]["x-app-apiversion"] == "2.18"
         assert kwargs["headers"]["Accept"] == "application/json"
         assert kwargs["timeout"] == REST_API_TIMEOUT
-        assert kwargs["cookies"]["__Secure-next-auth.session-token"] == "token"
+        assert "cookies" not in kwargs
+        cookie = mock_session_cls.return_value.cookies.jar.set_cookie.call_args.args[0]
+        assert cookie.name == "__Secure-next-auth.session-token"
+        assert cookie.value == "token"
+        assert cookie.domain == "www.perplexity.ai"
+        assert cookie.domain_specified is False
+        assert cookie.secure is True
 
 
 class TestFetchHelpersUnit:

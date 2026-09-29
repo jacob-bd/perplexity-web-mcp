@@ -39,13 +39,19 @@ class TestMappings:
             "deep_research",
             "gpt56_terra",
             "gpt56_sol",
+            "gpt6_sol",
             "grok45",
+            "grok47",
             "claude_sonnet",
             "claude_opus",
+            "claude_opus55",
             "gemini_pro",
+            "gemini38",
             "nemotron",
             "glm52",
+            "glm53",
             "kimi_k26",
+            "kimi_k3",
         }
         assert set(MODEL_MAP.keys()) == expected
 
@@ -87,7 +93,7 @@ class TestMappings:
         assert not set(shared.COUNCIL_DEFAULT_MODEL_NAMES) & shared.MAX_ONLY_MODEL_NAMES
 
     def test_max_only_model_names_come_from_metadata(self) -> None:
-        assert getattr(shared, "MAX_ONLY_MODEL_NAMES", None) == {"gpt56_sol", "claude_opus"}
+        assert getattr(shared, "MAX_ONLY_MODEL_NAMES", None) == {"gpt56_sol", "claude_opus", "claude_opus55"}
         assert all(shared.MODEL_METADATA[name].minimum_tier == "max" for name in shared.MAX_ONLY_MODEL_NAMES)
 
     def test_council_eligible_models_are_derived_from_metadata(self) -> None:
@@ -95,13 +101,19 @@ class TestMappings:
             "sonar",
             "gpt56_terra",
             "gpt56_sol",
+            "gpt6_sol",
             "grok45",
+            "grok47",
             "claude_sonnet",
             "claude_opus",
+            "claude_opus55",
             "gemini_pro",
+            "gemini38",
             "nemotron",
             "glm52",
+            "glm53",
             "kimi_k26",
+            "kimi_k3",
         )
 
     def test_build_council_model_list_uses_metadata_display_names(self) -> None:
@@ -257,6 +269,58 @@ class TestResolveModel:
     def test_gemini_pro_always_thinking(self) -> None:
         # gemini_pro has no non-thinking variant
         assert resolve_model("gemini_pro") is Models.GEMINI_31_PRO_THINKING
+
+    def test_new_generation_static_keys(self) -> None:
+        assert resolve_model("gpt6_sol") is Models.GPT_6_SOL
+        assert resolve_model("gpt6_sol", thinking=True) is Models.GPT_6_SOL_THINKING
+        assert resolve_model("gemini38") is Models.GEMINI_38_FLASH
+        assert resolve_model("gemini38", thinking=True) is Models.GEMINI_38_FLASH_THINKING
+        assert resolve_model("claude_opus55") is Models.CLAUDE_55_OPUS
+        assert resolve_model("grok47", thinking=True) is Models.GROK_47_THINKING
+        assert resolve_model("glm53", thinking=True) is Models.GLM_5_3
+        assert resolve_model("kimi_k3") is Models.KIMI_K3
+
+    def test_unknown_model_falls_back_to_cached_live_catalog(self, monkeypatch, tmp_path) -> None:
+        from perplexity_web_mcp import catalog
+
+        entry = catalog.CatalogEntry(
+            identifier="gpt9_demo",
+            row_label="GPT-9 Demo",
+            label="GPT-9 Demo",
+            mode="search",
+            provider="OpenAI",
+            tier="pro",
+            is_new=True,
+            is_default=False,
+            order=0,
+        )
+        thinking_entry = catalog.CatalogEntry(
+            identifier="gpt9_demo_thinking",
+            row_label="GPT-9 Demo",
+            label="GPT-9 Demo Thinking",
+            mode="search",
+            provider="OpenAI",
+            tier="pro",
+            is_new=False,
+            is_default=False,
+            order=1,
+        )
+        cache_path = tmp_path / "models-catalog.json"
+        assert catalog.save_catalog([entry, thinking_entry], path=cache_path)
+        monkeypatch.setattr(catalog, "CATALOG_CACHE_FILE", cache_path)
+
+        model = resolve_model("gpt9_demo")
+        assert model.identifier == "gpt9_demo"
+        assert model.mode == "copilot"
+        assert resolve_model("gpt9_demo", thinking=True).identifier == "gpt9_demo_thinking"
+        assert shared.is_known_model("gpt9_demo")
+        assert not shared.is_known_model("definitely_not_a_model")
+
+    def test_unknown_model_without_live_cache_still_falls_back_to_best(self, monkeypatch, tmp_path) -> None:
+        from perplexity_web_mcp import catalog
+
+        monkeypatch.setattr(catalog, "CATALOG_CACHE_FILE", tmp_path / "missing.json")
+        assert resolve_model("definitely_not_a_model") is Models.BEST
         assert resolve_model("gemini_pro", thinking=True) is Models.GEMINI_31_PRO_THINKING
 
     def test_nemotron_always_thinking(self) -> None:

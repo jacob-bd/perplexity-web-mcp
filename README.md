@@ -24,7 +24,7 @@
 
 MCP server, CLI, and API-compatible interface for Perplexity AI's web interface.
 
-Use your Perplexity Pro/Max subscription to access premium models (Sonar 2, GPT-5.6 Terra, GPT-5.6 Sol, Gemini 3.1 Pro, Claude Sonnet 5, Claude Opus 4.8, GLM 5.2, Kimi K2.6, Grok 4.5, and Nemotron 3 Ultra) from the terminal, through MCP tools, or as an API endpoint.
+Use your Perplexity Pro/Max subscription to access premium models (Sonar 2, GPT-6 Sol, GPT-5.6 Terra, Gemini 3.8 Flash, Claude Sonnet 5, Claude Opus 5.5, Kimi K3, GLM 5.3, Grok 4.7, and Nemotron 3 Ultra) from the terminal, through MCP tools, or as an API endpoint.
 
 ## Features
 
@@ -319,13 +319,22 @@ pwm --ai                   # Print comprehensive AI-optimized reference
 | `deep_research` | Perplexity | No       | Monthly quota, in-depth reports                  |
 | `gpt56_terra`   | OpenAI     | Toggle   | GPT-5.6 Terra                                    |
 | `gpt56_sol`     | OpenAI     | Toggle   | GPT-5.6 Sol (Max tier required)                  |
+| `gpt6_sol`      | OpenAI     | Toggle   | GPT-6 Sol                                        |
 | `grok45`        | xAI        | Toggle   | Grok 4.5                                         |
+| `grok47`        | xAI        | Toggle   | Grok 4.7                                         |
 | `claude_sonnet` | Anthropic  | Toggle   | Claude Sonnet 5                                |
 | `claude_opus`   | Anthropic  | Toggle   | Claude Opus 4.8 (Max tier required)              |
+| `claude_opus55` | Anthropic  | Toggle   | Claude Opus 5.5 (Max tier required)              |
 | `gemini_pro`    | Google     | Always   | Gemini 3.1 Pro                                   |
+| `gemini38`      | Google     | Toggle   | Gemini 3.8 Flash                                 |
 | `nemotron`      | NVIDIA     | Always   | Nemotron 3 Ultra 550B                            |
 | `glm52`         | Z.ai       | Always   | GLM 5.2                                          |
+| `glm53`         | Z.ai       | Always   | GLM 5.3                                          |
 | `kimi_k26`      | Moonshot   | Toggle   | Kimi K2.6                                        |
+| `kimi_k3`       | Moonshot   | Always   | Kimi K3                                          |
+
+The catalog is server-driven: run `pwm models` to see the live model list (free, no query quota),
+and any identifier it shows can be passed to `pwm ask -m <identifier>`.
 
 ### Source Focus
 

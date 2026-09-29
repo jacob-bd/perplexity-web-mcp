@@ -77,7 +77,11 @@ def _blocks_to_answer_data(blocks: Any) -> dict[str, Any]:
 
             results = web_result.get("web_results")
             if isinstance(results, list) and results:
-                answer_data["web_results"] = results
+                existing = answer_data.get("web_results")
+                if isinstance(existing, list):
+                    existing.extend(results)
+                else:
+                    answer_data["web_results"] = list(results)
 
     return answer_data
 
@@ -610,7 +614,7 @@ class Conversation:
 
     def _parse_line(self, line: str | bytes) -> dict[str, Any] | None:
         raw_str = line.decode("utf-8", errors="replace") if isinstance(line, bytes) else str(line)
-        log_trace(f"[STAGE 3 - RAW SSE LINE] {raw_str.strip()[:400]}")
+        log_trace(f"[STAGE 3 - RAW SSE LINE] {raw_str.strip()}")
 
         try:
             if isinstance(line, bytes) and line.startswith(b"data: "):
@@ -725,15 +729,25 @@ class Conversation:
 
         web_results = answer_data.get("web_results", [])
         if web_results:
-            self._search_results = [
-                SearchResultItem(
-                    title=r.get("name"),
-                    snippet=r.get("snippet"),
-                    url=r.get("url"),
+            # Multi-step searches stream several web_results blocks; the answer's
+            # [n] markers refer to the accumulated set, so extend (deduped by URL)
+            # instead of replacing the earlier results with the latest block.
+            seen_urls = {item.url for item in self._search_results if item.url}
+            for r in web_results:
+                if not isinstance(r, dict):
+                    continue
+                url = r.get("url")
+                if url:
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                self._search_results.append(
+                    SearchResultItem(
+                        title=r.get("name"),
+                        snippet=r.get("snippet"),
+                        url=url,
+                    )
                 )
-                for r in web_results
-                if isinstance(r, dict)
-            ]
 
         answer_text = answer_data.get("answer")
         if answer_text is not None:

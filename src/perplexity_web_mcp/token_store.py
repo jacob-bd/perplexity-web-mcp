@@ -109,6 +109,6 @@ def get_token_or_raise() -> str:
             "1) Call pplx_auth_request_code with your email, "
             "2) Check email for 6-digit code, "
             "3) Call pplx_auth_complete with email and code. "
-            "Or run 'pwm-auth' CLI command."
+            "Or run 'pwm login' CLI command."
         )
     return token

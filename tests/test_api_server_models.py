@@ -40,3 +40,37 @@ def test_available_models_match_current_gpt_and_grok_roster() -> None:
     ids = {model["id"] for model in AVAILABLE_MODELS}
     assert {"gpt-5.6-terra", "gpt-5.6-sol", "grok-4.5"} <= ids
     assert {"gpt-5.4", "gpt-5.5"}.isdisjoint(ids)
+
+
+def test_new_generation_aliases_route_to_current_models() -> None:
+    assert get_model("gpt-6-sol") is Models.GPT_6_SOL
+    assert get_model("gpt6_sol", thinking=True) is Models.GPT_6_SOL_THINKING
+    assert get_model("gemini-3.8-flash") is Models.GEMINI_38_FLASH
+    assert get_model("gemini-3-8-flash", thinking=True) is Models.GEMINI_38_FLASH_THINKING
+    assert get_model("claude-opus-5-5") is Models.CLAUDE_55_OPUS
+    assert get_model("claude55opus", thinking=True) is Models.CLAUDE_55_OPUS_THINKING
+    assert get_model("grok47") is Models.GROK_47
+    assert get_model("grok-4.7", thinking=True) is Models.GROK_47_THINKING
+    assert get_model("kimi-k3") is Models.KIMI_K3
+    assert get_model("glm-5.3") is Models.GLM_5_3
+
+
+def test_available_models_include_new_generation() -> None:
+    ids = {model["id"] for model in AVAILABLE_MODELS}
+    assert {"gpt-6-sol", "gemini-3.8-flash", "claude-opus-5-5", "grok-4.7", "kimi-k3", "glm-5.3"} <= ids
+
+
+def test_get_model_uses_live_catalog_fallback(monkeypatch) -> None:
+    from perplexity_web_mcp.api import server as api_server
+    from perplexity_web_mcp.models import Model
+
+    def _live(name, thinking=False):
+        if name == "gpt9_demo":
+            return Model(identifier=name, mode="copilot")
+        return None
+
+    monkeypatch.setattr(api_server, "cached_live_model", _live)
+    model = api_server.get_model("gpt9_demo")
+    assert model.identifier == "gpt9_demo"
+    assert model.mode == "copilot"
+    assert api_server.get_model("still_unknown") is Models.BEST

@@ -188,20 +188,21 @@ class TestCmdUsage:
         assert "NOT AUTHENTICATED" in capsys.readouterr().out
 
     @patch("perplexity_web_mcp.cli.main.get_limit_cache")
-    @patch("perplexity_web_mcp.cli.auth.get_user_info")
+    @patch("perplexity_web_mcp.cli.auth.probe_session")
     @patch("perplexity_web_mcp.cli.main.load_token", return_value="valid-token")
     def test_with_limits(
         self,
         mock_token: MagicMock,
-        mock_user_info_fn: MagicMock,
+        mock_probe_fn: MagicMock,
         mock_cache_fn: MagicMock,
         capsys: pytest.CaptureFixture,
     ) -> None:
+        from perplexity_web_mcp.cli.auth import SessionState
         from perplexity_web_mcp.rate_limits import RateLimits
 
         mock_user_info = MagicMock()
         mock_user_info.tier_display = "Pro ($20/mo)"
-        mock_user_info_fn.return_value = mock_user_info
+        mock_probe_fn.return_value = (SessionState.VALID, mock_user_info)
 
         mock_cache = MagicMock()
         mock_cache.get_rate_limits.return_value = RateLimits(remaining_pro=100, remaining_research=5)
@@ -217,20 +218,21 @@ class TestCmdUsage:
         assert "Pro ($20/mo)" in out
 
     @patch("perplexity_web_mcp.cli.main.get_limit_cache")
-    @patch("perplexity_web_mcp.cli.auth.get_user_info")
+    @patch("perplexity_web_mcp.cli.auth.probe_session")
     @patch("perplexity_web_mcp.cli.main.load_token", return_value="valid-token")
     def test_usage_labels_settings_subscription_as_billing_detail(
         self,
         mock_token: MagicMock,
-        mock_user_info_fn: MagicMock,
+        mock_probe_fn: MagicMock,
         mock_cache_fn: MagicMock,
         capsys: pytest.CaptureFixture,
     ) -> None:
+        from perplexity_web_mcp.cli.auth import SessionState
         from perplexity_web_mcp.rate_limits import UserSettings
 
         mock_user_info = MagicMock()
         mock_user_info.tier_display = "Pro ($20/mo)"
-        mock_user_info_fn.return_value = mock_user_info
+        mock_probe_fn.return_value = (SessionState.VALID, mock_user_info)
 
         mock_cache = MagicMock()
         mock_cache.get_rate_limits.return_value = None
@@ -248,6 +250,55 @@ class TestCmdUsage:
         assert "Pro ($20/mo)" in out
         assert "Billing" in out
         assert "yearly" in out
+
+    @patch("perplexity_web_mcp.cli.main.get_limit_cache")
+    @patch("perplexity_web_mcp.cli.auth.probe_session")
+    @patch("perplexity_web_mcp.cli.main.load_token", return_value="expired-token")
+    def test_expired_session_reports_and_skips_limits(
+        self,
+        mock_token: MagicMock,
+        mock_probe_fn: MagicMock,
+        mock_cache_fn: MagicMock,
+        capsys: pytest.CaptureFixture,
+    ) -> None:
+        from perplexity_web_mcp.cli.auth import SessionState
+
+        mock_probe_fn.return_value = (SessionState.EXPIRED, None)
+
+        code = _cmd_usage([])
+
+        assert code == 1
+        out = capsys.readouterr().out
+        assert "SESSION EXPIRED" in out
+        assert "pwm login" in out
+        mock_cache_fn.assert_not_called()
+
+    @patch("perplexity_web_mcp.cli.main.get_limit_cache")
+    @patch("perplexity_web_mcp.cli.auth.probe_session")
+    @patch("perplexity_web_mcp.cli.main.load_token", return_value="valid-token")
+    def test_unreachable_session_warns_but_continues(
+        self,
+        mock_token: MagicMock,
+        mock_probe_fn: MagicMock,
+        mock_cache_fn: MagicMock,
+        capsys: pytest.CaptureFixture,
+    ) -> None:
+        from perplexity_web_mcp.cli.auth import SessionState
+        from perplexity_web_mcp.rate_limits import RateLimits
+
+        mock_probe_fn.return_value = (SessionState.UNREACHABLE, None)
+        mock_cache = MagicMock()
+        mock_cache.get_rate_limits.return_value = RateLimits(remaining_pro=3, remaining_research=0)
+        mock_cache.get_user_settings.return_value = None
+        mock_cache.get_credits.return_value = None
+        mock_cache_fn.return_value = mock_cache
+
+        code = _cmd_usage([])
+
+        assert code == 0
+        out = capsys.readouterr().out
+        assert "SESSION CHECK FAILED" in out
+        assert "Rate Limits" in out
 
 
 class TestCmdConnectors:

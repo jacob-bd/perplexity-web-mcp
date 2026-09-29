@@ -126,7 +126,8 @@ Prefer `pplx_smart_query` unless you need a specific model.
 pplx_query(
     query: str,                    # Required. The question to ask.
     model: str = "auto",           # auto, sonar, deep_research, gpt56_terra, gpt56_sol, grok45, claude_sonnet,
-                                   # claude_opus, gemini_pro, nemotron, glm52, kimi_k26
+                                   # claude_opus, gemini_pro, nemotron, glm52, kimi_k26 (newer identifiers from
+                                   # `pwm models` also work: gpt6_sol, gemini38, claude_opus55, grok47, glm53, kimi_k3)
     thinking: bool = False,        # Enable extended thinking (where supported)
     source_focus: str = "web",     # none, web, academic, social, finance, all, or connector ID from pplx_connectors()
     conversation_id: str = None,   # Optional. Pass ID from previous turn to persist context.

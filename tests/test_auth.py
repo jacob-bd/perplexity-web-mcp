@@ -13,7 +13,7 @@ from perplexity_web_mcp.auth import (
     follow_auth_callback,
     verify_totp,
 )
-from perplexity_web_mcp.cli.auth import get_user_info
+from perplexity_web_mcp.cli.auth import SessionState, get_user_info, probe_session
 from perplexity_web_mcp.constants import API_BASE_URL, API_VERSION, SESSION_COOKIE_NAME
 from perplexity_web_mcp.limits import REST_API_TIMEOUT
 
@@ -146,3 +146,52 @@ class TestGetUserInfo:
 
         with patch("perplexity_web_mcp.cli.auth.Session", return_value=session):
             assert get_user_info("error-token") is None
+
+
+class TestProbeSession:
+    """Verify probe_session distinguishes expired tokens from network failures."""
+
+    def _session(self, status: int, data: dict | None = None) -> MagicMock:
+        session = MagicMock()
+        session.get.return_value = response(status, data=data)
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+        return session
+
+    def test_valid_token_returns_user_info(self) -> None:
+        user_data = {"email": "user@example.com", "subscription_tier": "pro", "subscription_status": "active"}
+
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=self._session(200, user_data)):
+            state, user_info = probe_session("my-secret-token")
+
+        assert state is SessionState.VALID
+        assert user_info is not None
+        assert user_info.email == "user@example.com"
+
+    @pytest.mark.parametrize("status", [401, 403])
+    def test_rejected_token_is_expired(self, status: int) -> None:
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=self._session(status)):
+            state, user_info = probe_session("dead-token")
+
+        assert state is SessionState.EXPIRED
+        assert user_info is None
+
+    @pytest.mark.parametrize("status", [500, 502, 503])
+    def test_server_error_is_unreachable(self, status: int) -> None:
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=self._session(status)):
+            state, user_info = probe_session("some-token")
+
+        assert state is SessionState.UNREACHABLE
+        assert user_info is None
+
+    def test_network_exception_is_unreachable(self) -> None:
+        session = MagicMock()
+        session.get.side_effect = Exception("network error")
+        session.__enter__.return_value = session
+        session.__exit__.return_value = None
+
+        with patch("perplexity_web_mcp.cli.auth.Session", return_value=session):
+            state, user_info = probe_session("some-token")
+
+        assert state is SessionState.UNREACHABLE
+        assert user_info is None

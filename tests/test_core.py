@@ -511,6 +511,94 @@ class TestProcessData:
         assert conv._search_results[0].title == "Source"
         assert conv._search_results[0].url == "https://example.com"
 
+    def test_web_results_accumulate_across_events(self) -> None:
+        conv = self._conv()
+        conv._process_data(
+            {
+                "blocks": [
+                    {
+                        "intended_usage": "web_results",
+                        "web_result_block": {
+                            "progress": "DONE",
+                            "web_results": [{"name": "A", "url": "https://a.example", "snippet": "sa"}],
+                        },
+                    }
+                ]
+            }
+        )
+        conv._process_data(
+            {
+                "blocks": [
+                    {
+                        "intended_usage": "web_results",
+                        "web_result_block": {
+                            "progress": "DONE",
+                            "web_results": [{"name": "B", "url": "https://b.example", "snippet": "sb"}],
+                        },
+                    }
+                ]
+            }
+        )
+
+        assert [item.url for item in conv._search_results] == ["https://a.example", "https://b.example"]
+        assert [item.title for item in conv._search_results] == ["A", "B"]
+
+    def test_web_results_dedupe_by_url_keeping_first(self) -> None:
+        conv = self._conv()
+        conv._process_data(
+            {
+                "blocks": [
+                    {
+                        "intended_usage": "web_results",
+                        "web_result_block": {
+                            "web_results": [{"name": "A", "url": "https://a.example", "snippet": "sa"}],
+                        },
+                    }
+                ]
+            }
+        )
+        conv._process_data(
+            {
+                "blocks": [
+                    {
+                        "intended_usage": "web_results",
+                        "web_result_block": {
+                            "web_results": [
+                                {"name": "A renamed", "url": "https://a.example", "snippet": "sa2"},
+                                {"name": "C", "url": "https://c.example", "snippet": "sc"},
+                            ],
+                        },
+                    }
+                ]
+            }
+        )
+
+        assert [item.url for item in conv._search_results] == ["https://a.example", "https://c.example"]
+        assert conv._search_results[0].title == "A"
+
+    def test_multiple_web_result_blocks_in_one_event_merge_in_order(self) -> None:
+        conv = self._conv()
+        conv._process_data(
+            {
+                "blocks": [
+                    {
+                        "intended_usage": "web_results",
+                        "web_result_block": {
+                            "web_results": [{"name": "A", "url": "https://a.example", "snippet": "sa"}],
+                        },
+                    },
+                    {
+                        "intended_usage": "web_results",
+                        "web_result_block": {
+                            "web_results": [{"name": "B", "url": "https://b.example", "snippet": "sb"}],
+                        },
+                    },
+                ]
+            }
+        )
+
+        assert [item.url for item in conv._search_results] == ["https://a.example", "https://b.example"]
+
     def test_blocks_only_chunks_reconstruct_answer(self) -> None:
         conv = self._conv()
         conv._process_data(

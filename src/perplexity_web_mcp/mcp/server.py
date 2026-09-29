@@ -107,10 +107,12 @@ def pplx_query(
 
     Args:
         query: The question to ask
-        model: Model to use - auto, sonar, deep_research, gpt56_terra, gpt56_sol, grok45,
-               claude_sonnet, claude_opus, gemini_pro, nemotron, glm52, kimi_k26
-        thinking: Enable extended thinking mode (available for gpt56_terra, gpt56_sol, grok45, claude_sonnet,
-                  claude_opus, kimi_k26; always on for gemini_pro, nemotron, and glm52)
+        model: Model to use - auto, sonar, deep_research, gpt56_terra, gpt56_sol, gpt6_sol, grok45,
+               grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron,
+               glm52, glm53, kimi_k26, kimi_k3 (any live catalog identifier is also accepted)
+        thinking: Enable extended thinking mode (available for gpt56_terra, gpt56_sol, gpt6_sol, grok45,
+                  grok47, claude_sonnet, claude_opus, claude_opus55, gemini38, kimi_k26; always on for
+                  gemini_pro, nemotron, glm52, glm53, and kimi_k3)
         source_focus: Source type - none (model only, no search), web, academic,
                       social, finance, all, or connector source ID from pplx_connectors()
     """

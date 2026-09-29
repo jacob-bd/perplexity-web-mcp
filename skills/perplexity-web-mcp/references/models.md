@@ -2,6 +2,9 @@
 
 Complete list of models available through Perplexity Web MCP.
 
+The catalog is server-driven. Run `pwm models` (free, no query quota) to print the live list and
+current tier labels; every identifier it shows is accepted by `pwm ask -m` and `pplx_query`.
+
 ## Model Details
 
 ### auto (Perplexity Best)
@@ -44,6 +47,14 @@ Complete list of models available through Perplexity Web MCP.
 - **MCP:** `pplx_gpt56_sol(query)` or `pplx_gpt56_sol_thinking(query)`
 - **Notes:** OpenAI's most powerful model. Requires Perplexity **Max** subscription tier ($200/mo).
 
+### gpt6_sol (OpenAI GPT-6 Sol)
+
+- **Identifier:** `gpt6_sol` / `gpt6_sol_thinking`
+- **Thinking:** Toggle (use `-t` flag or `thinking=True`)
+- **CLI:** `pwm ask "query" -m gpt6_sol` or `pwm ask "query" -m gpt6_sol -t`
+- **MCP:** `pplx_query(query, model="gpt6_sol")` or `pplx_query(query, model="gpt6_sol", thinking=True)`
+- **Notes:** OpenAI's newest model. Availability follows your Perplexity plan; the live picker labels it Pro tier.
+
 ### grok45 (xAI Grok 4.5)
 
 - **Identifier:** `grok45low` / `grok45medium`
@@ -51,6 +62,14 @@ Complete list of models available through Perplexity Web MCP.
 - **CLI:** `pwm ask "query" -m grok45` or `pwm ask "query" -m grok45 -t`
 - **MCP:** `pplx_grok45(query)` or `pplx_grok45_thinking(query)`
 - **Notes:** xAI's most advanced model.
+
+### grok47 (xAI Grok 4.7)
+
+- **Identifier:** `grok47` / `grok47thinking`
+- **Thinking:** Toggle (use `-t` flag or `thinking=True`)
+- **CLI:** `pwm ask "query" -m grok47` or `pwm ask "query" -m grok47 -t`
+- **MCP:** `pplx_query(query, model="grok47")` or `pplx_query(query, model="grok47", thinking=True)`
+- **Notes:** xAI's newest model.
 
 ### claude_sonnet (Anthropic Claude Sonnet 5)
 
@@ -67,6 +86,14 @@ Complete list of models available through Perplexity Web MCP.
 - **MCP:** `pplx_claude_opus(query)` or `pplx_claude_opus_think(query)`
 - **Notes:** Requires Perplexity **Max** subscription tier ($200/mo).
 
+### claude_opus55 (Anthropic Claude Opus 5.5)
+
+- **Identifier:** `claude55opus` / `claude55opusthinking`
+- **Thinking:** Toggle
+- **CLI:** `pwm ask "query" -m claude_opus55` or `pwm ask "query" -m claude_opus55 -t`
+- **MCP:** `pplx_query(query, model="claude_opus55")` or `pplx_query(query, model="claude_opus55", thinking=True)`
+- **Notes:** Anthropic's newest flagship. Requires Perplexity **Max** subscription tier per the live picker.
+
 ### gemini_pro (Google Gemini 3.1 Pro)
 
 - **Identifier:** `gemini31pro_high`
@@ -74,6 +101,14 @@ Complete list of models available through Perplexity Web MCP.
 - **CLI:** `pwm ask "query" -m gemini_pro`
 - **MCP:** `pplx_gemini_pro_think(query)` or `pplx_query(query, model="gemini_pro")`
 - **Notes:** Thinking is permanently enabled. The `-t` flag has no effect.
+
+### gemini38 (Google Gemini 3.8 Flash)
+
+- **Identifier:** `gemini38flash` / `gemini38flashthinking`
+- **Thinking:** Toggle (use `-t` flag or `thinking=True`)
+- **CLI:** `pwm ask "query" -m gemini38` or `pwm ask "query" -m gemini38 -t`
+- **MCP:** `pplx_query(query, model="gemini38")` or `pplx_query(query, model="gemini38", thinking=True)`
+- **Notes:** Google's newest fast model.
 
 ### nemotron (NVIDIA Nemotron 3 Ultra)
 
@@ -91,6 +126,14 @@ Complete list of models available through Perplexity Web MCP.
 - **MCP:** `pplx_glm52(query)` or `pplx_query(query, model="glm52")`
 - **Notes:** Z.ai's GLM 5.2 model. Thinking is permanently enabled.
 
+### glm53 (Z.ai GLM 5.3)
+
+- **Identifier:** `glm_5_3_thinking`
+- **Thinking:** Always on (no non-thinking variant)
+- **CLI:** `pwm ask "query" -m glm53`
+- **MCP:** `pplx_query(query, model="glm53")`
+- **Notes:** Z.ai's newest model. Thinking is permanently enabled.
+
 ### kimi_k26 (Moonshot Kimi K2.6)
 
 - **Identifier:** `kimik26instant` / `kimik26thinking`
@@ -99,10 +142,18 @@ Complete list of models available through Perplexity Web MCP.
 - **MCP:** `pplx_kimi_k26(query)` or `pplx_kimi_k26_thinking(query)`
 - **Notes:** Moonshot AI's latest model. Costs 1 Pro Search regardless of source_focus — premium model access is what triggers the quota, not web search.
 
+### kimi_k3 (Moonshot Kimi K3)
+
+- **Identifier:** `kimik3thinking`
+- **Thinking:** Always on (no non-thinking variant)
+- **CLI:** `pwm ask "query" -m kimi_k3`
+- **MCP:** `pplx_query(query, model="kimi_k3")`
+- **Notes:** Moonshot AI's newest model. Thinking is permanently enabled.
+
 ## Subscription Tiers
 
-| Tier | Cost    | Pro Search  | Deep Research | Claude Opus | GPT-5.6 Sol |
-| ---- | ------- | ----------- | ------------- | ----------- | ------- |
-| Free | $0      | 3/day       | 1/month       | No          | No      |
-| Pro  | $20/mo  | Weekly pool | Monthly pool  | No          | No      |
-| Max  | $200/mo | Weekly pool | Monthly pool  | Yes         | Yes     |
+| Tier | Cost    | Pro Search  | Deep Research | Claude Opus 5.5 | GPT-5.6 Sol |
+| ---- | ------- | ----------- | ------------- | --------------- | ----------- |
+| Free | $0      | 3/day       | 1/month       | No              | No          |
+| Pro  | $20/mo  | Weekly pool | Monthly pool  | No              | No          |
+| Max  | $200/mo | Weekly pool | Monthly pool  | Yes             | Yes         |

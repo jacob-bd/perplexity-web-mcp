@@ -14,6 +14,7 @@ from threading import Lock
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
+from .catalog import cached_live_model, cached_search_identifiers
 from .config import ClientConfig, ConversationConfig
 from .connector_policy import (
     BUILTIN_SOURCE_IDS,
@@ -96,7 +97,14 @@ MODEL_METADATA: dict[str, ModelDefinition] = {
         "OpenAI",
         minimum_tier="max",
     ),
+    "gpt6_sol": ModelDefinition(
+        Models.GPT_6_SOL,
+        Models.GPT_6_SOL_THINKING,
+        "GPT-6 Sol",
+        "OpenAI",
+    ),
     "grok45": ModelDefinition(Models.GROK_45, Models.GROK_45_THINKING, "Grok 4.5", "xAI"),
+    "grok47": ModelDefinition(Models.GROK_47, Models.GROK_47_THINKING, "Grok 4.7", "xAI"),
     "claude_sonnet": ModelDefinition(
         Models.CLAUDE_50_SONNET,
         Models.CLAUDE_50_SONNET_THINKING,
@@ -110,10 +118,23 @@ MODEL_METADATA: dict[str, ModelDefinition] = {
         "Anthropic",
         minimum_tier="max",
     ),
+    "claude_opus55": ModelDefinition(
+        Models.CLAUDE_55_OPUS,
+        Models.CLAUDE_55_OPUS_THINKING,
+        "Claude Opus 5.5",
+        "Anthropic",
+        minimum_tier="max",
+    ),
     "gemini_pro": ModelDefinition(
         Models.GEMINI_31_PRO_THINKING,
         Models.GEMINI_31_PRO_THINKING,
         "Gemini 3.1 Pro",
+        "Google",
+    ),
+    "gemini38": ModelDefinition(
+        Models.GEMINI_38_FLASH,
+        Models.GEMINI_38_FLASH_THINKING,
+        "Gemini 3.8 Flash",
         "Google",
     ),
     "nemotron": ModelDefinition(
@@ -128,7 +149,14 @@ MODEL_METADATA: dict[str, ModelDefinition] = {
         "GLM 5.2",
         "Z.ai",
     ),
+    "glm53": ModelDefinition(
+        Models.GLM_5_3,
+        Models.GLM_5_3,
+        "GLM 5.3",
+        "Z.ai",
+    ),
     "kimi_k26": ModelDefinition(Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING, "Kimi K2.6", "Moonshot"),
+    "kimi_k3": ModelDefinition(Models.KIMI_K3, Models.KIMI_K3, "Kimi K3", "Moonshot"),
 }
 """User-facing model metadata. Update this table when model names or tier availability changes."""
 
@@ -143,17 +171,47 @@ ModelName = Literal[
     "deep_research",
     "gpt56_terra",
     "gpt56_sol",
+    "gpt6_sol",
     "grok45",
+    "grok47",
     "claude_sonnet",
     "claude_opus",
+    "claude_opus55",
     "gemini_pro",
+    "gemini38",
     "nemotron",
     "glm52",
+    "glm53",
     "kimi_k26",
+    "kimi_k3",
 ]
 
 MODEL_NAMES: list[str] = list(MODEL_MAP.keys())
 SOURCE_FOCUS_NAMES: list[str] = list(SOURCE_FOCUS_MAP.keys())
+
+
+def known_model_names() -> list[str]:
+    """Static model keys plus any extra search identifiers from the cached live catalog."""
+    names = list(MODEL_MAP.keys())
+    try:
+        names.extend(identifier for identifier in cached_search_identifiers() if identifier not in MODEL_MAP)
+    except Exception:  # noqa: BLE001 - live catalog is best-effort
+        pass
+    return names
+
+
+def is_live_catalog_model(name: str) -> bool:
+    """Whether the name is a search identifier present in the cached live catalog."""
+    try:
+        return name in cached_search_identifiers()
+    except Exception:  # noqa: BLE001 - live catalog is best-effort
+        return False
+
+
+def is_known_model(name: str) -> bool:
+    """Whether a model key is valid (static catalog or cached live identifier)."""
+    return name in MODEL_MAP or is_live_catalog_model(name)
+
 
 COUNCIL_DISPLAY_NAMES: dict[str, str] = {name: definition.display_name for name, definition in MODEL_METADATA.items()}
 
@@ -191,14 +249,23 @@ def build_council_model_list(
 def resolve_model(name: str, thinking: bool = False) -> Model:
     """Resolve a model name string to a Model instance.
 
+    Falls back to the cached live catalog for identifiers newer than the static
+    map, and finally to Models.BEST for unknown names.
+
     Args:
-        name: Model name key (e.g. "gpt52", "claude_sonnet").
+        name: Model name key (e.g. "gpt56_terra", "claude_sonnet") or a live
+            catalog identifier (e.g. "gpt6_sol").
         thinking: Whether to use the thinking variant if available.
 
     Returns:
-        The resolved Model. Falls back to Models.BEST for unknown names.
+        The resolved Model.
     """
-    model_tuple = MODEL_MAP.get(name, (Models.BEST, None))
+    model_tuple = MODEL_MAP.get(name)
+    if model_tuple is None:
+        live_model = cached_live_model(name, thinking=thinking)
+        if live_model is not None:
+            return live_model
+        model_tuple = (Models.BEST, None)
     base_model, thinking_model = model_tuple
     return thinking_model if thinking and thinking_model else base_model
 

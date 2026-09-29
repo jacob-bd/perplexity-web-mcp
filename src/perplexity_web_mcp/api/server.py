@@ -53,6 +53,7 @@ from perplexity_web_mcp import ConversationConfig, Models, Perplexity, ResponseP
 # Tool calling disabled for now - models don't reliably follow format instructions
 # from perplexity_web_mcp.api.tool_calling import (...)
 from perplexity_web_mcp.api.session_manager import ConversationManager
+from perplexity_web_mcp.catalog import cached_live_model, cached_search_identifiers
 from perplexity_web_mcp.enums import CitationMode
 from perplexity_web_mcp.models import Model
 from perplexity_web_mcp.token_store import load_token
@@ -112,7 +113,7 @@ class ServerConfig:
         # Try to load from token store (env var or ~/.config/perplexity-web-mcp/token)
         session_token = load_token()
         if not session_token:
-            raise ValueError("No Perplexity session token found. Run 'pwm-auth' to authenticate.")
+            raise ValueError("No Perplexity session token found. Run 'pwm login' to authenticate.")
 
         return cls(
             session_token=session_token,
@@ -170,6 +171,10 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "claude-opus-4-5": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
     "claude-4-5-opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
     "claude-opus-4-5-20251101": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
+    # Claude Opus 5.5 - supports thinking (requires Max subscription)
+    "claude-opus-5-5": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-5-5-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude55opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
     # Claude Code default model aliases (for compatibility)
     # These allow `claude --model claude-3-5-sonnet` to work
     "claude-3-5-sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
@@ -192,9 +197,14 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "gpt-5.6-sol": (Models.GPT_56_SOL, Models.GPT_56_SOL_THINKING),
     "gpt-5-6-sol": (Models.GPT_56_SOL, Models.GPT_56_SOL_THINKING),
     "gpt56_sol": (Models.GPT_56_SOL, Models.GPT_56_SOL_THINKING),
+    "gpt-6-sol": (Models.GPT_6_SOL, Models.GPT_6_SOL_THINKING),
+    "gpt6_sol": (Models.GPT_6_SOL, Models.GPT_6_SOL_THINKING),
     "grok-4.5": (Models.GROK_45, Models.GROK_45_THINKING),
     "grok-4-5": (Models.GROK_45, Models.GROK_45_THINKING),
     "grok45": (Models.GROK_45, Models.GROK_45_THINKING),
+    "grok-4.7": (Models.GROK_47, Models.GROK_47_THINKING),
+    "grok-4-7": (Models.GROK_47, Models.GROK_47_THINKING),
+    "grok47": (Models.GROK_47, Models.GROK_47_THINKING),
     # ==========================================================================
     # Google Gemini Models (via Perplexity)
     # Gemini 3.1 Pro: thinking ALWAYS enabled (no toggle in UI)
@@ -202,6 +212,10 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "gemini-3.1-pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
     "gemini-3-pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
     "gemini-pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
+    # Gemini 3.8 Flash: supports thinking toggle
+    "gemini-3.8-flash": (Models.GEMINI_38_FLASH, Models.GEMINI_38_FLASH_THINKING),
+    "gemini-3-8-flash": (Models.GEMINI_38_FLASH, Models.GEMINI_38_FLASH_THINKING),
+    "gemini38flash": (Models.GEMINI_38_FLASH, Models.GEMINI_38_FLASH_THINKING),
     # ==========================================================================
     # NVIDIA Nemotron 3 Ultra (via Perplexity)
     # Thinking ALWAYS enabled (no toggle in UI) - reasoning only
@@ -217,6 +231,10 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "glm-5-2": (Models.GLM_5_2, Models.GLM_5_2),
     "glm52": (Models.GLM_5_2, Models.GLM_5_2),
     "glm": (Models.GLM_5_2, Models.GLM_5_2),
+    # Z.ai GLM 5.3 - thinking ALWAYS enabled (no toggle in UI)
+    "glm-5.3": (Models.GLM_5_3, Models.GLM_5_3),
+    "glm-5-3": (Models.GLM_5_3, Models.GLM_5_3),
+    "glm53": (Models.GLM_5_3, Models.GLM_5_3),
     # ==========================================================================
     # Moonshot Kimi Models (via Perplexity)
     # Kimi K2.6 - supports thinking toggle
@@ -224,10 +242,13 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "kimi-k2.6": (Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING),
     "kimi-k2-6": (Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING),
     "kimi": (Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING),
+    # Moonshot Kimi K3 - thinking ALWAYS enabled (no toggle in UI)
+    "kimi-k3": (Models.KIMI_K3, Models.KIMI_K3),
+    "kimi-k-3": (Models.KIMI_K3, Models.KIMI_K3),
 }
 
 # Models we expose via /v1/models
-# Ordered to match Perplexity UI search models (Jul 2026)
+# Ordered to match Perplexity UI search models (Sep 2026)
 AVAILABLE_MODELS = [
     # Perplexity Native
     {"id": "perplexity-auto", "description": "Best - Automatically selects optimal model"},
@@ -236,17 +257,23 @@ AVAILABLE_MODELS = [
     # OpenAI
     {"id": "gpt-5.6-terra", "description": "GPT-5.6 Terra - OpenAI's versatile model, thinking toggle available"},
     {"id": "gpt-5.6-sol", "description": "GPT-5.6 Sol - OpenAI's most powerful model, Max tier required"},
+    {"id": "gpt-6-sol", "description": "GPT-6 Sol - OpenAI's newest model, thinking toggle available"},
     # Google Gemini
     {"id": "gemini-3.1-pro", "description": "Gemini 3.1 Pro - Advanced, thinking always on"},
+    {"id": "gemini-3.8-flash", "description": "Gemini 3.8 Flash - Google's newest fast model, thinking toggle available"},
     # Anthropic Claude
     {"id": "claude-sonnet-5", "description": "Claude Sonnet 5 - Fast, thinking toggle available"},
     {"id": "claude-opus-4-8", "description": "Claude Opus 4.8 - Advanced reasoning, Max tier required"},
+    {"id": "claude-opus-5-5", "description": "Claude Opus 5.5 - Anthropic's most powerful model, Max tier required"},
     # Z.ai
     {"id": "glm-5.2", "description": "GLM 5.2 - Z.ai advanced model, thinking always on"},
+    {"id": "glm-5.3", "description": "GLM 5.3 - Z.ai newest model, thinking always on"},
     # Moonshot
     {"id": "kimi-k2.6", "description": "Kimi K2.6 - Advanced, thinking toggle available"},
+    {"id": "kimi-k3", "description": "Kimi K3 - Moonshot's newest model, thinking always on"},
     # xAI
     {"id": "grok-4.5", "description": "Grok 4.5 - xAI's most advanced model, thinking toggle available"},
+    {"id": "grok-4.7", "description": "Grok 4.7 - xAI's newest model, thinking toggle available"},
     # NVIDIA
     {"id": "nemotron-3-ultra", "description": "Nemotron 3 Ultra - NVIDIA 550B, thinking always on"},
 ]
@@ -264,6 +291,10 @@ def get_model(name: str, thinking: bool = False) -> Model:
         if thinking and thinking_model:
             return thinking_model
         return base
+    # Live catalog identifiers (e.g. gpt6_sol) resolve straight through.
+    live_model = cached_live_model(key, thinking=thinking)
+    if live_model is not None:
+        return live_model
     # Default to auto
     logging.warning(f"Unknown model '{name}', using perplexity-auto")
     return Models.BEST
@@ -852,7 +883,13 @@ async def list_models(request: Request):
     verify_auth(request)
 
     now = int(time.time())
-    return ModelsListResponse(data=[ModelObject(id=m["id"], created=now) for m in AVAILABLE_MODELS])
+    data = [ModelObject(id=m["id"], created=now) for m in AVAILABLE_MODELS]
+    seen = {model.id for model in data}
+    for identifier in cached_search_identifiers():
+        if identifier not in seen:
+            data.append(ModelObject(id=identifier, created=now))
+            seen.add(identifier)
+    return ModelsListResponse(data=data)
 
 
 @app.post("/v1/messages")
@@ -1157,7 +1194,7 @@ async def stream_response(
             if "403" in payload or "forbidden" in payload.lower():
                 error_msg = (
                     "Session token expired (403). "
-                    "Re-authenticate: pwm-auth --email EMAIL, then pwm-auth --email EMAIL --code CODE"
+                    "Re-authenticate: pwm login --email EMAIL, then pwm login --email EMAIL --code CODE"
                 )
             error_delta = {
                 "type": "content_block_delta",

@@ -42,6 +42,8 @@ from perplexity_web_mcp.shared import (
     get_connector_sources,
     get_limit_cache,
     get_thread,
+    is_known_model,
+    is_live_catalog_model,
     list_threads,
     resolve_model,
     resolve_source_focus,
@@ -141,8 +143,12 @@ def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations
     try:
         explicit_model = model_name != "auto"
         if explicit_model:
-            if model_name not in MODEL_MAP:
-                print(f"Error: Unknown model '{model_name}'. Available: {', '.join(MODEL_NAMES)}", file=sys.stderr)
+            if not is_known_model(model_name):
+                print(
+                    f"Error: Unknown model '{model_name}'. Available: {', '.join(MODEL_NAMES)}. "
+                    "Live catalog identifiers are also accepted (run 'pwm models' to list them).",
+                    file=sys.stderr,
+                )
                 return 1
 
             model = resolve_model(model_name, thinking=thinking)
@@ -484,9 +490,11 @@ def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinki
     # Validate model names
     model_names = [m.strip() for m in models_str.split(",") if m.strip()]
     for name in model_names:
-        if name not in COUNCIL_MODEL_NAMES:
+        if name not in COUNCIL_MODEL_NAMES and not is_live_catalog_model(name):
             print(
-                f"Error: Unknown council model '{name}'. Available: {', '.join(COUNCIL_MODEL_NAMES)}", file=sys.stderr
+                f"Error: Unknown council model '{name}'. Available: {', '.join(COUNCIL_MODEL_NAMES)}. "
+                "Live catalog identifiers are also accepted (run 'pwm models' to list them).",
+                file=sys.stderr,
             )
             return 1
 
@@ -494,8 +502,12 @@ def _cmd_council_impl(query, models_str, source, synthesize, json_output, thinki
         print("Error: Council requires at least 2 models.", file=sys.stderr)
         return 1
 
-    if chairman not in MODEL_NAMES:
-        print(f"Error: Unknown chairman model '{chairman}'. Available: {', '.join(MODEL_NAMES)}", file=sys.stderr)
+    if chairman not in MODEL_NAMES and not is_live_catalog_model(chairman):
+        print(
+            f"Error: Unknown chairman model '{chairman}'. Available: {', '.join(MODEL_NAMES)}. "
+            "Live catalog identifiers are also accepted (run 'pwm models' to list them).",
+            file=sys.stderr,
+        )
         return 1
 
     if chairman != "sonar" and synthesize:
@@ -624,6 +636,27 @@ def _cmd_usage_impl(refresh):
         )
         return 1
 
+    from perplexity_web_mcp.cli.auth import SessionState, probe_session
+
+    state, user_info = probe_session(token)
+    if state is SessionState.EXPIRED:
+        console.print(
+            Panel(
+                "[bold red]SESSION EXPIRED[/]\n\nThe saved token was rejected by Perplexity. "
+                "Re-authenticate with: [cyan]pwm login[/]",
+                title="⚠️  Session Expired",
+            )
+        )
+        return 1
+    if state is SessionState.UNREACHABLE:
+        console.print(
+            Panel(
+                "[bold yellow]SESSION CHECK FAILED[/]\n\nCould not reach Perplexity to verify the saved token "
+                "(network or Cloudflare issue). Results below may be incomplete; run [cyan]pwm doctor[/] if this persists.",
+                title="⚠️  Session Check",
+            )
+        )
+
     cache = get_limit_cache()
     if cache is None:
         console.print("[red]ERROR:[/] Could not initialize limit cache.")
@@ -668,9 +701,6 @@ def _cmd_usage_impl(refresh):
 
     # ── Account Info ───────────────────────────────────────────────────────
     settings = cache.get_user_settings(force_refresh=refresh)
-    from perplexity_web_mcp.cli.auth import get_user_info
-
-    user_info = get_user_info(token)
     if settings or user_info:
         table = Table(title="👤 Account", show_header=True, header_style="bold cyan")
         table.add_column("Field", style="bold")
@@ -802,6 +832,96 @@ def _cmd_connectors_list(refresh: bool = False) -> int:
         )
 
     console.print(table)
+    return 0
+
+
+# ── Models ─────────────────────────────────────────────────────────────────
+
+
+@cli.command()
+@click.option("--refresh", is_flag=True, help="Force a fresh fetch from the live Perplexity catalog.")
+@click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON.")
+def models(refresh, as_json):
+    """List search models from the live Perplexity catalog (FREE).
+
+    \b
+    Examples:
+      pwm models
+      pwm models --refresh
+      pwm models --json
+    """
+    code = _cmd_models_impl(refresh, as_json)
+    raise SystemExit(code)
+
+
+def _cmd_models_impl(refresh, as_json):
+    """Implementation for models command."""
+    from dataclasses import asdict
+    import json
+
+    from perplexity_web_mcp.catalog import get_catalog
+    from perplexity_web_mcp.shared import MODEL_METADATA
+
+    entries = get_catalog(refresh=refresh)
+
+    if as_json:
+        if entries is None:
+            payload = [
+                {
+                    "key": name,
+                    "display_name": definition.display_name,
+                    "provider": definition.provider,
+                    "minimum_tier": definition.minimum_tier,
+                    "source": "static",
+                }
+                for name, definition in MODEL_METADATA.items()
+            ]
+        else:
+            payload = [{**asdict(entry), "source": "live"} for entry in entries]
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+
+    if entries is None:
+        console.print("[yellow]Live catalog unavailable (offline or fetch failed) — showing static fallback.[/]")
+        table = Table(title="Models (static fallback)", show_header=True, header_style="bold cyan")
+        table.add_column("Key", style="bold")
+        table.add_column("Model")
+        table.add_column("Provider")
+        table.add_column("Min Tier", justify="center")
+        for name, definition in MODEL_METADATA.items():
+            table.add_row(name, definition.display_name, definition.provider, definition.minimum_tier)
+        console.print(table)
+        return 0
+
+    table = Table(title="Models (live catalog)", show_header=True, header_style="bold cyan")
+    table.add_column("Model", style="bold")
+    table.add_column("Identifiers")
+    table.add_column("Min Tier", justify="center")
+    table.add_column("Flags", justify="center")
+
+    grouped = {}
+    for entry in entries:
+        group = grouped.setdefault(entry.row_label, {"identifiers": [], "tier": entry.tier, "flags": []})
+        group["identifiers"].append(entry.identifier)
+        if entry.is_new and "New" not in group["flags"]:
+            group["flags"].append("New")
+        if entry.is_default and "Default" not in group["flags"]:
+            group["flags"].append("Default")
+
+    for row_label, group in grouped.items():
+        table.add_row(
+            row_label,
+            ", ".join(group["identifiers"]),
+            (str(group["tier"]).upper() if group["tier"] else ""),
+            ", ".join(group["flags"]),
+        )
+    console.print(table)
+    console.print("[dim]Identifiers work with [cyan]pwm ask -m <identifier>[/]; the list mirrors the website picker.[/]")
     return 0
 
 

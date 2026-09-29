@@ -53,6 +53,14 @@ class SubscriptionTier(Enum):
         return cls.UNKNOWN
 
 
+class SessionState(str, Enum):
+    """Liveness of a stored session token, as reported by GET /api/user."""
+
+    VALID = "valid"
+    EXPIRED = "expired"
+    UNREACHABLE = "unreachable"
+
+
 @dataclass
 class UserInfo:
     """User information from Perplexity API."""
@@ -96,8 +104,13 @@ class UserInfo:
         }.get(self.subscription_tier, "Unknown")
 
 
-def get_user_info(token: str) -> UserInfo | None:
-    """Fetch user info from Perplexity API."""
+def probe_session(token: str) -> tuple[SessionState, UserInfo | None]:
+    """Classify a stored session token against ``GET /api/user``.
+
+    Unlike :func:`get_user_info`, this distinguishes a rejected token
+    (HTTP 401/403) from a transient network failure, so callers can tell the
+    user *why* the session looks logged out.
+    """
     import logging
 
     _logger = logging.getLogger(__name__)
@@ -116,10 +129,25 @@ def get_user_info(token: str) -> UserInfo | None:
         with Session(**session_kwargs) as session:
             response = session.get(f"{BASE_URL}/api/user")
             if response.status_code == 200:
-                return UserInfo.from_api(response.json())
-            _logger.debug(f"get_user_info: HTTP {response.status_code}")
+                try:
+                    return SessionState.VALID, UserInfo.from_api(response.json())
+                except Exception as exc:
+                    _logger.debug(f"probe_session: failed to parse user info: {exc}")
+                    return SessionState.VALID, None
+            if response.status_code in (401, 403):
+                return SessionState.EXPIRED, None
+            _logger.debug(f"probe_session: HTTP {response.status_code}")
+            return SessionState.UNREACHABLE, None
     except Exception as exc:
-        _logger.debug(f"get_user_info failed: {exc}")
+        _logger.debug(f"probe_session failed: {exc}")
+        return SessionState.UNREACHABLE, None
+
+
+def get_user_info(token: str) -> UserInfo | None:
+    """Fetch user info from Perplexity API (None when rejected or unreachable)."""
+    state, user_info = probe_session(token)
+    if state is SessionState.VALID:
+        return user_info
     return None
 
 
@@ -331,7 +359,7 @@ def main() -> NoReturn:
         token = load_token()
         if not token:
             console.print("[red]Not authenticated.[/red] No saved token found.")
-            console.print("Run [bold]pwm-auth[/bold] to log in.")
+            console.print("Run [bold]pwm login[/bold] to log in.")
             exit(1)
 
         user_info = get_user_info(token)
@@ -341,7 +369,7 @@ def main() -> NoReturn:
             exit(0)
         else:
             console.print("[red]Token expired or invalid.[/red]")
-            console.print("Run [bold]pwm-auth[/bold] to re-authenticate.")
+            console.print("Run [bold]pwm login[/bold] to re-authenticate.")
             exit(1)
 
     if "--email" in args:

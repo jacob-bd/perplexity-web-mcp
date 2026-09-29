@@ -33,6 +33,9 @@ ENDPOINT_RATE_LIMITS: Final[str] = "/rest/rate-limit/all"
 ENDPOINT_USER_SETTINGS: Final[str] = "/rest/user/settings"
 """Endpoint to fetch user settings, subscription info, and connector limits."""
 
+ENDPOINT_MODELS_CONFIG: Final[str] = "/rest/models/config"
+"""Endpoint returning the live, server-driven model catalog for the signed-in account."""
+
 ENDPOINT_LIST_THREADS: Final[str] = "/rest/thread/list_ask_threads"
 """Endpoint to list the authenticated user's Perplexity thread history (paginated)."""
 

@@ -48,7 +48,7 @@ the weekly pool fast, leaving nothing for questions that actually need it.
 
 1. **Check quota first**: Call `pplx_usage()` (MCP) or `pwm usage` (CLI) before your first query.
 2. Review the remaining Pro and Research counts and the `Subscription` line.
-3. If Subscription is Pro, exclude Max-only models (`gpt56_sol`, `claude_opus`) from model selection and councils.
+3. If Subscription is Pro, exclude Max-only models (`gpt56_sol`, `claude_opus`, `claude_opus55`) from model selection and councils.
 4. If Pro < 20% remaining, restrict yourself to quick/Sonar 2 for everything except user-requested Pro queries.
 
 ### Before Every Query: Choose the Lowest Sufficient Tier
@@ -90,8 +90,9 @@ Ask yourself: **"Can Sonar 2 answer this?"** If yes, use `quick`. Only escalate 
 - The user needs high-confidence answers validated across multiple AI providers
 - Important decisions, fact-checking, or complex analysis
 - BEFORE calling: ASK the user which models and how many (each = 1 Pro Search)
-- Available models: sonar, gpt56_terra, gpt56_sol, grok45, claude_sonnet, claude_opus, gemini_pro, nemotron, glm52, kimi_k26
-- Max-only models: gpt56_sol, claude_opus. Do not use these for Pro subscriptions.
+- Available models: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3
+- Max-only models: gpt56_sol, claude_opus, claude_opus55. Do not use these for Pro subscriptions.
+- The catalog is server-driven: `pwm models` prints the live list (free, no query quota) and every identifier it shows works with `-m`.
 - Default: 3 Pro-compatible models (GPT-5.6 Terra, Claude Sonnet, Gemini Pro) + synthesis = 4 Pro Searches
 
 ### Decision Flowchart

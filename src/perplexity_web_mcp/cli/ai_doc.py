@@ -68,9 +68,9 @@ MODEL COUNCIL
   pwm council "query" --json                  Output as JSON
 
   Each model in the council costs 1 Pro Search, plus 1 for synthesis. Default = 4 Pro Searches.
-  Available models: sonar, gpt56_terra, gpt56_sol, grok45, claude_sonnet, claude_opus, gemini_pro, nemotron, glm52, kimi_k26
-  Thinking toggle: -t / --thinking (gpt56_terra, gpt56_sol, grok45, claude_sonnet, claude_opus, kimi_k26 support toggle;
-    gemini_pro, nemotron, and glm52 are always thinking)
+  Available models: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3
+  Thinking toggle: -t / --thinking (gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini38, kimi_k26 support toggle;
+    gemini_pro, nemotron, glm52, glm53, and kimi_k3 are always thinking)
 
   Chairman: --chairman MODEL (default: sonar / Sonar 2). Non-sonar costs 1 extra Pro Search.
 
@@ -95,6 +95,11 @@ USAGE & LIMITS
   pwm usage                           Check remaining rate limits and quotas
   pwm usage --refresh                 Force-refresh from Perplexity servers
 
+MODELS
+  pwm models                          List the live model catalog (free, no query quota)
+  pwm models --refresh                Force a fresh fetch from Perplexity servers
+  pwm models --json                   Output as JSON
+
 HACK (INTEGRATION)
   pwm hack claude                     Launch Claude Code using Perplexity models
   pwm hack claude -m gpt56_terra            Launch Claude Code with a specific model
@@ -116,13 +121,19 @@ sonar           experimental            No         Sonar 2 (concise search mode 
 deep_research   pplx_alpha              No         In-depth reports (monthly quota)
 gpt56_terra           gpt56_terra                   Yes        OpenAI GPT-5.6 Terra (versatile)
 gpt56_sol           gpt56_sol                   Yes        OpenAI GPT-5.6 Sol (latest, Max tier)
+gpt6_sol        gpt6_sol                Yes        OpenAI GPT-6 Sol
 grok45          grok45low                  Yes        xAI Grok 4.5
+grok47          grok47                  Yes        xAI Grok 4.7
 claude_sonnet   claude50sonnet          Yes        Anthropic Claude Sonnet 5
 claude_opus     claude48opus            Yes        Anthropic Claude 4.8 Opus (Max tier)
+claude_opus55   claude55opus            Yes        Anthropic Claude Opus 5.5 (Max tier)
 gemini_pro      gemini31pro_high        Always     Google Gemini 3.1 Pro (thinking only)
+gemini38        gemini38flash           Yes        Google Gemini 3.8 Flash
 nemotron        nv_nemotron_3_ultra     Always     NVIDIA Nemotron 3 Ultra 550B (thinking only)
 glm52           glm_5_2                 Always     Z.ai GLM 5.2 (thinking only)
+glm53           glm_5_3_thinking        Always     Z.ai GLM 5.3 (thinking only)
 kimi_k26        kimi_k26                Yes        Moonshot Kimi K2.6
+kimi_k3         kimik3thinking          Always     Moonshot Kimi K3 (thinking only)
 
 "Thinking" = extended reasoning mode. Models marked "Always" have thinking
 permanently enabled with no non-thinking variant.
@@ -188,8 +199,8 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
                synthesize=True, thinking=False, chairman="sonar")
       Model Council — N PRO SEARCHES (1 per model selected).
       BEFORE CALLING: You MUST ask the user which models and how many.
-      Available: sonar, gpt56_terra, gpt56_sol, grok45, claude_sonnet, claude_opus, gemini_pro, nemotron, glm52, kimi_k26.
-      Max-only: gpt56_sol, claude_opus. Exclude these when Subscription is Pro.
+      Available: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3.
+      Max-only: gpt56_sol, claude_opus, claude_opus55. Exclude these when Subscription is Pro.
       Default: 3 Pro-compatible models (GPT-5.6 Terra, Claude Sonnet, Gemini Pro) + synthesis = 4 Pro Searches.
       Synthesis uses Sonar 2 by default. Set chairman to override.
       Non-sonar chairman costs 1 extra Pro Search.

@@ -260,7 +260,10 @@ AVAILABLE_MODELS = [
     {"id": "gpt-6-sol", "description": "GPT-6 Sol - OpenAI's newest model, thinking toggle available"},
     # Google Gemini
     {"id": "gemini-3.1-pro", "description": "Gemini 3.1 Pro - Advanced, thinking always on"},
-    {"id": "gemini-3.8-flash", "description": "Gemini 3.8 Flash - Google's newest fast model, thinking toggle available"},
+    {
+        "id": "gemini-3.8-flash",
+        "description": "Gemini 3.8 Flash - Google's newest fast model, thinking toggle available",
+    },
     # Anthropic Claude
     {"id": "claude-sonnet-5", "description": "Claude Sonnet 5 - Fast, thinking toggle available"},
     {"id": "claude-opus-4-8", "description": "Claude Opus 4.8 - Advanced reasoning, Max tier required"},

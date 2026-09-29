@@ -30,7 +30,6 @@ from perplexity_web_mcp.shared import (
     COUNCIL_DEFAULT_MODELS_STR,
     COUNCIL_DISPLAY_NAMES,
     COUNCIL_ELIGIBLE_MODEL_NAMES,
-    MODEL_MAP,
     MODEL_NAMES,
     SOURCE_FOCUS_NAMES,
     Models,
@@ -921,7 +920,9 @@ def _cmd_models_impl(refresh, as_json):
             ", ".join(group["flags"]),
         )
     console.print(table)
-    console.print("[dim]Identifiers work with [cyan]pwm ask -m <identifier>[/]; the list mirrors the website picker.[/]")
+    console.print(
+        "[dim]Identifiers work with [cyan]pwm ask -m <identifier>[/]; the list mirrors the website picker.[/]"
+    )
     return 0
 
 

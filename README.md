@@ -245,6 +245,16 @@ pwm usage                  # Check remaining rate limits
 pwm usage --refresh        # Force-refresh from Perplexity servers
 ```
 
+### Models
+
+```bash
+pwm models                 # List the live model catalog (free, no query quota)
+pwm models --refresh       # Force a fresh fetch from Perplexity
+pwm models --json          # Machine-readable output
+```
+
+The catalog mirrors the website model picker with identifiers, tier labels, and "New" flags, and is cached for 24 hours. Any identifier it lists works with `pwm ask -m`, `pwm council -m`, and `pplx_query(model=...)`.
+
 ### Hack
 
 Seamlessly launch external AI tools connected to the Perplexity API server. This automatically starts the local `pwm api` server in the background, sets the required environment variables, and launches the tool.
@@ -565,7 +575,7 @@ The MCP server checks quotas before each query. Use `pwm usage` or `pplx_usage` 
 
 ### Authentication Errors (403)
 
-Session tokens last ~30 days. Re-authenticate when expired:
+Session tokens are long-lived, but Perplexity can invalidate them at any time. Re-authenticate when expired or when `pwm usage` reports a rejected session:
 
 ```bash
 pwm login
@@ -589,6 +599,16 @@ pwm login --email your@email.com --code 123456
 
 If the tool returns `TOTP_REQUIRED`, call it again with
 `pplx_auth_complete(email="your@email.com", totp_code="654321")`.
+
+### Session Expired or Zeroed Limits
+
+If quotas suddenly show all zeros or thread listings come back empty, the saved session may have been invalidated. `pwm usage` detects this case and prints **SESSION EXPIRED** with a re-login hint instead of anonymous zeros:
+
+```bash
+pwm login
+```
+
+`pwm doctor` also verifies the stored session and reports `token invalid or expired` when a fresh login is needed.
 
 ### Blank or Truncated Answers
 

@@ -4,6 +4,25 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.14.14] - 2026-09-28
+
+### Added
+
+- **Live model catalog** — `pwm models` prints the server-driven model list (the search section of the website picker) with identifiers, tier labels, and "New" flags. The catalog is fetched from `/rest/models/config`, cached for 24 hours, and falls back to the built-in table when offline; any identifier it lists works with `pwm ask -m`, councils, and `pplx_query`. ([#49](https://github.com/jacob-bd/perplexity-web-mcp/issues/49))
+- **Current-generation models** — Adds `gpt6_sol`, `gemini38`, `claude_opus55`, `grok47`, `kimi_k3`, and `glm53` aliases (with thinking variants where offered) across the CLI, MCP server, and API-compatible server. Existing aliases are unchanged.
+
+### Fixed
+
+- **Citation lists for multi-step answers** — Streamed `web_results` blocks are accumulated in order and deduplicated by URL instead of keeping only the last block, so appended citation lists match the answer's `[n]` markers. ([#48](https://github.com/jacob-bd/perplexity-web-mcp/issues/48))
+- **Session expiry reporting** — `pwm usage` now distinguishes a rejected session from a network failure and reports `SESSION EXPIRED` with a re-login hint instead of rendering anonymous zero quotas; re-authentication hints now reference `pwm login`.
+- **Trace completeness** — `PWM_TRACE` payload logging no longer truncates raw SSE lines at 400 characters.
+
+### Changed
+
+- **New models via `pplx_query`** — The new generation is reachable through `pplx_query(model=...)` (and `pwm ask -m`); no additional model-specific MCP tools were added.
+
+---
+
 ## [0.14.13] - 2026-09-01
 
 ### Fixed

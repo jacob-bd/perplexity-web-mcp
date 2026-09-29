@@ -69,6 +69,8 @@ pwm ask "Compare React and Vue" -m gpt56_terra
 pwm ask "Explain attention" -m claude_sonnet --thinking
 ```
 
+Run `pwm models` to see the live catalog of models available to your account (free, uses no query quota); any identifier it lists can be passed to `-m`.
+
 ### Deep Research
 
 For comprehensive reports using Perplexity's Deep Research mode:
@@ -96,6 +98,8 @@ See how many Pro Search and Deep Research queries you have left:
 ```bash
 pwm usage
 ```
+
+If the output reports **SESSION EXPIRED**, run `pwm login` to re-authenticate.
 
 ## 5. Set Up MCP for AI Tools
 

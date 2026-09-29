@@ -55,7 +55,8 @@ Supports:
 
 ### GET /v1/models
 
-List available models (OpenAI-compatible format).
+List available models (OpenAI-compatible format). Includes the curated model IDs plus any current
+search identifiers from the cached live catalog (`pwm models --refresh` refreshes that cache).
 
 ### POST /v1/messages/count_tokens
 

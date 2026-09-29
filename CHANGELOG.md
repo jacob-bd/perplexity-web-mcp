@@ -22,6 +22,7 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 - **Chat default model** — `pwm chat` defaults to `sonar`; use `-m auto` for quota-aware routing or `-m MODEL` for a specific model.
 - **Docs and Agent Skill** — README, `pwm --ai`, and the bundled Agent Skill document chat, saved defaults, prompt input, attachments, and the new-generation model aliases.
+- **Community contributions:** Thanks to [@yarco](https://github.com/yarco) for the five reports behind this release: [#50](https://github.com/jacob-bd/perplexity-web-mcp/issues/50), [#51](https://github.com/jacob-bd/perplexity-web-mcp/issues/51), [#52](https://github.com/jacob-bd/perplexity-web-mcp/issues/52), [#53](https://github.com/jacob-bd/perplexity-web-mcp/issues/53), [#54](https://github.com/jacob-bd/perplexity-web-mcp/issues/54).
 
 ---
 

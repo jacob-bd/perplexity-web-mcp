@@ -4,6 +4,27 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.15.0] - 2026-09-29
+
+### Added
+
+- **Interactive terminal chat** — `pwm chat` keeps one Perplexity thread across turns with in-session `/new` (new thread), `/model [NAME]` (show or switch models, including `auto` for quota-aware routing), and `/exit`. It defaults to Sonar 2 and accepts the same `-m`/`-t`/`-s` options as `pwm ask`. ([#54](https://github.com/jacob-bd/perplexity-web-mcp/issues/54))
+- **Saved defaults** — `pwm config set|show|clear` stores a default model, thinking mode, and source. `pwm ask`, `pwm chat`, and MCP `pplx_query` apply those defaults when the matching option is omitted; explicit flags (including `--no-thinking`) always win. ([#51](https://github.com/jacob-bd/perplexity-web-mcp/issues/51))
+- **Prompts from stdin or file** — `pwm ask -` reads the query from stdin and `--prompt-file PATH` from a UTF-8 file; empty or unreadable input fails before any quota is spent. ([#52](https://github.com/jacob-bd/perplexity-web-mcp/issues/52))
+- **File attachments for `pwm ask`** — Repeatable `--file` attaches PDFs and images through the existing validation and upload path. On Free accounts an attachment may count as a Pro Search. ([#53](https://github.com/jacob-bd/perplexity-web-mcp/issues/53))
+
+### Fixed
+
+- **Multi-turn via `pplx_smart_query`** — The recommended default tool now forwards `conversation_id` and includes the `[Conversation ID: ...]` footer in its response, so follow-up queries continue the same thread. ([#50](https://github.com/jacob-bd/perplexity-web-mcp/issues/50))
+- **`auto` model in `pwm chat`** — Chat now routes `auto` through the same quota-aware logic as `pwm ask`, instead of failing with a model-selection error when Pro quota is unavailable.
+
+### Changed
+
+- **Chat default model** — `pwm chat` defaults to `sonar`; use `-m auto` for quota-aware routing or `-m MODEL` for a specific model.
+- **Docs and Agent Skill** — README, `pwm --ai`, and the bundled Agent Skill document chat, saved defaults, prompt input, attachments, and the new-generation model aliases.
+
+---
+
 ## [0.14.14] - 2026-09-28
 
 ### Added

@@ -424,6 +424,19 @@ class TestSmartResponseFormat:
         routing_idx = output.index("Routing:")
         assert answer_idx < citation_idx < separator_idx < routing_idx
 
+    def test_format_response_appends_conversation_id(self, sample_response: SmartResponse) -> None:
+        resp = SmartResponse(
+            answer=sample_response.answer,
+            citations=sample_response.citations,
+            routing=sample_response.routing,
+            conversation_id="conv-123",
+        )
+        output = resp.format_response()
+        assert output.endswith("[Conversation ID: conv-123]")
+
+    def test_format_response_omits_missing_conversation_id(self, sample_response: SmartResponse) -> None:
+        assert "Conversation ID" not in sample_response.format_response()
+
 
 # ============================================================================
 # 9. SmartResponse.to_dict
@@ -436,6 +449,16 @@ class TestSmartResponseToDict:
         assert d["answer"] == "Quantum computing uses qubits."
         assert d["citations"] == ["[1] https://example.com/quantum"]
         assert "routing" in d
+
+    def test_to_dict_includes_conversation_id(self, sample_response: SmartResponse) -> None:
+        assert sample_response.to_dict()["conversation_id"] is None
+        resp = SmartResponse(
+            answer=sample_response.answer,
+            citations=sample_response.citations,
+            routing=sample_response.routing,
+            conversation_id="conv-123",
+        )
+        assert resp.to_dict()["conversation_id"] == "conv-123"
 
     def test_to_dict_routing_fields(self, sample_response: SmartResponse) -> None:
         d = sample_response.to_dict()

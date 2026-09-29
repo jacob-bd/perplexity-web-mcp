@@ -40,6 +40,9 @@ QUERYING
   pwm connectors list                 List account connector source IDs
   pwm ask "query" --json              Output as JSON (answer + citations)
   pwm ask "query" --no-citations      Suppress citation URLs
+  pwm ask - < file.txt                Read the query from stdin
+  pwm ask --prompt-file file.txt      Read the query from a UTF-8 file
+  pwm ask "query" --file REPORT.pdf   Attach a file (PDF or image, repeatable)
 
   Model selection examples (-m):
     pwm ask "Compare React and Vue" -m gpt56_terra
@@ -80,6 +83,21 @@ MODEL COUNCIL
     pwm council "Quantum computing" -s academic --thinking
     pwm council "React vs Vue" --chairman claude_sonnet
     pwm council "React vs Vue" --no-synthesis --json
+
+CHAT (INTERACTIVE)
+  pwm chat                            Multi-turn chat in one Perplexity thread (default: sonar)
+  pwm chat -m MODEL -t -s SOURCE      Same options as pwm ask
+  pwm chat -m auto                    Quota-aware routing (downgrades when quota is low)
+                                      In-session commands: /new (new thread),
+                                      /model [NAME] (show or switch model), /exit (quit)
+
+SAVED DEFAULTS
+  pwm config show                     Show saved default model, thinking, source
+  pwm config set --model MODEL        Also: --thinking/--no-thinking, --source SOURCE
+  pwm config clear                    Also: pwm config clear model|thinking|source
+                                      Defaults apply to pwm ask, pwm chat, and
+                                      pplx_query when the option is omitted;
+                                      explicit flags always win.
 
 DEEP RESEARCH
   pwm research "query"                In-depth research report (monthly quota)
@@ -187,10 +205,12 @@ SMART QUERY (RECOMMENDED DEFAULT — use this for every query):
       Quota-aware routing. Default to intent='quick' for most lookups (Sonar 2 first).
       Only escalate to 'standard', 'detailed', or 'research' when needed.
       See QUOTA-AWARE QUERYING section above for decision rules.
+      Multi-turn: responses end with [Conversation ID: ...]; pass it back via conversation_id to continue.
 
 QUERY TOOLS (each call costs 1 Pro Search query unless noted):
   pplx_query(query, model="auto", thinking=False, source_focus="web")
       Explicit model selection. 1 PRO SEARCH per call.
+      Omitted model/thinking/source follow saved defaults (pwm config); explicit values win.
 
   pplx_ask(query, source_focus="web")
       Auto-selects best model. 1 PRO SEARCH per call.

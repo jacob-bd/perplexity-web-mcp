@@ -28,7 +28,7 @@ Use your Perplexity Pro/Max subscription to access premium models (Sonar 2, GPT-
 
 ## Features
 
-- **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm council`, `pwm research`, `pwm chat`)
+- **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm chat`, `pwm council`, `pwm research`, `pwm config`)
 - **MCP Server**: MCP tools for AI agents with citations, rate limit checking, and multi-turn context
 - **API Server**: Drop-in Anthropic Messages API and OpenAI Chat Completions API
 - **10 Models**: Sonar 2, GPT-5.6 Terra, GPT-5.6 Sol, Gemini 3.1 Pro, Claude Sonnet 5, Claude Opus 4.8, GLM 5.2, Kimi K2.6, Grok 4.5, and Nemotron 3 Ultra
@@ -104,20 +104,23 @@ pwm login
 # 2. Ask a question
 pwm ask "What is quantum computing?"
 
-# 3. Deep research
+# 3. Chat interactively (keeps one thread across turns)
+pwm chat
+
+# 4. Deep research
 pwm research "agentic AI trends 2026"
 
-# 4. Check your remaining quotas
+# 5. Check your remaining quotas
 pwm usage
 
-# 5. Set up MCP for your AI tools
+# 6. Set up MCP for your AI tools
 pwm setup add all           # Interactive setup for all detected tools
 pwm setup add cursor        # Or add individually
 
-# 6. Install the Agent Skill
+# 7. Install the Agent Skill
 pwm skill install claude-code
 
-# 7. Diagnose any issues
+# 8. Diagnose any issues
 pwm doctor
 ```
 
@@ -183,6 +186,41 @@ pwm ask "What is Rust?" --no-citations
 
 ```bash
 pwm ask "recent advances in protein folding" -m gemini_pro -s academic --json
+```
+
+**Long prompts and attachments:**
+
+```bash
+# Read the prompt from stdin
+cat question.txt | pwm ask -
+
+# Or from a UTF-8 file
+pwm ask --prompt-file question.txt
+
+# Attach PDFs or images (repeatable)
+pwm ask "Summarize the key risks" --file report.pdf
+```
+
+### Interactive Chat
+
+`pwm chat` keeps one Perplexity thread across turns, so follow-up questions stay in context. It defaults to the free Sonar model; use `-m auto` for quota-aware routing, or pin a model with `-m`.
+
+```bash
+pwm chat                                  # defaults to Sonar, web sources
+pwm chat -m auto                          # quota-aware model routing
+pwm chat -m claude_sonnet --thinking      # start with a specific model
+```
+
+In-session commands: `/new` starts a fresh thread, `/model [NAME]` shows or switches the model, `/exit` (or `/quit`, or Ctrl-D) quits.
+
+### Saved Defaults
+
+Save a preferred model, thinking mode, and source once; `pwm ask`, `pwm chat`, and the MCP `pplx_query` tool apply them whenever the matching option is omitted. Explicit flags always win.
+
+```bash
+pwm config set --model grok47 --thinking --source web
+pwm config show
+pwm config clear            # or clear one key: pwm config clear model
 ```
 
 ### Deep Research

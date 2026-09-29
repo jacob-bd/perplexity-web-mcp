@@ -12,6 +12,7 @@ import pytest
 
 from perplexity_web_mcp.mcp import server
 from perplexity_web_mcp.models import Models
+from perplexity_web_mcp.shared import resolve_model
 
 
 def test_current_model_tools_route_to_live_identifiers() -> None:
@@ -28,6 +29,13 @@ def test_current_model_tools_route_to_live_identifiers() -> None:
         for tool, model in cases:
             assert tool.fn("question", "none", "conversation") == "ok"
             mock_ask.assert_called_with("question", model, "none", "conversation")
+
+
+def test_smart_query_forwards_conversation_id() -> None:
+    with patch.object(server, "smart_ask") as mock_smart:
+        mock_smart.return_value.format_response.return_value = "ok"
+        assert server.pplx_smart_query.fn("follow-up", conversation_id="conv-1") == "ok"
+        mock_smart.assert_called_once_with("follow-up", intent="standard", source_focus="web", conversation_id="conv-1")
 
 
 def test_removed_gpt_tools_are_not_exposed() -> None:
@@ -254,3 +262,33 @@ def test_mcp_server_main_port_in_use_guard() -> None:
             with pytest.raises(SystemExit) as exc:
                 server.main(transport="sse", port=8000)
             assert exc.value.code == 1
+
+
+class TestPplxQueryPreferences:
+    """#51: pplx_query resolves saved defaults and explicit values win."""
+
+    def test_saved_model_used_when_omitted(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={"model": "sonar"}),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_query.fn("question") == "ok"
+        assert mock_ask.call_args.args[1] == resolve_model("sonar", thinking=False)
+
+    def test_saved_thinking_and_source_used_when_omitted(self) -> None:
+        prefs = {"thinking": True, "source": "academic"}
+        with (
+            patch.object(server, "load_preferences", return_value=prefs),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_query.fn("question", model="gpt56_terra") == "ok"
+        assert mock_ask.call_args.args[1] == resolve_model("gpt56_terra", thinking=True)
+        assert mock_ask.call_args.args[2] == "academic"
+
+    def test_explicit_model_beats_saved_preference(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={"model": "sonar"}),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_query.fn("question", model="auto") == "ok"
+        assert mock_ask.call_args.args[1] == resolve_model("auto", thinking=False)

@@ -8,7 +8,7 @@ Both the MCP server (mcp/server.py) and CLI (cli/main.py) import from here.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from os import environ
+from os import PathLike, environ
 import re
 from threading import Lock
 from typing import TYPE_CHECKING, Literal
@@ -468,6 +468,7 @@ def _execute_query(
     sources: list[str],
     search_focus: SearchFocus = SearchFocus.WEB,
     conversation_id: str | None = None,
+    files: list[str | PathLike] | None = None,
 ) -> tuple[str, list[SearchResultItem], str | None]:
     """Run a single query attempt. Returns (answer_text, search_results, conversation_id).
 
@@ -492,7 +493,7 @@ def _execute_query(
                 read_write_token=session.read_write_token,
             )
 
-    conversation.ask(query)
+    conversation.ask(query, files=files)
 
     cache = get_limit_cache()
     if cache:
@@ -563,6 +564,7 @@ def _execute_with_retry(
     model: Model,
     source_focus: SourceFocusName,
     conversation_id: str | None,
+    files: list[str | PathLike] | None = None,
 ) -> tuple[str, list[SearchResultItem], str | None]:
     """Execute a query with automatic token retry on authentication failure."""
     from .exceptions import AuthenticationError, RateLimitError
@@ -570,35 +572,40 @@ def _execute_with_retry(
     sources, search_mode = resolve_source_focus(source_focus)
 
     try:
-        return _execute_query(query, model, sources, search_mode, conversation_id)
+        return _execute_query(query, model, sources, search_mode, conversation_id, files)
     except AuthenticationError:
         old_token = _client_token
         reset_client()
         new_token = load_token()
         if new_token and new_token != old_token:
             try:
-                return _execute_query(query, model, sources, search_mode, conversation_id)
+                return _execute_query(query, model, sources, search_mode, conversation_id, files)
             except (AuthenticationError, RateLimitError) as retry_err:
                 raise type(retry_err)(_format_error(retry_err)) from retry_err
         else:
             raise
 
 
-def ask(query: str, model: Model, source_focus: SourceFocusName = "web", conversation_id: str | None = None) -> str:
-    """Execute a query with a specific model.
+def ask_turn(
+    query: str,
+    model: Model,
+    source_focus: SourceFocusName = "web",
+    conversation_id: str | None = None,
+    files: list[str | PathLike] | None = None,
+) -> tuple[str, str | None]:
+    """Run one ask turn and return (formatted_response, new_conversation_id).
 
-    Returns the answer text with citations appended.
-    Raises AuthenticationError or RateLimitError on auth/rate-limit failures
-    so MCP servers can signal isError:true to clients.
+    Raises AuthenticationError, RateLimitError, FileValidationError, or
+    FileUploadError so callers can report failures without a formatted answer.
     """
-    from .exceptions import AuthenticationError, RateLimitError
+    from .exceptions import AuthenticationError, FileUploadError, FileValidationError, RateLimitError
 
     try:
-        answer, search_results, new_conv_id = _execute_with_retry(query, model, source_focus, conversation_id)
-    except (AuthenticationError, RateLimitError):
+        answer, search_results, new_conv_id = _execute_with_retry(query, model, source_focus, conversation_id, files)
+    except (AuthenticationError, RateLimitError, FileValidationError, FileUploadError):
         raise
     except Exception as error:
-        return _format_error(error)
+        return _format_error(error), None
 
     response_parts = [answer]
     if search_results:
@@ -612,7 +619,21 @@ def ask(query: str, model: Model, source_focus: SourceFocusName = "web", convers
     if new_conv_id:
         response_parts.append(f"\n\n[Conversation ID: {new_conv_id}]")
 
-    return "".join(response_parts)
+    return "".join(response_parts), new_conv_id
+
+
+def ask(
+    query: str,
+    model: Model,
+    source_focus: SourceFocusName = "web",
+    conversation_id: str | None = None,
+    files: list[str | PathLike] | None = None,
+) -> str:
+    """Execute a query with a specific model.
+
+    Returns the answer text with citations appended.
+    """
+    return ask_turn(query, model, source_focus, conversation_id, files)[0]
 
 
 def _format_error(error: Exception) -> str:
@@ -813,6 +834,7 @@ def smart_ask(
     intent: str = "standard",
     source_focus: SourceFocusName = "web",
     conversation_id: str | None = None,
+    files: list[str | PathLike] | None = None,
 ) -> SmartResponse:
     """Execute a query with automatic quota-aware model routing.
 
@@ -821,7 +843,7 @@ def smart_ask(
     Raises AuthenticationError or RateLimitError so MCP servers can signal
     isError:true to clients.
     """
-    from .exceptions import AuthenticationError, RateLimitError
+    from .exceptions import AuthenticationError, FileUploadError, FileValidationError, RateLimitError
 
     cache = get_limit_cache()
     limits = cache.get_rate_limits() if cache else None
@@ -834,8 +856,10 @@ def smart_ask(
     decision = _router.route(parsed_intent, limits)
 
     try:
-        answer, search_results, new_conv_id = _execute_with_retry(query, decision.model, source_focus, conversation_id)
-    except (AuthenticationError, RateLimitError):
+        answer, search_results, new_conv_id = _execute_with_retry(
+            query, decision.model, source_focus, conversation_id, files
+        )
+    except (AuthenticationError, RateLimitError, FileValidationError, FileUploadError):
         raise
     except Exception as error:
         return SmartResponse(answer=_format_error(error), citations=[], routing=decision, conversation_id=None)

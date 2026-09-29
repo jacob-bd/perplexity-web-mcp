@@ -115,6 +115,8 @@ pplx_smart_query(
 ) -> str
 ```
 
+The response ends with a `[Conversation ID: ...]` footer; pass it back as `conversation_id` to continue the same thread.
+
 ## Query Tools
 
 ### pplx_query
@@ -133,6 +135,8 @@ pplx_query(
     conversation_id: str = None,   # Optional. Pass ID from previous turn to persist context.
 ) -> str
 ```
+
+Omitted `model`, `thinking`, and `source_focus` fall back to saved defaults (set with `pwm config` on the CLI), then to auto/web/off. Explicit values always win.
 
 ### pplx_ask
 
@@ -289,7 +293,7 @@ All query tools return a string containing:
 ### Multi-Turn Conversations (Context Retention)
 
 The `[Conversation ID: <uuid>]` footer allows AI agents to persist context across multiple turns.
-When you receive this ID, extract it and pass it to the `conversation_id` parameter of your next query to continue the same thread. State is retained in memory by the MCP server for 1 hour.
+When you receive this ID, extract it and pass it to the `conversation_id` parameter of your next query (any query tool, including `pplx_smart_query`) to continue the same thread. State is retained in memory by the MCP server for 1 hour.
 
 On error, the response starts with "Error" or "LIMIT REACHED" and includes
 diagnostic information and recovery instructions.

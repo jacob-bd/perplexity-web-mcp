@@ -22,6 +22,7 @@ from perplexity_web_mcp.auth import (
     verify_totp,
 )
 from perplexity_web_mcp.models import Models
+from perplexity_web_mcp.preferences import load_preferences
 from perplexity_web_mcp.shared import (
     COUNCIL_DEFAULT_MODELS_STR,
     ModelName,
@@ -95,15 +96,17 @@ mcp = FastMCP(
 @mcp.tool
 def pplx_query(
     query: str,
-    model: ModelName = "auto",
-    thinking: bool = False,
-    source_focus: SourceFocusName = "web",
+    model: ModelName | None = None,
+    thinking: bool | None = None,
+    source_focus: SourceFocusName | None = None,
     conversation_id: str | None = None,
 ) -> str:
     """Query Perplexity AI with explicit model selection. COSTS 1 PRO SEARCH QUERY per call.
 
     Prefer pplx_smart_query for automatic quota-aware routing. Use this only when
-    you need a specific model or thinking mode.
+    you need a specific model or thinking mode. Omitted model, thinking, and
+    source_focus fall back to saved defaults (set with `pwm config` in the CLI),
+    then to auto/web/off.
 
     Args:
         query: The question to ask
@@ -116,6 +119,14 @@ def pplx_query(
         source_focus: Source type - none (model only, no search), web, academic,
                       social, finance, all, or connector source ID from pplx_connectors()
     """
+    prefs = load_preferences()
+    if model is None:
+        model = prefs.get("model") or "auto"
+    if thinking is None:
+        thinking = bool(prefs.get("thinking", False))
+    if source_focus is None:
+        source_focus = prefs.get("source") or "web"
+
     selected_model = resolve_model(model, thinking=thinking)
     return ask(query, selected_model, source_focus, conversation_id)
 
@@ -332,8 +343,9 @@ def pplx_smart_query(
         intent: Query complexity — quick (default for most), standard, detailed, research
         source_focus: Source type — none (model only, no search), web, academic,
                       social, finance, all, or connector source ID from pplx_connectors()
+        conversation_id: Pass the ID from a previous response to continue that thread
     """
-    result = smart_ask(query, intent=intent, source_focus=source_focus)
+    result = smart_ask(query, intent=intent, source_focus=source_focus, conversation_id=conversation_id)
     return result.format_response()
 
 

@@ -1,6 +1,6 @@
 ---
 name: perplexity-web-mcp
-description: 'Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm research), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions "perplexity", "pplx", "pwm", "web search with AI", "deep research", "search the internet", or wants to query premium models like GPT-5.6 Terra, GPT-5.6 Sol, Grok, Claude, Gemini, GLM, or Nemotron through Perplexity''s web interface.'
+description: 'Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm chat, pwm research, pwm config), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions "perplexity", "pplx", "pwm", "web search with AI", "chat with Perplexity", "deep research", "search the internet", or wants to query premium models like GPT-6 Sol, GPT-5.6 Terra, Grok 4.7, Claude, Gemini, GLM, Kimi, or Nemotron through Perplexity''s web interface.'
 metadata:
   version: "0.14.14"
   author: "Jacob BD"
@@ -177,6 +177,9 @@ User wants to...
 |   +-- MCP:  pplx_smart_query(query)            # smart routing (default)
 |   +-- Explicit model: pwm ask "query" -m gpt56_terra  or  pplx_query(query, model="gpt56_terra")
 |
++-- Chat interactively in the terminal (one thread per session)
+|   +-- CLI:  pwm chat                              # sonar default; /model switches, /new resets, /exit quits
+|
 +-- Browse past conversations (FREE, no quota)
 |   +-- CLI:  pwm threads                        # list recent threads
 |   +-- CLI:  pwm threads --search "topic"       # search threads
@@ -276,6 +279,40 @@ Combine flags:
 pwm ask "protein folding advances" -m gemini_pro -s academic --json
 ```
 
+Read long prompts from stdin or a file, and attach files:
+
+```bash
+pwm ask - < question.txt              # prompt from stdin
+pwm ask --prompt-file question.txt    # prompt from a UTF-8 file
+pwm ask "Summarize the key risks" --file report.pdf   # attachment (repeatable)
+```
+
+Attachments are validated before the query is sent; on Free accounts an attachment may count as a Pro Search.
+
+### Interactive Chat
+
+Keep one Perplexity thread across turns in the terminal:
+
+```bash
+pwm chat                              # defaults to Sonar 2 (free-tier friendly)
+pwm chat -m auto                      # quota-aware routing per message
+pwm chat -m claude_sonnet --thinking  # pin a model for the session
+```
+
+In-session commands: `/new` starts a new thread, `/model [NAME]` shows or switches the model (`auto` = quota-aware routing), `/exit` (or `/quit`, or Ctrl-D) quits. The thread continues across model switches.
+
+### Saved Defaults
+
+Store a preferred model, thinking mode, and source once:
+
+```bash
+pwm config set --model grok47 --thinking --source web
+pwm config show
+pwm config clear                # or clear one key: pwm config clear model
+```
+
+Defaults apply to `pwm ask`, `pwm chat`, and MCP `pplx_query` whenever the matching option is omitted; explicit flags always win (`--no-thinking` overrides a saved thinking default).
+
 ### Shared MCP daemon
 
 Use the shared daemon when multiple MCP clients or Codex sessions should connect
@@ -366,7 +403,7 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_list_threads`             | **FREE**                                | Browse past conversations — paginated, searchable. Use before spending quota.                                                                                                          |
 | `pplx_get_thread`               | **FREE**                                | Full history for any past thread. Also enables conversation resumption via conversation_id.                                                                                             |
 | `pplx_sonar`                    | 1 Pro Search                            | Perplexity Sonar 2                                                                                                                                                                     |
-| `pplx_query`                    | 1 Pro                                   | Explicit model selection with thinking toggle                                                                                                                                          |
+| `pplx_query`                    | 1 Pro                                   | Explicit model selection with thinking toggle; omitted arguments follow saved `pwm config` defaults                                                                                                                                          |
 | `pplx_ask`                      | 1 Pro                                   | Quick Q&A (auto model)                                                                                                                                                                 |
 | `pplx_council`                  | **N+1 Pro** (1 per model + 1 synthesis) | Model Council — **ASK USER which models first!** Check subscription first; exclude Max-only `gpt56_sol`/`claude_opus` on Pro. Supports `thinking=True` and `chairman` for synthesis model. |
 | `pplx_gpt56_terra` / `_thinking`      | 1 Pro                                   | OpenAI GPT-5.6 Terra (versatile)                                                                                                                                                             |
@@ -388,26 +425,32 @@ pwm usage --refresh         # Force-refresh from server
 All query tools accept `source_focus`: `"none"`, `"web"`, `"academic"`, `"social"`, `"finance"`, `"all"`, or a connector source ID from `pplx_connectors()`.
 Use `source_focus="none"` for model-only queries without web search.
 
-**Multi-Turn Conversations**: All query tools accept an optional `conversation_id` parameter. The server returns `[Conversation ID: <uuid>]` at the end of each response. Extract this UUID and pass it to the next query to maintain context across multiple turns.
+**Multi-Turn Conversations**: All query tools accept an optional `conversation_id` parameter. The server returns `[Conversation ID: <uuid>]` at the end of each response. Extract this UUID and pass it to the next query (any query tool, including `pplx_smart_query`) to maintain context across multiple turns.
 
 For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools.md)
 
 ## Models
 
-| CLI Name      | Provider   | Thinking | Notes                                                                              |
-| ------------- | ---------- | -------- | ---------------------------------------------------------------------------------- |
-| auto          | Perplexity | No       | Auto-selects best                                                                  |
-| sonar         | Perplexity | No       | Sonar 2 (API id `experimental`). Uses `mode="concise"` to ensure grounded answers. |
-| deep_research | Perplexity | No       | Monthly quota                                                                      |
-| gpt56_terra         | OpenAI     | Toggle   | GPT-5.6 Terra (versatile)                                                                |
-| gpt56_sol         | OpenAI     | Toggle   | GPT-5.6 Sol (latest, Max tier)                                                         |
-| grok45            | xAI        | Toggle   | Grok 4.5                                                                                |
-| claude_sonnet | Anthropic  | Toggle   | Claude Sonnet 5                                                                  |
-| claude_opus   | Anthropic  | Toggle   | Claude 4.8 Opus (Max tier)                                                         |
-| gemini_pro    | Google     | Always   | Gemini 3.1 Pro                                                                     |
-| nemotron      | NVIDIA     | Always   | Nemotron 3 Ultra 550B                                                              |
-| glm52         | Z.ai       | Always   | GLM 5.2                                                                            |
-| kimi_k26      | Moonshot   | Toggle   | Kimi K2.6                                                                          |
+| CLI Name      | Provider   | Thinking | Notes                                                                |
+| ------------- | ---------- | -------- | -------------------------------------------------------------------- |
+| auto          | Perplexity | No       | Auto-selects best                                                    |
+| sonar         | Perplexity | No       | Sonar 2 (API id `experimental`); concise mode keeps answers grounded |
+| deep_research | Perplexity | No       | Monthly quota                                                        |
+| gpt56_terra   | OpenAI     | Toggle   | GPT-5.6 Terra                                                        |
+| gpt56_sol     | OpenAI     | Toggle   | GPT-5.6 Sol (Max tier)                                               |
+| gpt6_sol      | OpenAI     | Toggle   | GPT-6 Sol                                                            |
+| grok45        | xAI        | Toggle   | Grok 4.5                                                             |
+| grok47        | xAI        | Toggle   | Grok 4.7                                                             |
+| claude_sonnet | Anthropic  | Toggle   | Claude Sonnet 5                                                      |
+| claude_opus   | Anthropic  | Toggle   | Claude Opus 4.8 (Max tier)                                           |
+| claude_opus55 | Anthropic  | Toggle   | Claude Opus 5.5 (Max tier)                                           |
+| gemini_pro    | Google     | Always   | Gemini 3.1 Pro (thinking only)                                       |
+| gemini38      | Google     | Toggle   | Gemini 3.8 Flash                                                     |
+| nemotron      | NVIDIA     | Always   | Nemotron 3 Ultra 550B (thinking only)                                |
+| glm52         | Z.ai       | Always   | GLM 5.2 (thinking only)                                              |
+| glm53         | Z.ai       | Always   | GLM 5.3 (thinking only)                                              |
+| kimi_k26      | Moonshot   | Toggle   | Kimi K2.6                                                            |
+| kimi_k3       | Moonshot   | Always   | Kimi K3 (thinking only)                                              |
 
 For full model details: See [references/models.md](references/models.md)
 

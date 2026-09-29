@@ -89,6 +89,12 @@ def block_all_network(request: pytest.FixtureRequest):
 
 
 @pytest.fixture(autouse=True)
+def isolate_preferences(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    """Keep tests away from the developer's real saved preferences."""
+    monkeypatch.setattr("perplexity_web_mcp.preferences.PREFERENCES_FILE", tmp_path / "preferences.json")
+
+
+@pytest.fixture(autouse=True)
 def mock_curl_cffi_globally(request: pytest.FixtureRequest):
     """Globally intercept curl_cffi Session across all modules to prevent native Windows socket hangs."""
     if _live_integration_enabled(request):

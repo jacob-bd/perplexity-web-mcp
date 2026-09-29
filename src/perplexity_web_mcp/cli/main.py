@@ -5,6 +5,8 @@ Entry point: pwm
 Subcommands:
     pwm login           Authenticate with Perplexity (interactive or non-interactive)
     pwm ask "query"     Ask a question (web search + AI model)
+    pwm chat            Interactive chat that keeps one thread across turns
+    pwm config          Show or change saved default model, thinking, and source
     pwm council "q"     Query multiple models in parallel (Model Council)
     pwm research "q"    Deep research on a topic
     pwm api             Start the Anthropic/OpenAI API-compatible server
@@ -20,12 +22,20 @@ Subcommands:
 from __future__ import annotations
 
 from importlib import metadata
+from pathlib import Path
 import sys
+import textwrap
 from typing import NoReturn
 
 import rich_click as click
 
-from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
+from perplexity_web_mcp.exceptions import (
+    AuthenticationError,
+    FileUploadError,
+    FileValidationError,
+    RateLimitError,
+)
+from perplexity_web_mcp.preferences import clear_preferences, load_preferences, set_preference
 from perplexity_web_mcp.shared import (
     COUNCIL_DEFAULT_MODELS_STR,
     COUNCIL_DISPLAY_NAMES,
@@ -36,6 +46,7 @@ from perplexity_web_mcp.shared import (
     SourceFocusName,
     SourceResolutionError,
     ask,
+    ask_turn,
     build_council_model_list,
     format_thread_list,
     get_connector_sources,
@@ -107,35 +118,80 @@ def _validate_source_for_cli(source: str) -> bool:
 # ── Ask ────────────────────────────────────────────────────────────────────
 
 
+def _resolve_prompt(query: str | None, prompt_file: str | None) -> str:
+    """Resolve the query text from the argument, stdin ("-"), or --prompt-file."""
+    if query is not None and prompt_file is not None:
+        raise click.UsageError("Provide either QUERY or --prompt-file, not both.")
+    if prompt_file is not None:
+        try:
+            text = Path(prompt_file).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as error:
+            raise click.UsageError(f"Cannot read --prompt-file: {error}") from error
+    elif query == "-":
+        text = sys.stdin.read()
+    elif query is None:
+        raise click.UsageError("Missing argument 'QUERY' (use '-' to read from stdin, or --prompt-file PATH).")
+    else:
+        text = query
+    text = text.strip()
+    if not text:
+        raise click.UsageError("The prompt is empty.")
+    return text
+
+
 @cli.command(name="ask")
-@click.argument("query")
-@click.option("-m", "--model", "model_name", default="auto", help=f"Model to use ({', '.join(MODEL_NAMES)}).")
-@click.option("-t", "--thinking", is_flag=True, help="Enable extended thinking mode.")
+@click.argument("query", required=False)
+@click.option("-m", "--model", "model_name", default=None, help=f"Model to use ({', '.join(MODEL_NAMES)}).")
+@click.option("-t", "--thinking/--no-thinking", default=None, help="Enable or disable extended thinking mode.")
 @click.option(
     "-s",
     "--source",
     "source",
-    default="web",
+    default=None,
     help=f"Source focus ({', '.join(SOURCE_FOCUS_NAMES)}) or connector source ID.",
+)
+@click.option(
+    "--prompt-file",
+    "prompt_file",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Read the query from a UTF-8 text file.",
+)
+@click.option(
+    "--file",
+    "files",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Attach a file to the query (PDF or image, repeatable).",
 )
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
 @click.option("--no-citations", is_flag=True, help="Suppress citation URLs.")
 @click.option("--intent", default="standard", help="Routing intent: quick, standard, detailed, research.")
-def ask_cmd(query, model_name, thinking, source, json_output, no_citations, intent):
+def ask_cmd(query, model_name, thinking, source, prompt_file, files, json_output, no_citations, intent):
     """Ask a question using Perplexity AI.
 
     \b
     Examples:
       pwm ask "What is quantum computing?"
-      pwm ask "latest AI news" -m gpt52 -s academic
-      pwm ask "explain transformers" -m claude_sonnet --thinking
+      pwm ask - < question.txt
+      pwm ask --prompt-file question.txt -m claude_sonnet --thinking
+      pwm ask "summarize this" --file report.pdf
     """
-    code = _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations, intent)
+    query = _resolve_prompt(query, prompt_file)
+    code = _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations, intent, list(files))
     raise SystemExit(code)
 
 
-def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations, intent):
+def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations, intent, files=None):
     """Implementation for ask command (kept separate for testability)."""
+    prefs = load_preferences()
+    if model_name is None:
+        model_name = prefs.get("model") or "auto"
+    if thinking is None:
+        thinking = bool(prefs.get("thinking", False))
+    if source is None:
+        source = prefs.get("source") or "web"
+
     if not _validate_source_for_cli(source):
         return 1
 
@@ -151,7 +207,7 @@ def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations
                 return 1
 
             model = resolve_model(model_name, thinking=thinking)
-            result = ask(query, model, source)
+            result = ask(query, model, source, files=files or None)
 
             if json_output:
                 import orjson
@@ -176,7 +232,7 @@ def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations
         else:
             from perplexity_web_mcp.shared import smart_ask
 
-            response = smart_ask(query, intent=intent, source_focus=source)
+            response = smart_ask(query, intent=intent, source_focus=source, files=files or None)
             if json_output:
                 import orjson
 
@@ -186,10 +242,126 @@ def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations
                 print(response.answer)
             else:
                 print(response.format_response())
-    except (AuthenticationError, RateLimitError) as e:
+    except (AuthenticationError, RateLimitError, FileValidationError, FileUploadError) as e:
         print(str(e), file=sys.stderr)
         return 1
 
+    return 0
+
+
+# ── Chat ───────────────────────────────────────────────────────────────────
+
+
+@cli.command(name="chat")
+@click.option(
+    "-m",
+    "--model",
+    "model_name",
+    default=None,
+    help=f"Model to use ({', '.join(MODEL_NAMES)}). Default: sonar or saved preference; 'auto' for quota-aware routing.",
+)
+@click.option("-t", "--thinking/--no-thinking", default=None, help="Enable or disable extended thinking mode.")
+@click.option(
+    "-s",
+    "--source",
+    "source",
+    default=None,
+    help=f"Source focus ({', '.join(SOURCE_FOCUS_NAMES)}) or connector source ID.",
+)
+def chat(model_name, thinking, source):
+    """Interactive chat that keeps one Perplexity thread across turns.
+
+    \b
+    In-session commands:
+      /new            start a new thread
+      /model [NAME]   show or switch the model ('auto' = quota-aware routing)
+      /exit           quit (/quit and Ctrl-D also work)
+    """
+    raise SystemExit(_cmd_chat_impl(model_name, thinking, source))
+
+
+def _cmd_chat_impl(model_name, thinking, source):
+    """Implementation for chat command (kept separate for testability)."""
+    prefs = load_preferences()
+    if model_name is None:
+        model_name = prefs.get("model") or "sonar"
+    if thinking is None:
+        thinking = bool(prefs.get("thinking", False))
+    if source is None:
+        source = prefs.get("source") or "web"
+
+    if not _validate_source_for_cli(source):
+        return 1
+    if model_name.startswith("-"):
+        print(
+            f"Error: --model expects a model name, not '{model_name}'. "
+            "Run 'pwm chat --help' for usage or 'pwm models' to list models.",
+            file=sys.stderr,
+        )
+        return 1
+    if model_name != "auto" and not is_known_model(model_name):
+        print(
+            f"Error: Unknown model '{model_name}'. Available: {', '.join(MODEL_NAMES)}. "
+            "Live catalog identifiers are also accepted (run 'pwm models' to list them).",
+            file=sys.stderr,
+        )
+        return 1
+
+    conversation_id = None
+    prompt = "You: " if sys.stdin.isatty() else ""
+    print(f"Chatting with {model_name}. Commands: /new (new thread), /model (switch model), /exit (quit).")
+    while True:
+        try:
+            line = input(prompt)
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+        query = line.strip()
+        if not query:
+            continue
+        if query in ("/exit", "/quit"):
+            break
+        if query == "/new":
+            conversation_id = None
+            print("Started a new thread.")
+            continue
+        if query == "/model" or query.startswith("/model "):
+            candidate = query[len("/model") :].strip()
+            if not candidate:
+                print(f"Current model: {model_name}")
+                print("Available models:")
+                print(
+                    textwrap.fill(
+                        ", ".join(MODEL_NAMES),
+                        width=76,
+                        initial_indent="  ",
+                        subsequent_indent="  ",
+                    )
+                )
+                print(
+                    "Switch with /model NAME ('auto' = quota-aware routing). "
+                    "Run 'pwm models' for the live catalog with tiers."
+                )
+            elif candidate == "auto" or is_known_model(candidate):
+                model_name = candidate
+                print(f"Model set to {model_name}.")
+            else:
+                print(f"Error: Unknown model '{candidate}'. Type /model to see available names.", file=sys.stderr)
+            continue
+        try:
+            if model_name == "auto":
+                from perplexity_web_mcp.shared import smart_ask
+
+                smart_response = smart_ask(query, source_focus=source, conversation_id=conversation_id)
+                conversation_id = smart_response.conversation_id
+                print(smart_response.format_response())
+            else:
+                model = resolve_model(model_name, thinking=thinking)
+                response, conversation_id = ask_turn(query, model, source, conversation_id)
+                print(response)
+        except (AuthenticationError, RateLimitError) as error:
+            print(str(error), file=sys.stderr)
+            continue
     return 0
 
 
@@ -926,6 +1098,88 @@ def _cmd_models_impl(refresh, as_json):
     return 0
 
 
+# ── Config (saved defaults) ────────────────────────────────────────────────
+
+
+@cli.group()
+def config():
+    """Show or change saved defaults for pwm ask, pwm chat, and pplx_query."""
+
+
+@config.command(name="show")
+def config_show():
+    """Show saved default model, thinking mode, and source."""
+    raise SystemExit(_cmd_config_show())
+
+
+@config.command(name="set")
+@click.option("--model", "model_name", default=None, help=f"Default model ({', '.join(MODEL_NAMES)}).")
+@click.option("--thinking/--no-thinking", "thinking", default=None, help="Default extended thinking mode.")
+@click.option(
+    "--source",
+    "source",
+    default=None,
+    help=f"Default source focus ({', '.join(SOURCE_FOCUS_NAMES)}) or connector source ID.",
+)
+def config_set(model_name, thinking, source):
+    """Save defaults. Explicit flags on pwm ask, pwm chat, and pplx_query override them."""
+    raise SystemExit(_cmd_config_set(model_name, thinking, source))
+
+
+@config.command(name="clear")
+@click.argument("key", required=False, type=click.Choice(["model", "thinking", "source"]))
+def config_clear(key):
+    """Clear all saved defaults, or only KEY."""
+    raise SystemExit(_cmd_config_clear(key))
+
+
+def _cmd_config_show() -> int:
+    """Show saved default model, thinking, and source."""
+    prefs = load_preferences()
+    if not prefs:
+        print("No saved preferences. Built-in defaults: model=auto, thinking=off, source=web.")
+        return 0
+    print("Saved preferences:")
+    for key in ("model", "thinking", "source"):
+        if key in prefs:
+            print(f"  {key}: {prefs[key]}")
+    return 0
+
+
+def _cmd_config_set(model_name, thinking, source) -> int:
+    """Save default model, thinking, and source preferences."""
+    if model_name is None and thinking is None and source is None:
+        print(
+            "Error: Provide at least one of --model, --thinking/--no-thinking, --source.",
+            file=sys.stderr,
+        )
+        return 1
+    if model_name is not None:
+        if not is_known_model(model_name):
+            print(
+                f"Error: Unknown model '{model_name}'. Available: {', '.join(MODEL_NAMES)}. "
+                "Live catalog identifiers are also accepted (run 'pwm models' to list them).",
+                file=sys.stderr,
+            )
+            return 1
+        set_preference("model", model_name)
+    if thinking is not None:
+        set_preference("thinking", thinking)
+    if source is not None:
+        if not _validate_source_for_cli(source):
+            return 1
+        set_preference("source", source)
+    print("Saved preferences updated.")
+    return 0
+
+
+def _cmd_config_clear(key) -> int:
+    """Clear all saved preferences, or only the given key."""
+    clear_preferences(key)
+    print("Cleared all saved preferences." if key is None else f"Cleared saved preference '{key}'.")
+    return 0
+
+
 # ── API ────────────────────────────────────────────────────────────────────
 
 
@@ -1126,20 +1380,17 @@ _register_setup()
 
 def _cmd_ask(args: list[str]) -> int:
     """Handle: pwm ask <query> [options] — legacy interface for tests."""
-    if not args or args[0].startswith("-"):
-        print("Error: pwm ask requires a query string.\n", file=sys.stderr)
-        print('Usage: pwm ask "your question" [--model MODEL] [--thinking] [--source SOURCE]', file=sys.stderr)
-        return 1
-
-    query = args[0]
-    model_name = "auto"
-    thinking = False
-    source: SourceFocusName = "web"
+    query = None
+    model_name = None
+    thinking = None
+    source = None
+    prompt_file = None
+    files: list[str] = []
     json_output = False
     no_citations = False
     intent = "standard"
 
-    i = 1
+    i = 0
     while i < len(args):
         arg = args[i]
         if arg in ("-m", "--model") and i + 1 < len(args):
@@ -1148,8 +1399,17 @@ def _cmd_ask(args: list[str]) -> int:
         elif arg in ("-t", "--thinking"):
             thinking = True
             i += 1
+        elif arg == "--no-thinking":
+            thinking = False
+            i += 1
         elif arg in ("-s", "--source") and i + 1 < len(args):
-            source = args[i + 1]  # type: ignore[assignment]
+            source = args[i + 1]
+            i += 2
+        elif arg == "--prompt-file" and i + 1 < len(args):
+            prompt_file = args[i + 1]
+            i += 2
+        elif arg == "--file" and i + 1 < len(args):
+            files.append(args[i + 1])
             i += 2
         elif arg == "--json":
             json_output = True
@@ -1160,11 +1420,28 @@ def _cmd_ask(args: list[str]) -> int:
         elif arg == "--intent" and i + 1 < len(args):
             intent = args[i + 1]
             i += 2
+        elif arg == "-" and query is None:
+            query = "-"
+            i += 1
+        elif not arg.startswith("-") and query is None:
+            query = arg
+            i += 1
         else:
             print(f"Unknown option: {arg}", file=sys.stderr)
             return 1
 
-    return _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations, intent)
+    if query is None and prompt_file is None:
+        print("Error: pwm ask requires a query string.\n", file=sys.stderr)
+        print('Usage: pwm ask "your question" [--model MODEL] [--thinking] [--source SOURCE]', file=sys.stderr)
+        return 1
+
+    try:
+        query = _resolve_prompt(query, prompt_file)
+    except click.UsageError as error:
+        print(f"Error: {error.format_message()}", file=sys.stderr)
+        return 1
+
+    return _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations, intent, files)
 
 
 def _cmd_research(args: list[str]) -> int:

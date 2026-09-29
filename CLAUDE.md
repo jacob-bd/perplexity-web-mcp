@@ -33,9 +33,10 @@ src/perplexity_web_mcp/
 ├── http.py              # HTTP client with retry/rate limiting
 ├── rate_limits.py       # Rate limit checking via /rest/rate-limit/all
 ├── token_store.py       # Token persistence (~/.config/perplexity-web-mcp/token)
+├── preferences.py       # Saved user preferences (default model, thinking, source)
 ├── data/                # Bundled Agent Skill (SKILL.md + references/)
 ├── cli/
-│   ├── main.py          # Unified CLI entry point (pwm)
+│   ├── main.py          # Unified CLI entry point (pwm; chat, config, threads, export)
 │   ├── auth.py          # Authentication flow
 │   ├── setup.py         # MCP server setup for AI tools
 │   ├── skill.py         # Agent Skill management
@@ -51,6 +52,7 @@ src/perplexity_web_mcp/
 
 ```bash
 pwm ask "query" [-m MODEL] [-t] [-s SOURCE]  # Query Perplexity
+pwm config [show|set|clear]                    # Saved default model, thinking, source
 pwm chat [-m MODEL] [-t] [-s SOURCE]          # Multi-turn interactive chat
 pwm council "query" [-m MODELS] [-t] [-s SOURCE]  # Model Council (multi-model)
 pwm research "query" [-s SOURCE]              # Deep research
@@ -65,14 +67,13 @@ pwm --ai                                       # AI reference doc
 ## Models
 
 - `auto` / `sonar` (Sonar 2, API id `experimental`) / `deep_research`
-- `gpt56_terra` (+ thinking)
+- `gpt56_terra` / `gpt6_sol` (+ thinking)
 - `gpt56_sol` (+ thinking, Max)
-- `grok45` (+ thinking)
-- `claude_sonnet` / `claude_opus` (+ thinking)
-- `gemini_pro` (always thinking)
-- `nemotron` (always thinking)
-- `glm52` (always thinking)
-- `kimi_k26` (+ thinking)
+- `grok45` / `grok47` (+ thinking)
+- `claude_sonnet` (+ thinking) / `claude_opus` / `claude_opus55` (+ thinking, Max)
+- `gemini_pro` (always thinking) / `gemini38` (+ thinking)
+- `nemotron` / `glm52` / `glm53` (always thinking)
+- `kimi_k26` (+ thinking) / `kimi_k3` (always thinking)
 
 ## Development
 

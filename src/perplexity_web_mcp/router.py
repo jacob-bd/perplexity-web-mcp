@@ -138,12 +138,15 @@ class SmartResponse:
             parts.append("\n".join(self.citations))
         parts.append("---")
         parts.append(self.format_metadata_block())
+        if self.conversation_id:
+            parts.append(f"[Conversation ID: {self.conversation_id}]")
         return "\n\n".join(parts)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "answer": self.answer,
             "citations": self.citations,
+            "conversation_id": self.conversation_id,
             "routing": {
                 "model": self.routing.model.identifier,
                 "model_name": self.routing.model_name,

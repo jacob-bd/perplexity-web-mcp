@@ -11,8 +11,19 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from perplexity_web_mcp.cli.main import _cmd_ask, _cmd_connectors_list, _cmd_council, _cmd_research, _cmd_usage, main
-from perplexity_web_mcp.exceptions import AuthenticationError, RateLimitError
+from perplexity_web_mcp.cli.main import (
+    _cmd_ask,
+    _cmd_chat_impl,
+    _cmd_config_clear,
+    _cmd_config_set,
+    _cmd_config_show,
+    _cmd_connectors_list,
+    _cmd_council,
+    _cmd_research,
+    _cmd_usage,
+    main,
+)
+from perplexity_web_mcp.exceptions import AuthenticationError, FileValidationError, RateLimitError
 
 
 # ============================================================================
@@ -566,3 +577,305 @@ class TestCmdCouncilErrorHandling:
         assert code == 1
         err = capsys.readouterr().err
         assert "429" in err or "rate limit" in err.lower()
+
+
+class TestCmdAskPromptSources:
+    """#52: read the query from stdin ("-") or --prompt-file."""
+
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    def test_prompt_file(self, mock_ask: MagicMock, tmp_path, capsys: pytest.CaptureFixture) -> None:
+        prompt = tmp_path / "prompt.txt"
+        prompt.write_text("What is AI?", encoding="utf-8")
+        code = _cmd_ask(["--prompt-file", str(prompt), "-m", "sonar"])
+        assert code == 0
+        assert mock_ask.call_args[0][0] == "What is AI?"
+
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    def test_stdin_dash(self, mock_ask: MagicMock, monkeypatch, capsys: pytest.CaptureFixture) -> None:
+        import io
+
+        monkeypatch.setattr("sys.stdin", io.StringIO("Explain quantum computing"))
+        code = _cmd_ask(["-", "-m", "sonar"])
+        assert code == 0
+        assert mock_ask.call_args[0][0] == "Explain quantum computing"
+
+    def test_query_and_prompt_file_conflict(self, tmp_path, capsys: pytest.CaptureFixture) -> None:
+        prompt = tmp_path / "prompt.txt"
+        prompt.write_text("hi", encoding="utf-8")
+        code = _cmd_ask(["question", "--prompt-file", str(prompt)])
+        assert code == 1
+        assert "not both" in capsys.readouterr().err
+
+    def test_empty_prompt_file_fails_before_query(self, tmp_path, capsys: pytest.CaptureFixture) -> None:
+        prompt = tmp_path / "prompt.txt"
+        prompt.write_text("   \n\n", encoding="utf-8")
+        code = _cmd_ask(["--prompt-file", str(prompt), "-m", "sonar"])
+        assert code == 1
+        assert "empty" in capsys.readouterr().err.lower()
+
+
+class TestCmdAskFiles:
+    """#53: --file attachments reach the shared ask() call."""
+
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    def test_file_flag_reaches_ask(self, mock_ask: MagicMock, tmp_path) -> None:
+        attachment = tmp_path / "report.pdf"
+        attachment.write_bytes(b"%PDF-1.4 test")
+        code = _cmd_ask(["summarize", "-m", "sonar", "--file", str(attachment)])
+        assert code == 0
+        assert mock_ask.call_args.kwargs["files"] == [str(attachment)]
+
+    @patch("perplexity_web_mcp.cli.main.ask")
+    @patch("perplexity_web_mcp.shared.smart_ask")
+    def test_file_flag_reaches_smart_ask_on_auto_route(
+        self, mock_smart: MagicMock, mock_ask: MagicMock, tmp_path
+    ) -> None:
+        mock_smart.return_value.format_response.return_value = "routed"
+        assert _cmd_ask(["summarize", "--file", "report.pdf"]) == 0
+        assert mock_smart.call_args.kwargs["files"] == ["report.pdf"]
+
+    @patch("perplexity_web_mcp.cli.main.ask", side_effect=FileValidationError("report.pdf", "File is empty"))
+    def test_file_error_returns_1(self, mock_ask: MagicMock, capsys: pytest.CaptureFixture) -> None:
+        code = _cmd_ask(["summarize", "-m", "sonar", "--file", "report.pdf"])
+        assert code == 1
+        assert "File validation failed" in capsys.readouterr().err
+
+
+class TestCmdAskPreferences:
+    """#51: saved defaults apply when flags are omitted; explicit flags win."""
+
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={"model": "sonar"})
+    def test_saved_model_used_when_flag_omitted(self, mock_prefs: MagicMock, mock_ask: MagicMock) -> None:
+        from perplexity_web_mcp.shared import Models
+
+        assert _cmd_ask(["question"]) == 0
+        assert mock_ask.call_args[0][1] == Models.SONAR
+
+    @patch("perplexity_web_mcp.cli.main.ask")
+    @patch("perplexity_web_mcp.shared.smart_ask")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={"model": "sonar"})
+    def test_explicit_auto_beats_saved_model(
+        self, mock_prefs: MagicMock, mock_smart: MagicMock, mock_ask: MagicMock
+    ) -> None:
+        mock_smart.return_value.format_response.return_value = "routed"
+        assert _cmd_ask(["question", "-m", "auto"]) == 0
+        mock_ask.assert_not_called()
+        mock_smart.assert_called_once()
+
+    @patch("perplexity_web_mcp.cli.main.resolve_model")
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={"thinking": True})
+    def test_saved_thinking_used_when_omitted(
+        self, mock_prefs: MagicMock, mock_ask: MagicMock, mock_resolve: MagicMock
+    ) -> None:
+        mock_resolve.return_value = MagicMock()
+        assert _cmd_ask(["question", "-m", "gpt56_terra"]) == 0
+        mock_resolve.assert_called_once_with("gpt56_terra", thinking=True)
+
+    @patch("perplexity_web_mcp.cli.main.resolve_model")
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={"thinking": True})
+    def test_explicit_no_thinking_beats_saved_default(
+        self, mock_prefs: MagicMock, mock_ask: MagicMock, mock_resolve: MagicMock
+    ) -> None:
+        mock_resolve.return_value = MagicMock()
+        assert _cmd_ask(["question", "-m", "gpt56_terra", "--no-thinking"]) == 0
+        mock_resolve.assert_called_once_with("gpt56_terra", thinking=False)
+
+
+class TestCmdChat:
+    """#54: pwm chat keeps one thread across turns."""
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_continues_thread_across_turns(
+        self, mock_turn: MagicMock, monkeypatch, capsys: pytest.CaptureFixture
+    ) -> None:
+        import io
+
+        mock_turn.side_effect = [("Answer one", "conv-1"), ("Answer two", "conv-1")]
+        monkeypatch.setattr("sys.stdin", io.StringIO("first question\nsecond question\n/exit\n"))
+
+        assert _cmd_chat_impl(None, None, None) == 0
+
+        assert mock_turn.call_args_list[0].args[3] is None
+        assert mock_turn.call_args_list[1].args[3] == "conv-1"
+        out = capsys.readouterr().out
+        assert "Answer one" in out
+        assert "Answer two" in out
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_new_command_resets_thread(self, mock_turn: MagicMock, monkeypatch) -> None:
+        import io
+
+        mock_turn.side_effect = [("A", "conv-1"), ("B", "conv-2")]
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\n/new\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl(None, None, None) == 0
+
+        assert mock_turn.call_args_list[0].args[3] is None
+        assert mock_turn.call_args_list[1].args[3] is None
+        assert mock_turn.call_args_list[1].args[0] == "q2"
+
+    def test_chat_unknown_model_returns_1(self, capsys: pytest.CaptureFixture) -> None:
+        assert _cmd_chat_impl("nonexistent", None, None) == 1
+        assert "Unknown model" in capsys.readouterr().err
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_default_model_is_sonar(
+        self, mock_turn: MagicMock, monkeypatch, capsys: pytest.CaptureFixture
+    ) -> None:
+        import io
+
+        from perplexity_web_mcp.shared import Models
+
+        mock_turn.return_value = ("Answer", "conv-1")
+        monkeypatch.setattr("sys.stdin", io.StringIO("hi\n/exit\n"))
+
+        assert _cmd_chat_impl(None, None, None) == 0
+
+        assert mock_turn.call_args.args[1] == Models.SONAR
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    @patch("perplexity_web_mcp.shared.smart_ask")
+    def test_chat_auto_model_uses_quota_aware_routing(
+        self, mock_smart: MagicMock, mock_turn: MagicMock, monkeypatch, capsys: pytest.CaptureFixture
+    ) -> None:
+        import io
+
+        routed = MagicMock()
+        routed.format_response.return_value = "Routed answer"
+        routed.conversation_id = "conv-1"
+        mock_smart.return_value = routed
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl("auto", None, None) == 0
+
+        mock_turn.assert_not_called()
+        assert mock_smart.call_args_list[0].kwargs["conversation_id"] is None
+        assert mock_smart.call_args_list[1].kwargs["conversation_id"] == "conv-1"
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_model_switch_mid_session(
+        self, mock_turn: MagicMock, monkeypatch, capsys: pytest.CaptureFixture
+    ) -> None:
+        import io
+
+        from perplexity_web_mcp.shared import Models
+
+        mock_turn.side_effect = [("A", "conv-1"), ("B", "conv-1")]
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\n/model grok47\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl(None, None, None) == 0
+
+        assert mock_turn.call_args_list[0].args[1] == Models.SONAR
+        assert mock_turn.call_args_list[1].args[1] == Models.GROK_47
+        assert mock_turn.call_args_list[1].args[3] == "conv-1"
+        assert "Model set to grok47" in capsys.readouterr().out
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    @patch("perplexity_web_mcp.shared.smart_ask")
+    def test_chat_switch_to_auto_keeps_thread(self, mock_smart: MagicMock, mock_turn: MagicMock, monkeypatch) -> None:
+        import io
+
+        mock_turn.return_value = ("A", "conv-1")
+        routed = MagicMock()
+        routed.format_response.return_value = "Routed"
+        routed.conversation_id = "conv-1"
+        mock_smart.return_value = routed
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\n/model auto\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl(None, None, None) == 0
+
+        mock_turn.assert_called_once()
+        assert mock_smart.call_args.kwargs["conversation_id"] == "conv-1"
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_model_command_shows_and_rejects(
+        self, mock_turn: MagicMock, monkeypatch, capsys: pytest.CaptureFixture
+    ) -> None:
+        import io
+
+        from perplexity_web_mcp.shared import Models
+
+        mock_turn.return_value = ("A", "conv-1")
+        monkeypatch.setattr("sys.stdin", io.StringIO("/model\n/model bogus\nq1\n/exit\n"))
+
+        assert _cmd_chat_impl(None, None, None) == 0
+
+        captured = capsys.readouterr()
+        assert "Current model: sonar" in captured.out
+        assert "Available models:" in captured.out
+        assert "grok47" in captured.out
+        assert "Switch with /model NAME" in captured.out
+        assert "Unknown model 'bogus'" in captured.err
+        assert mock_turn.call_args.args[1] == Models.SONAR
+
+    def test_chat_flag_like_model_gets_hint(self, capsys: pytest.CaptureFixture) -> None:
+        assert _cmd_chat_impl("--help", None, None) == 1
+        assert "expects a model name" in capsys.readouterr().err
+
+
+class TestCmdConfig:
+    """#51: pwm config set/show/clear."""
+
+    def test_set_show_clear_roundtrip(self, capsys: pytest.CaptureFixture) -> None:
+        assert _cmd_config_set("grok47", True, "web") == 0
+        capsys.readouterr()
+
+        assert _cmd_config_show() == 0
+        out = capsys.readouterr().out
+        assert "model: grok47" in out
+        assert "thinking: True" in out
+        assert "source: web" in out
+
+        assert _cmd_config_clear(None) == 0
+        assert _cmd_config_show() == 0
+        assert "No saved preferences" in capsys.readouterr().out
+
+    def test_set_requires_at_least_one_value(self, capsys: pytest.CaptureFixture) -> None:
+        assert _cmd_config_set(None, None, None) == 1
+        assert "Provide at least one" in capsys.readouterr().err
+
+    def test_set_unknown_model_returns_1(self, capsys: pytest.CaptureFixture) -> None:
+        assert _cmd_config_set("nonexistent", None, None) == 1
+        assert "Unknown model" in capsys.readouterr().err
+
+    def test_clear_single_key(self) -> None:
+        from perplexity_web_mcp.preferences import load_preferences
+
+        assert _cmd_config_set("sonar", None, None) == 0
+        assert _cmd_config_clear("model") == 0
+        assert load_preferences() == {}
+
+
+class TestClickSurface:
+    """The click layer exposes chat, config, and the new ask options."""
+
+    def test_top_level_help_lists_chat_and_config(self) -> None:
+        from click.testing import CliRunner
+
+        from perplexity_web_mcp.cli.main import cli
+
+        result = CliRunner().invoke(cli, ["--help"])
+        assert result.exit_code == 0
+        assert "chat" in result.output
+        assert "config" in result.output
+
+    def test_ask_help_lists_new_options(self) -> None:
+        from click.testing import CliRunner
+
+        from perplexity_web_mcp.cli.main import cli
+
+        result = CliRunner().invoke(cli, ["ask", "--help"])
+        assert result.exit_code == 0
+        assert "--prompt-file" in result.output
+        assert "--file" in result.output
+
+    def test_ask_without_query_fails_cleanly(self) -> None:
+        from click.testing import CliRunner
+
+        from perplexity_web_mcp.cli.main import cli
+
+        result = CliRunner().invoke(cli, ["ask"])
+        assert result.exit_code == 2

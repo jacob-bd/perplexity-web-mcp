@@ -5,6 +5,10 @@ Complete list of models available through Perplexity Web MCP.
 The catalog is server-driven. Run `pwm models` (free, no query quota) to print the live list and
 current tier labels; every identifier it shows is accepted by `pwm ask -m` and `pplx_query`.
 
+When no model is specified: `pwm ask` uses quota-aware auto routing, `pwm chat` defaults to
+`sonar` (or a saved preference), and `pplx_query` uses a saved `pwm config` preference when
+present, otherwise `auto`.
+
 ## Model Details
 
 ### auto (Perplexity Best)

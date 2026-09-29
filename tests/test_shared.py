@@ -852,3 +852,34 @@ class TestTokenRetryOnAuthError:
         assert isinstance(result, SmartResponse)
         assert result.answer == "Retried smart answer"
         mock_reset.assert_called_once()
+
+
+# ============================================================================
+# ask_turn and file attachments pass-through
+# ============================================================================
+
+
+class TestAskTurnAndFilesPassThrough:
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared._execute_with_retry", return_value=("Answer", [], "conv-9"))
+    def test_ask_turn_returns_response_and_conversation_id(self, mock_exec: MagicMock, mock_cache: MagicMock) -> None:
+        from perplexity_web_mcp.shared import ask_turn
+
+        text, conv_id = ask_turn("question", Models.BEST)
+        assert "Answer" in text
+        assert conv_id == "conv-9"
+
+    @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)
+    @patch("perplexity_web_mcp.shared.get_client")
+    def test_files_reach_conversation_ask(
+        self, mock_client_fn: MagicMock, mock_cache: MagicMock, mock_limits: MagicMock
+    ) -> None:
+        mock_conv = MagicMock(answer="A", search_results=[], uuid=None)
+        mock_client = MagicMock()
+        mock_client.create_conversation.return_value = mock_conv
+        mock_client_fn.return_value = mock_client
+
+        ask("question", Models.BEST, files=["report.pdf"])
+
+        mock_conv.ask.assert_called_once_with("question", files=["report.pdf"])

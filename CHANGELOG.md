@@ -4,6 +4,30 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.16.0] - 2026-09-29
+
+### Added
+
+- **File attachments on the MCP query tools** — `pplx_query` and `pplx_smart_query` now accept a `files` list of local PDF/image paths, matching the CLI's `--file` option and the existing `ask`/`smart_ask` plumbing. Validation and upload errors come back as readable text. On Free-tier accounts, attaching a file can make the query count as a Pro Search. ([#56](https://github.com/jacob-bd/perplexity-web-mcp/issues/56))
+- **In-session chat toggles** — `pwm chat` gains `/source [NAME]` and `/thinking [on|off]` (both stay set for the rest of the session) and `/attach PATH` (attaches a file to your next message only, like the website). Attachments work in both `auto` and specific-model modes. ([#60](https://github.com/jacob-bd/perplexity-web-mcp/issues/60))
+
+### Changed
+
+- **Saved `source` default honored by `pplx_smart_query` and `pplx_ask`** — when `source_focus` is omitted, both tools now fall back to your saved default (`pwm config`), then to web, matching `pplx_query`. Model routing is unchanged and `pplx_ask` keeps its fixed model. ([#58](https://github.com/jacob-bd/perplexity-web-mcp/issues/58))
+- **Strict model resolution with a lazy live-catalog fetch** — an unknown model name now triggers a single live-catalog refresh (memoized per process, with a short offline backoff) and, if the name is still unknown, returns an error with close-match suggestions instead of silently falling back to a default model. This covers `pplx_query` and `pplx_council` (the error names the failing member or chairman). Offline or fetch failures degrade gracefully, so a valid-but-uncached name is never wrongly rejected. ([#61](https://github.com/jacob-bd/perplexity-web-mcp/issues/61))
+
+### Fixed
+
+- **`--intent` no longer silently ignored with an explicit model** — `pwm ask -m <model> --intent ...` used to drop `--intent` with no warning. It now prints a note (to stderr, so `--json` output stays clean) telling you to pass `-m auto` to route by intent, and the `--intent` help text documents that it applies only with `-m auto`. ([#55](https://github.com/jacob-bd/perplexity-web-mcp/issues/55))
+- **Stale `pplx_council` model roster** — the council tool description (which agents inject into their planning verbatim) listed only 10 models with an incomplete Max-only and thinking-toggle list. It now lists the full council roster, Max-only set, and thinking-capable models, and a new drift test derives the expected models from the metadata constants so the description can no longer fall out of sync. ([#57](https://github.com/jacob-bd/perplexity-web-mcp/issues/57))
+- **Claude Code setup/doctor false negative** — `pwm setup` and `pwm doctor` reported the Claude Code MCP server as not configured whenever `claude mcp list` was slow enough to hit its 5-second timeout. The check now reads `~/.claude.json` first (the `mcpServers` block that `claude mcp add -s user` writes) and falls back to `claude mcp list`. ([#59](https://github.com/jacob-bd/perplexity-web-mcp/issues/59))
+
+### Credits
+
+- Thanks to [@yarco](https://github.com/yarco) for reporting or requesting everything in this release: [#55](https://github.com/jacob-bd/perplexity-web-mcp/issues/55), [#56](https://github.com/jacob-bd/perplexity-web-mcp/issues/56), [#57](https://github.com/jacob-bd/perplexity-web-mcp/issues/57), [#58](https://github.com/jacob-bd/perplexity-web-mcp/issues/58), [#59](https://github.com/jacob-bd/perplexity-web-mcp/issues/59), [#60](https://github.com/jacob-bd/perplexity-web-mcp/issues/60), [#61](https://github.com/jacob-bd/perplexity-web-mcp/issues/61).
+
+---
+
 ## [0.15.0] - 2026-09-29
 
 ### Added

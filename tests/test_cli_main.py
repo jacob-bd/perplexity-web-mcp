@@ -684,6 +684,37 @@ class TestCmdAskPreferences:
         mock_resolve.assert_called_once_with("gpt56_terra", thinking=False)
 
 
+class TestCmdAskIntentWarning:
+    """#55: --intent is ignored with an explicit model — warn instead of silently dropping it."""
+
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={})
+    def test_warns_when_intent_set_with_explicit_model(
+        self, mock_prefs: MagicMock, mock_ask: MagicMock, capsys: pytest.CaptureFixture
+    ) -> None:
+        assert _cmd_ask(["question", "-m", "gpt56_terra", "--intent", "detailed"]) == 0
+        err = capsys.readouterr().err
+        assert "--intent" in err
+        assert "detailed" in err
+
+    @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={})
+    def test_no_warning_when_intent_left_default(
+        self, mock_prefs: MagicMock, mock_ask: MagicMock, capsys: pytest.CaptureFixture
+    ) -> None:
+        assert _cmd_ask(["question", "-m", "gpt56_terra"]) == 0
+        assert "--intent" not in capsys.readouterr().err
+
+    @patch("perplexity_web_mcp.shared.smart_ask")
+    @patch("perplexity_web_mcp.cli.main.load_preferences", return_value={})
+    def test_no_warning_on_auto_route(
+        self, mock_prefs: MagicMock, mock_smart: MagicMock, capsys: pytest.CaptureFixture
+    ) -> None:
+        mock_smart.return_value.format_response.return_value = "routed"
+        assert _cmd_ask(["question", "-m", "auto", "--intent", "detailed"]) == 0
+        assert "--intent" not in capsys.readouterr().err
+
+
 class TestCmdChat:
     """#54: pwm chat keeps one thread across turns."""
 

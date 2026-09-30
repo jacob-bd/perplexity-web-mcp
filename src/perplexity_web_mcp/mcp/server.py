@@ -361,8 +361,8 @@ def pplx_council(
     """Model Council — query multiple models in parallel, get synthesized consensus.
 
     IMPORTANT — BEFORE calling this tool, you MUST:
-    1. Tell the user the available models: sonar, gpt56_terra, gpt56_sol, grok45, claude_sonnet, claude_opus, gemini_pro, nemotron, glm52, kimi_k26
-    2. Check pplx_usage() first. If Subscription is Pro, do not include Max-only models: gpt56_sol, claude_opus
+    1. Tell the user the available models: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3
+    2. Check pplx_usage() first. If Subscription is Pro, do not include Max-only models: gpt56_sol, claude_opus, claude_opus55
     3. Ask the user WHICH models they want in their council and HOW MANY
     4. Inform them of the cost: each council model = 1 Pro Search query, plus synthesis
        (default chairman sonar = Sonar 2 pass — still counts as a normal query toward limits)
@@ -374,13 +374,14 @@ def pplx_council(
         query: The question to ask all council models
         source_focus: Source type for all models (none/web/academic/social/finance/all or connector source ID)
         models: Comma-separated model names to use as council members.
-                Available: sonar, gpt56_terra, gpt56_sol, grok45, claude_sonnet, claude_opus, gemini_pro, nemotron, glm52, kimi_k26.
+                Available: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3.
                 Default: "gpt56_terra,claude_sonnet,gemini_pro" (3 models + synthesis = 4 Pro Searches)
-                Max-only: gpt56_sol, claude_opus. Exclude these when pplx_usage shows a Pro subscription.
+                Max-only: gpt56_sol, claude_opus, claude_opus55. Exclude these when pplx_usage shows a Pro subscription.
         synthesize: Whether to synthesize a consensus from all responses.
                     Set false to get only individual responses (saves 1 Sonar 2 call).
-        thinking: Enable extended thinking for council models (gpt56_terra, gpt56_sol, grok45, claude_sonnet,
-                  claude_opus, kimi_k26 support toggle; gemini_pro, nemotron, and glm52 are always thinking).
+        thinking: Enable extended thinking for council models (gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47,
+                  claude_sonnet, claude_opus, claude_opus55, gemini38, kimi_k26 support toggle; gemini_pro,
+                  nemotron, glm52, and glm53 are always thinking).
         chairman: Model to use for synthesis (default: "sonar" / Sonar 2).
                   Non-sonar chairmen cost 1 extra Pro Search query.
     """

@@ -370,6 +370,28 @@ class TestIsAlreadyConfigured:
         mock_read.return_value = {"mcpServers": {}}
         assert _is_already_configured("cursor") is False
 
+    @patch("perplexity_web_mcp.cli.setup._read_json_config")
+    def test_claude_code_configured_via_user_config_file(self, mock_read: MagicMock) -> None:
+        """#59: read ~/.claude.json first so a slow `claude mcp list` can't cause a false negative."""
+        from perplexity_web_mcp.cli.setup import _is_already_configured
+
+        mock_read.return_value = {"mcpServers": {MCP_SERVER_KEY: {}}}
+        with patch("perplexity_web_mcp.cli.setup.subprocess.run") as mock_run:
+            assert _is_already_configured("claude-code") is True
+            mock_run.assert_not_called()
+
+    @patch("perplexity_web_mcp.cli.setup.subprocess.run")
+    @patch("perplexity_web_mcp.cli.setup.shutil.which", return_value="/usr/bin/claude")
+    @patch("perplexity_web_mcp.cli.setup._read_json_config", return_value={})
+    def test_claude_code_falls_back_to_cli_list(
+        self, mock_read: MagicMock, mock_which: MagicMock, mock_run: MagicMock
+    ) -> None:
+        """#59: when the config file lacks the server, fall back to `claude mcp list`."""
+        from perplexity_web_mcp.cli.setup import _is_already_configured
+
+        mock_run.return_value = MagicMock(stdout="perplexity: pwm-mcp\n")
+        assert _is_already_configured("claude-code") is True
+
 
 # ============================================================================
 # 5. Backward-compatibility helpers (for doctor.py)

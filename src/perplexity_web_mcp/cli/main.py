@@ -166,7 +166,11 @@ def _resolve_prompt(query: str | None, prompt_file: str | None) -> str:
 )
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON.")
 @click.option("--no-citations", is_flag=True, help="Suppress citation URLs.")
-@click.option("--intent", default="standard", help="Routing intent: quick, standard, detailed, research.")
+@click.option(
+    "--intent",
+    default="standard",
+    help="Routing intent when -m auto: quick, standard, detailed, research (ignored with an explicit model).",
+)
 def ask_cmd(query, model_name, thinking, source, prompt_file, files, json_output, no_citations, intent):
     """Ask a question using Perplexity AI.
 
@@ -205,6 +209,13 @@ def _cmd_ask_impl(query, model_name, thinking, source, json_output, no_citations
                     file=sys.stderr,
                 )
                 return 1
+
+            if intent != "standard":
+                print(
+                    f"Note: --intent '{intent}' is ignored with an explicit model (-m {model_name}); "
+                    "pass -m auto to route by intent.",
+                    file=sys.stderr,
+                )
 
             model = resolve_model(model_name, thinking=thinking)
             result = ask(query, model, source, files=files or None)

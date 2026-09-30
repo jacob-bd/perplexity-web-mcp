@@ -45,6 +45,34 @@ def test_removed_gpt_tools_are_not_exposed() -> None:
     assert not hasattr(server, "pplx_gpt55_thinking")
 
 
+def test_council_docstring_lists_every_eligible_and_max_only_model() -> None:
+    """#57: the pplx_council docstring is what agents inject into planning verbatim, so its
+    roster and Max-only warning must stay in sync with the metadata-derived constants."""
+    from perplexity_web_mcp.shared import (
+        COUNCIL_ELIGIBLE_MODEL_NAMES,
+        MAX_ONLY_MODEL_NAMES,
+        THINKING_TOGGLEABLE,
+    )
+
+    doc = server.pplx_council.fn.__doc__
+    assert doc
+
+    for name in COUNCIL_ELIGIBLE_MODEL_NAMES:
+        assert name in doc, f"council docstring missing eligible model: {name}"
+
+    max_only_lines = [line for line in doc.splitlines() if "Max-only" in line]
+    assert max_only_lines
+    for line in max_only_lines:
+        for name in MAX_ONLY_MODEL_NAMES:
+            assert name in line, f"Max-only line omits {name}: {line.strip()}"
+
+    # Every toggleable council model must appear in the thinking description.
+    normalized = " ".join(doc.split())
+    thinking_desc = normalized[normalized.index("Enable extended thinking") :]
+    for name in THINKING_TOGGLEABLE:
+        assert name in thinking_desc, f"thinking doc omits toggleable model: {name}"
+
+
 def test_mcp_auth_preserves_totp_challenge_between_calls() -> None:
     """MCP clients can submit TOTP after the email OTP callback requests it."""
     session = MagicMock()

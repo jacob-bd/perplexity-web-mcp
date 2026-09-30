@@ -612,6 +612,14 @@ def _is_already_configured(client_id: str) -> bool:
     """Check if MCP is already configured for a client."""
     try:
         if client_id == "claude-code":
+            # Fast path: read the user-scope config that `claude mcp add -s user`
+            # writes. Avoids a false negative when `claude mcp list` is slow and
+            # its 5s timeout is swallowed below, returning False for a server that
+            # is actually configured.
+            claude_config = _read_json_config(Path.home() / ".claude.json")
+            servers = claude_config.get("mcpServers", {})
+            if MCP_SERVER_KEY in servers or "perplexity-web-mcp" in servers:
+                return True
             claude_cmd = shutil.which("claude")
             if claude_cmd:
                 result = subprocess.run(

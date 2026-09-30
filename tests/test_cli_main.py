@@ -846,6 +846,98 @@ class TestCmdChat:
         assert _cmd_chat_impl("--help", None, None) == 1
         assert "expects a model name" in capsys.readouterr().err
 
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_source_command_is_sticky(self, mock_turn: MagicMock, monkeypatch, capsys) -> None:
+        import io
+
+        mock_turn.side_effect = [("A", "c1"), ("B", "c1")]
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\n/source academic\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl("grok47", False, "web") == 0
+
+        assert mock_turn.call_args_list[0].args[2] == "web"
+        assert mock_turn.call_args_list[1].args[2] == "academic"
+        assert "Source set to academic" in capsys.readouterr().out
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_source_command_rejects_bad_source(self, mock_turn: MagicMock, monkeypatch, capsys) -> None:
+        import io
+
+        mock_turn.return_value = ("A", "c1")
+        monkeypatch.setattr("sys.stdin", io.StringIO("/source bogus\nq1\n/exit\n"))
+
+        assert _cmd_chat_impl("grok47", False, "web") == 0
+
+        assert "Unknown source 'bogus'" in capsys.readouterr().err
+        assert mock_turn.call_args.args[2] == "web"
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_thinking_toggle_is_sticky(self, mock_turn: MagicMock, monkeypatch, capsys) -> None:
+        import io
+
+        from perplexity_web_mcp.shared import Models
+
+        mock_turn.side_effect = [("A", "c1"), ("B", "c1")]
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\n/thinking\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl("grok47", False, "web") == 0
+
+        assert mock_turn.call_args_list[0].args[1] == Models.GROK_47
+        assert mock_turn.call_args_list[1].args[1] == Models.GROK_47_THINKING
+        assert "Thinking on" in capsys.readouterr().out
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_thinking_off_explicit(self, mock_turn: MagicMock, monkeypatch) -> None:
+        import io
+
+        from perplexity_web_mcp.shared import Models
+
+        mock_turn.side_effect = [("A", "c1"), ("B", "c1")]
+        monkeypatch.setattr("sys.stdin", io.StringIO("q1\n/thinking off\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl("grok47", True, "web") == 0
+
+        assert mock_turn.call_args_list[0].args[1] == Models.GROK_47_THINKING
+        assert mock_turn.call_args_list[1].args[1] == Models.GROK_47
+
+    @patch("perplexity_web_mcp.cli.main.ask_turn")
+    def test_chat_attach_applies_to_next_turn_only(self, mock_turn: MagicMock, monkeypatch, tmp_path, capsys) -> None:
+        import io
+
+        doc = tmp_path / "doc.pdf"
+        doc.write_text("x")
+        mock_turn.side_effect = [("A", "c1"), ("B", "c1")]
+        monkeypatch.setattr("sys.stdin", io.StringIO(f"/attach {doc}\nq1\nq2\n/exit\n"))
+
+        assert _cmd_chat_impl("grok47", False, "web") == 0
+
+        assert mock_turn.call_args_list[0].kwargs["files"] == [str(doc)]
+        assert mock_turn.call_args_list[1].kwargs["files"] is None
+        assert "Attached for next message" in capsys.readouterr().out
+
+    def test_chat_attach_missing_file_errors(self, monkeypatch, capsys) -> None:
+        import io
+
+        monkeypatch.setattr("sys.stdin", io.StringIO("/attach /no/such/file.pdf\n/exit\n"))
+
+        assert _cmd_chat_impl("grok47", False, "web") == 0
+        assert "File not found" in capsys.readouterr().err
+
+    @patch("perplexity_web_mcp.shared.smart_ask")
+    def test_chat_attach_works_in_auto_mode(self, mock_smart: MagicMock, monkeypatch, tmp_path) -> None:
+        import io
+
+        doc = tmp_path / "doc.pdf"
+        doc.write_text("x")
+        routed = MagicMock()
+        routed.format_response.return_value = "Routed"
+        routed.conversation_id = "c1"
+        mock_smart.return_value = routed
+        monkeypatch.setattr("sys.stdin", io.StringIO(f"/attach {doc}\nq1\n/exit\n"))
+
+        assert _cmd_chat_impl("auto", False, "web") == 0
+        assert mock_smart.call_args.kwargs["files"] == [str(doc)]
+
 
 class TestCmdConfig:
     """#51: pwm config set/show/clear."""

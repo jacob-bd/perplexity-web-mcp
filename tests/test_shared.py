@@ -19,9 +19,20 @@ from perplexity_web_mcp.shared import (
     SOURCE_FOCUS_NAMES,
     _format_error,
     ask,
+    build_council_model_list,
     resolve_model,
     smart_ask,
 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_catalog_lazy_state():
+    """#61: keep the process-level lazy-fetch memo from leaking between tests."""
+    shared._catalog_refreshed = False
+    shared._catalog_fetch_failed_at = 0.0
+    yield
+    shared._catalog_refreshed = False
+    shared._catalog_fetch_failed_at = 0.0
 
 
 # ============================================================================
@@ -320,6 +331,7 @@ class TestResolveModel:
         from perplexity_web_mcp import catalog
 
         monkeypatch.setattr(catalog, "CATALOG_CACHE_FILE", tmp_path / "missing.json")
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: False)  # offline
         assert resolve_model("definitely_not_a_model") is Models.BEST
         assert resolve_model("gemini_pro", thinking=True) is Models.GEMINI_31_PRO_THINKING
 
@@ -328,10 +340,12 @@ class TestResolveModel:
         assert resolve_model("nemotron") is Models.NEMOTRON_3_ULTRA
         assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_ULTRA
 
-    def test_unknown_model_falls_back_to_best(self) -> None:
+    def test_unknown_model_falls_back_to_best(self, monkeypatch) -> None:
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: False)  # offline
         assert resolve_model("nonexistent") is Models.BEST
 
-    def test_unknown_model_thinking_still_falls_back(self) -> None:
+    def test_unknown_model_thinking_still_falls_back(self, monkeypatch) -> None:
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: False)  # offline
         assert resolve_model("nonexistent", thinking=True) is Models.BEST
 
     def test_deep_research(self) -> None:
@@ -343,6 +357,95 @@ class TestResolveModel:
             assert isinstance(model, Model)
             model_t = resolve_model(name, thinking=True)
             assert isinstance(model_t, Model)
+
+
+# ============================================================================
+# 2b. resolve_model — lazy catalog fetch + strict resolution (#61)
+# ============================================================================
+
+
+class TestStrictModelResolution:
+    """#61: unknown names lazily refresh the catalog, then error with suggestions
+    instead of silently resolving to Models.BEST. Offline fetch failure degrades."""
+
+    def test_unknown_name_raises_after_successful_fetch(self, monkeypatch) -> None:
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: True)
+        monkeypatch.setattr(shared, "cached_live_model", lambda name, thinking=False: None)
+        with pytest.raises(shared.ModelResolutionError) as exc:
+            resolve_model("definitely_not_a_model")
+        assert "definitely_not_a_model" in str(exc.value)
+
+    def test_error_suggests_close_matches(self, monkeypatch) -> None:
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: True)
+        monkeypatch.setattr(shared, "cached_live_model", lambda name, thinking=False: None)
+        with pytest.raises(shared.ModelResolutionError) as exc:
+            resolve_model("claude_sonet")
+        assert "claude_sonnet" in str(exc.value)
+
+    def test_offline_fetch_failure_degrades_to_best(self, monkeypatch) -> None:
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: False)
+        monkeypatch.setattr(shared, "cached_live_model", lambda name, thinking=False: None)
+        assert resolve_model("definitely_not_a_model") is Models.BEST
+        assert resolve_model("definitely_not_a_model", thinking=True) is Models.BEST
+
+    def test_known_static_name_never_triggers_fetch(self, monkeypatch) -> None:
+        refresh = MagicMock(return_value=True)
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", refresh)
+        assert resolve_model("claude_sonnet") is Models.CLAUDE_50_SONNET
+        refresh.assert_not_called()
+
+    def test_cached_live_name_never_triggers_fetch(self, monkeypatch) -> None:
+        refresh = MagicMock(return_value=True)
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", refresh)
+        monkeypatch.setattr(
+            shared, "cached_live_model", lambda name, thinking=False: Model(identifier=name, mode="copilot")
+        )
+        assert resolve_model("gpt9_demo").identifier == "gpt9_demo"
+        refresh.assert_not_called()
+
+    def test_lazy_fetch_then_resolves_new_identifier(self, monkeypatch) -> None:
+        state = {"fetched": False}
+
+        def fake_refresh() -> bool:
+            state["fetched"] = True
+            return True
+
+        def fake_cached(name, thinking=False):
+            return Model(identifier=name, mode="copilot") if state["fetched"] else None
+
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", fake_refresh)
+        monkeypatch.setattr(shared, "cached_live_model", fake_cached)
+        assert resolve_model("brand_new_model").identifier == "brand_new_model"
+
+    def test_council_error_names_failing_member(self, monkeypatch) -> None:
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: True)
+        monkeypatch.setattr(shared, "cached_live_model", lambda name, thinking=False: None)
+        with pytest.raises(shared.ModelResolutionError) as exc:
+            build_council_model_list(["claude_sonnet", "bogus_member"])
+        assert "bogus_member" in str(exc.value)
+
+
+class TestLazyCatalogRefresh:
+    """#61: the lazy catalog fetch runs at most once per process and backs off after failure."""
+
+    def test_success_is_memoized(self, monkeypatch) -> None:
+        from perplexity_web_mcp import catalog
+
+        fetch = MagicMock(return_value=[object()])
+        monkeypatch.setattr(catalog, "fetch_catalog", fetch)
+        monkeypatch.setattr(catalog, "save_catalog", MagicMock(return_value=True))
+        assert shared._lazy_refresh_catalog() is True
+        assert shared._lazy_refresh_catalog() is True
+        fetch.assert_called_once()
+
+    def test_failure_enters_cooldown(self, monkeypatch) -> None:
+        from perplexity_web_mcp import catalog
+
+        fetch = MagicMock(side_effect=RuntimeError("offline"))
+        monkeypatch.setattr(catalog, "fetch_catalog", fetch)
+        assert shared._lazy_refresh_catalog() is False
+        assert shared._lazy_refresh_catalog() is False
+        fetch.assert_called_once()
 
 
 # ============================================================================

@@ -21,11 +21,13 @@ from perplexity_web_mcp.auth import (
     resolve_redirect_url,
     verify_totp,
 )
+from perplexity_web_mcp.exceptions import FileUploadError, FileValidationError
 from perplexity_web_mcp.models import Models
 from perplexity_web_mcp.preferences import load_preferences
 from perplexity_web_mcp.shared import (
     COUNCIL_DEFAULT_MODELS_STR,
     ModelName,
+    ModelResolutionError,
     SourceFocusName,
     SourceResolutionError,
     ask,
@@ -100,6 +102,7 @@ def pplx_query(
     thinking: bool | None = None,
     source_focus: SourceFocusName | None = None,
     conversation_id: str | None = None,
+    files: list[str] | None = None,
 ) -> str:
     """Query Perplexity AI with explicit model selection. COSTS 1 PRO SEARCH QUERY per call.
 
@@ -112,12 +115,15 @@ def pplx_query(
         query: The question to ask
         model: Model to use - auto, sonar, deep_research, gpt56_terra, gpt56_sol, gpt6_sol, grok45,
                grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron,
-               glm52, glm53, kimi_k26, kimi_k3 (any live catalog identifier is also accepted)
+               glm52, glm53, kimi_k26, kimi_k3 (any live catalog identifier is also accepted).
+               An unknown name returns an error with close-match suggestions.
         thinking: Enable extended thinking mode (available for gpt56_terra, gpt56_sol, gpt6_sol, grok45,
                   grok47, claude_sonnet, claude_opus, claude_opus55, gemini38, kimi_k26; always on for
                   gemini_pro, nemotron, glm52, glm53, and kimi_k3)
         source_focus: Source type - none (model only, no search), web, academic,
                       social, finance, all, or connector source ID from pplx_connectors()
+        files: Local file paths to attach (PDF or image). On Free-tier accounts an
+               attachment can make the query count as a Pro Search.
     """
     prefs = load_preferences()
     if model is None:
@@ -127,13 +133,21 @@ def pplx_query(
     if source_focus is None:
         source_focus = prefs.get("source") or "web"
 
-    selected_model = resolve_model(model, thinking=thinking)
-    return ask(query, selected_model, source_focus, conversation_id)
+    try:
+        selected_model = resolve_model(model, thinking=thinking)
+        return ask(query, selected_model, source_focus, conversation_id, files=files)
+    except (ModelResolutionError, FileValidationError, FileUploadError) as error:
+        return str(error)
 
 
 @mcp.tool
-def pplx_ask(query: str, source_focus: SourceFocusName = "web", conversation_id: str | None = None) -> str:
-    """Quick Q&A with auto model. COSTS 1 PRO SEARCH QUERY. Prefer pplx_smart_query(intent='quick') for simple lookups (Sonar 2 first)."""
+def pplx_ask(query: str, source_focus: SourceFocusName | None = None, conversation_id: str | None = None) -> str:
+    """Quick Q&A with auto model. COSTS 1 PRO SEARCH QUERY. Prefer pplx_smart_query(intent='quick') for simple lookups (Sonar 2 first).
+
+    An omitted source_focus falls back to your saved default (set with `pwm config`), then web.
+    """
+    if source_focus is None:
+        source_focus = load_preferences().get("source") or "web"
     return ask(query, Models.BEST, source_focus, conversation_id)
 
 
@@ -320,8 +334,9 @@ def pplx_kimi_k26_thinking(
 def pplx_smart_query(
     query: str,
     intent: str = "standard",
-    source_focus: SourceFocusName = "web",
+    source_focus: SourceFocusName | None = None,
     conversation_id: str | None = None,
+    files: list[str] | None = None,
 ) -> str:
     """RECOMMENDED DEFAULT TOOL. Quota-aware query — checks limits and picks the best model automatically.
 
@@ -342,10 +357,20 @@ def pplx_smart_query(
         query: The question to ask
         intent: Query complexity — quick (default for most), standard, detailed, research
         source_focus: Source type — none (model only, no search), web, academic,
-                      social, finance, all, or connector source ID from pplx_connectors()
+                      social, finance, all, or connector source ID from pplx_connectors().
+                      Omit it to use your saved default (set with `pwm config`), then web.
         conversation_id: Pass the ID from a previous response to continue that thread
+        files: Local file paths to attach (PDF or image). On Free-tier accounts an
+               attachment can make the query count as a Pro Search.
     """
-    result = smart_ask(query, intent=intent, source_focus=source_focus, conversation_id=conversation_id)
+    if source_focus is None:
+        source_focus = load_preferences().get("source") or "web"
+    try:
+        result = smart_ask(
+            query, intent=intent, source_focus=source_focus, conversation_id=conversation_id, files=files
+        )
+    except (FileValidationError, FileUploadError) as error:
+        return str(error)
     return result.format_response()
 
 
@@ -385,15 +410,15 @@ def pplx_council(
         chairman: Model to use for synthesis (default: "sonar" / Sonar 2).
                   Non-sonar chairmen cost 1 extra Pro Search query.
     """
-    # Parse custom model list if provided
-    model_list = None
-    if models != COUNCIL_DEFAULT_MODELS_STR:
-        model_names = [name.strip() for name in models.split(",") if name.strip()]
-        model_list = build_council_model_list(model_names, thinking=thinking)
-
-    synthesis_model = resolve_model(chairman) if chairman != "sonar" else None
-
     try:
+        # Parse custom model list if provided
+        model_list = None
+        if models != COUNCIL_DEFAULT_MODELS_STR:
+            model_names = [name.strip() for name in models.split(",") if name.strip()]
+            model_list = build_council_model_list(model_names, thinking=thinking)
+
+        synthesis_model = resolve_model(chairman) if chairman != "sonar" else None
+
         result = council_ask(
             query=query,
             models=model_list,
@@ -402,7 +427,7 @@ def pplx_council(
             thinking=thinking,
             synthesis_model=synthesis_model,
         )
-    except SourceResolutionError as e:
+    except (ModelResolutionError, SourceResolutionError) as e:
         return str(e)
     return result.format_response()
 

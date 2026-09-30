@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from perplexity_web_mcp import shared
+from perplexity_web_mcp.exceptions import FileUploadError, FileValidationError
 from perplexity_web_mcp.mcp import server
 from perplexity_web_mcp.models import Models
 from perplexity_web_mcp.shared import resolve_model
@@ -32,10 +34,15 @@ def test_current_model_tools_route_to_live_identifiers() -> None:
 
 
 def test_smart_query_forwards_conversation_id() -> None:
-    with patch.object(server, "smart_ask") as mock_smart:
+    with (
+        patch.object(server, "load_preferences", return_value={}),
+        patch.object(server, "smart_ask") as mock_smart,
+    ):
         mock_smart.return_value.format_response.return_value = "ok"
         assert server.pplx_smart_query.fn("follow-up", conversation_id="conv-1") == "ok"
-        mock_smart.assert_called_once_with("follow-up", intent="standard", source_focus="web", conversation_id="conv-1")
+        mock_smart.assert_called_once_with(
+            "follow-up", intent="standard", source_focus="web", conversation_id="conv-1", files=None
+        )
 
 
 def test_removed_gpt_tools_are_not_exposed() -> None:
@@ -320,3 +327,109 @@ class TestPplxQueryPreferences:
         ):
             assert server.pplx_query.fn("question", model="auto") == "ok"
         assert mock_ask.call_args.args[1] == resolve_model("auto", thinking=False)
+
+
+class TestMcpAttachments:
+    """#56: pplx_query and pplx_smart_query accept files and surface file errors as text."""
+
+    def test_query_forwards_files(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={}),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_query.fn("q", files=["/tmp/report.pdf"]) == "ok"
+        assert mock_ask.call_args.kwargs["files"] == ["/tmp/report.pdf"]
+
+    def test_query_returns_file_validation_error_as_text(self) -> None:
+        error = FileValidationError("/tmp/huge.pdf", "file too big")
+        with (
+            patch.object(server, "load_preferences", return_value={}),
+            patch.object(server, "ask", side_effect=error),
+        ):
+            assert server.pplx_query.fn("q", files=["/tmp/huge.pdf"]) == str(error)
+
+    def test_smart_query_forwards_files(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={}),
+            patch.object(server, "smart_ask") as mock_smart,
+        ):
+            mock_smart.return_value.format_response.return_value = "ok"
+            assert server.pplx_smart_query.fn("q", files=["/tmp/report.pdf"]) == "ok"
+        assert mock_smart.call_args.kwargs["files"] == ["/tmp/report.pdf"]
+
+    def test_smart_query_returns_file_upload_error_as_text(self) -> None:
+        error = FileUploadError("/tmp/report.pdf", "upload failed")
+        with (
+            patch.object(server, "load_preferences", return_value={}),
+            patch.object(server, "smart_ask", side_effect=error),
+        ):
+            assert server.pplx_smart_query.fn("q", files=["/tmp/report.pdf"]) == str(error)
+
+
+class TestMcpSavedSourceDefault:
+    """#58: pplx_ask and pplx_smart_query honor the saved source default when omitted."""
+
+    def test_ask_uses_saved_source_when_omitted(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={"source": "academic"}),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_ask.fn("q") == "ok"
+        assert mock_ask.call_args.args[2] == "academic"
+
+    def test_ask_explicit_source_beats_saved(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={"source": "academic"}),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_ask.fn("q", source_focus="finance") == "ok"
+        assert mock_ask.call_args.args[2] == "finance"
+
+    def test_ask_defaults_to_web_without_pref(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={}),
+            patch.object(server, "ask", return_value="ok") as mock_ask,
+        ):
+            assert server.pplx_ask.fn("q") == "ok"
+        assert mock_ask.call_args.args[2] == "web"
+
+    def test_smart_query_uses_saved_source_when_omitted(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={"source": "social"}),
+            patch.object(server, "smart_ask") as mock_smart,
+        ):
+            mock_smart.return_value.format_response.return_value = "ok"
+            assert server.pplx_smart_query.fn("q") == "ok"
+        assert mock_smart.call_args.kwargs["source_focus"] == "social"
+
+    def test_smart_query_explicit_source_beats_saved(self) -> None:
+        with (
+            patch.object(server, "load_preferences", return_value={"source": "social"}),
+            patch.object(server, "smart_ask") as mock_smart,
+        ):
+            mock_smart.return_value.format_response.return_value = "ok"
+            assert server.pplx_smart_query.fn("q", source_focus="finance") == "ok"
+        assert mock_smart.call_args.kwargs["source_focus"] == "finance"
+
+
+class TestMcpStrictModelResolution:
+    """#61: MCP tools error (not silently guess) on unresolvable model names."""
+
+    @pytest.fixture(autouse=True)
+    def _offline_catalog_but_authoritative(self, monkeypatch):
+        # Simulate an authoritative catalog fetch that still lacks the bad name.
+        monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: True)
+        monkeypatch.setattr(shared, "cached_live_model", lambda name, thinking=False: None)
+
+    def test_query_returns_model_resolution_error_as_text(self) -> None:
+        with patch.object(server, "load_preferences", return_value={}):
+            result = server.pplx_query.fn("q", model="claude_sonet")
+        assert "Unknown model 'claude_sonet'" in result
+
+    def test_council_error_names_failing_member(self) -> None:
+        result = server.pplx_council.fn("q", models="claude_sonnet,bogus_member")
+        assert "bogus_member" in result
+
+    def test_council_error_names_bad_chairman(self) -> None:
+        result = server.pplx_council.fn("q", chairman="bogus_chair")
+        assert "bogus_chair" in result

@@ -89,7 +89,11 @@ CHAT (INTERACTIVE)
   pwm chat -m MODEL -t -s SOURCE      Same options as pwm ask
   pwm chat -m auto                    Quota-aware routing (downgrades when quota is low)
                                       In-session commands: /new (new thread),
-                                      /model [NAME] (show or switch model), /exit (quit)
+                                      /model [NAME] (show or switch model),
+                                      /source [NAME] (switch source, sticky),
+                                      /thinking [on|off] (toggle thinking, sticky),
+                                      /attach PATH (attach a file to the next message),
+                                      /exit (quit)
 
 SAVED DEFAULTS
   pwm config show                     Show saved default model, thinking, source
@@ -201,19 +205,24 @@ MCP TOOLS (pplx_* namespace)
 ================================================================================
 
 SMART QUERY (RECOMMENDED DEFAULT — use this for every query):
-  pplx_smart_query(query, intent="quick", source_focus="web")
+  pplx_smart_query(query, intent="quick", source_focus=None, files=None)
       Quota-aware routing. Default to intent='quick' for most lookups (Sonar 2 first).
       Only escalate to 'standard', 'detailed', or 'research' when needed.
+      Omitted source_focus follows the saved default (pwm config), then web.
+      files: attach local PDFs/images (on Free tier may count as a Pro Search).
       See QUOTA-AWARE QUERYING section above for decision rules.
       Multi-turn: responses end with [Conversation ID: ...]; pass it back via conversation_id to continue.
 
 QUERY TOOLS (each call costs 1 Pro Search query unless noted):
-  pplx_query(query, model="auto", thinking=False, source_focus="web")
+  pplx_query(query, model="auto", thinking=False, source_focus=None, files=None)
       Explicit model selection. 1 PRO SEARCH per call.
       Omitted model/thinking/source follow saved defaults (pwm config); explicit values win.
+      An unknown model returns an error with close-match suggestions (no silent fallback).
+      files: attach local PDFs/images (on Free tier may count as a Pro Search).
 
-  pplx_ask(query, source_focus="web")
+  pplx_ask(query, source_focus=None)
       Auto-selects best model. 1 PRO SEARCH per call.
+      Omitted source_focus follows the saved default (pwm config), then web.
 
   pplx_council(query, source_focus="web", models="gpt56_terra,claude_sonnet,gemini_pro",
                synthesize=True, thinking=False, chairman="sonar")

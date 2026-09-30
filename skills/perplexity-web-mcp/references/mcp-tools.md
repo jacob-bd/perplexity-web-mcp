@@ -110,8 +110,9 @@ and only escalate when the query genuinely needs a premium model or Research.
 pplx_smart_query(
     query: str,                    # Required. The question to ask.
     intent: str = "standard",      # quick (1 Pro, Sonar 2), standard (1 Pro), detailed (1 Pro), research (1 Research)
-    source_focus: str = "web",     # none, web, academic, social, finance, all, or connector ID from pplx_connectors()
+    source_focus: str = None,      # none, web, academic, social, finance, all, or connector ID; omitted → saved default, then web
     conversation_id: str = None,   # Optional. Pass ID from previous turn to persist context.
+    files: list[str] = None,       # Optional. Local file paths to attach (PDF/image). On Free tier may count as a Pro Search.
 ) -> str
 ```
 
@@ -133,10 +134,11 @@ pplx_query(
     thinking: bool = False,        # Enable extended thinking (where supported)
     source_focus: str = "web",     # none, web, academic, social, finance, all, or connector ID from pplx_connectors()
     conversation_id: str = None,   # Optional. Pass ID from previous turn to persist context.
+    files: list[str] = None,       # Optional. Local file paths to attach (PDF/image). On Free tier may count as a Pro Search.
 ) -> str
 ```
 
-Omitted `model`, `thinking`, and `source_focus` fall back to saved defaults (set with `pwm config` on the CLI), then to auto/web/off. Explicit values always win.
+Omitted `model`, `thinking`, and `source_focus` fall back to saved defaults (set with `pwm config` on the CLI), then to auto/web/off. Explicit values always win. An unknown `model` returns an error with close-match suggestions instead of silently picking a default.
 
 ### pplx_ask
 
@@ -146,7 +148,7 @@ For simple lookups, prefer `pplx_smart_query(intent='quick')` instead.
 ```
 pplx_ask(
     query: str,                    # Required. The question to ask.
-    source_focus: str = "web",     # none, web, academic, social, finance, all, or connector ID from pplx_connectors()
+    source_focus: str = None,      # none, web, academic, social, finance, all, or connector ID; omitted → saved default, then web
     conversation_id: str = None,   # Optional. Pass ID from previous turn to persist context.
 ) -> str
 ```

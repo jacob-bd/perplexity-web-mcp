@@ -8,9 +8,11 @@ Both the MCP server (mcp/server.py) and CLI (cli/main.py) import from here.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import difflib
 from os import PathLike, environ
 import re
 from threading import Lock
+from time import monotonic
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
@@ -72,6 +74,10 @@ _BUILTIN_SOURCE_IDS = set(BUILTIN_SOURCE_IDS)
 
 class SourceResolutionError(ValueError):
     """Raised when a source alias or connector source ID cannot be resolved."""
+
+
+class ModelResolutionError(ValueError):
+    """Raised when a model name cannot be resolved to a known or live-catalog model."""
 
 
 MODEL_METADATA: dict[str, ModelDefinition] = {
@@ -246,11 +252,59 @@ def build_council_model_list(
     return model_list
 
 
+_catalog_refresh_lock = Lock()
+_catalog_refreshed = False
+_catalog_fetch_failed_at: float = 0.0
+_CATALOG_FETCH_COOLDOWN_SECONDS = 60.0
+
+
+def _lazy_refresh_catalog() -> bool:
+    """Fetch the live catalog once per process when a model name is unknown.
+
+    Returns True when a fresh catalog is cached and worth re-checking, False when
+    the fetch was skipped (recent-failure cooldown) or failed (offline/auth). A
+    failure is remembered so repeated unknown-name lookups do not hammer the
+    network while offline.
+    """
+    global _catalog_refreshed, _catalog_fetch_failed_at  # noqa: PLW0603
+
+    with _catalog_refresh_lock:
+        if _catalog_refreshed:
+            return True
+        if _catalog_fetch_failed_at and (monotonic() - _catalog_fetch_failed_at) < _CATALOG_FETCH_COOLDOWN_SECONDS:
+            return False
+
+        from .catalog import fetch_catalog, save_catalog
+
+        try:
+            entries = fetch_catalog()
+        except Exception:  # noqa: BLE001 - offline/auth/parse failures must degrade gracefully
+            _catalog_fetch_failed_at = monotonic()
+            return False
+
+        save_catalog(entries)
+        _catalog_refreshed = True
+        return True
+
+
+def _unknown_model_message(name: str) -> str:
+    """Build a strict-resolution error naming close matches for an unknown model."""
+    suggestions = difflib.get_close_matches(name, known_model_names(), n=3, cutoff=0.6)
+    hint = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
+    return (
+        f"Unknown model '{name}'.{hint} "
+        f"Run 'pwm models' to list available models, or use one of: {', '.join(MODEL_NAMES)}."
+    )
+
+
 def resolve_model(name: str, thinking: bool = False) -> Model:
     """Resolve a model name string to a Model instance.
 
-    Falls back to the cached live catalog for identifiers newer than the static
-    map, and finally to Models.BEST for unknown names.
+    Resolution order: the static catalog, then the cached live catalog, then a
+    single lazy live fetch. When the fetch succeeds and the name is still
+    unknown, a ModelResolutionError is raised with close-match suggestions
+    instead of silently guessing. When the fetch fails (offline), resolution
+    degrades to Models.BEST so a valid-but-uncached name is never rejected.
 
     Args:
         name: Model name key (e.g. "gpt56_terra", "claude_sonnet") or a live
@@ -259,15 +313,27 @@ def resolve_model(name: str, thinking: bool = False) -> Model:
 
     Returns:
         The resolved Model.
+
+    Raises:
+        ModelResolutionError: When the name is unknown and the live catalog was
+            fetched successfully (so the name is authoritatively invalid).
     """
     model_tuple = MODEL_MAP.get(name)
-    if model_tuple is None:
+    if model_tuple is not None:
+        base_model, thinking_model = model_tuple
+        return thinking_model if thinking and thinking_model else base_model
+
+    live_model = cached_live_model(name, thinking=thinking)
+    if live_model is not None:
+        return live_model
+
+    if _lazy_refresh_catalog():
         live_model = cached_live_model(name, thinking=thinking)
         if live_model is not None:
             return live_model
-        model_tuple = (Models.BEST, None)
-    base_model, thinking_model = model_tuple
-    return thinking_model if thinking and thinking_model else base_model
+        raise ModelResolutionError(_unknown_model_message(name))
+
+    return Models.BEST
 
 
 def _source_limits_from_rate_limits() -> list[SourceLimit]:

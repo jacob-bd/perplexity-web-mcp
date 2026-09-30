@@ -211,7 +211,7 @@ pwm chat -m auto                          # quota-aware model routing
 pwm chat -m claude_sonnet --thinking      # start with a specific model
 ```
 
-In-session commands: `/new` starts a fresh thread, `/model [NAME]` shows or switches the model, `/exit` (or `/quit`, or Ctrl-D) quits.
+In-session commands: `/new` starts a fresh thread, `/model [NAME]` shows or switches the model, `/source [NAME]` switches the source focus (stays set), `/thinking [on|off]` toggles extended thinking (stays set), `/attach PATH` attaches a file to your next message only, and `/exit` (or `/quit`, or Ctrl-D) quits.
 
 ### Saved Defaults
 

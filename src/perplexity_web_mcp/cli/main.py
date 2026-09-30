@@ -284,9 +284,12 @@ def chat(model_name, thinking, source):
 
     \b
     In-session commands:
-      /new            start a new thread
-      /model [NAME]   show or switch the model ('auto' = quota-aware routing)
-      /exit           quit (/quit and Ctrl-D also work)
+      /new                start a new thread
+      /model [NAME]       show or switch the model ('auto' = quota-aware routing)
+      /source [NAME]      show or switch the source focus (stays set)
+      /thinking [on|off]  toggle extended thinking (stays set)
+      /attach PATH        attach a file to your next message only
+      /exit               quit (/quit and Ctrl-D also work)
     """
     raise SystemExit(_cmd_chat_impl(model_name, thinking, source))
 
@@ -319,8 +322,9 @@ def _cmd_chat_impl(model_name, thinking, source):
         return 1
 
     conversation_id = None
+    pending_files: list[str] = []
     prompt = "You: " if sys.stdin.isatty() else ""
-    print(f"Chatting with {model_name}. Commands: /new (new thread), /model (switch model), /exit (quit).")
+    print(f"Chatting with {model_name}. Commands: /new, /model, /source, /thinking, /attach, /exit.")
     while True:
         try:
             line = input(prompt)
@@ -334,6 +338,7 @@ def _cmd_chat_impl(model_name, thinking, source):
             break
         if query == "/new":
             conversation_id = None
+            pending_files = []
             print("Started a new thread.")
             continue
         if query == "/model" or query.startswith("/model "):
@@ -359,17 +364,68 @@ def _cmd_chat_impl(model_name, thinking, source):
             else:
                 print(f"Error: Unknown model '{candidate}'. Type /model to see available names.", file=sys.stderr)
             continue
+        if query == "/source" or query.startswith("/source "):
+            candidate = query[len("/source") :].strip()
+            if not candidate:
+                print(f"Current source: {source}")
+                print(f"Available: {', '.join(SOURCE_FOCUS_NAMES)}, or a connector source ID.")
+            elif _validate_source_for_cli(candidate):
+                source = candidate
+                print(f"Source set to {source}.")
+            continue
+        if query == "/thinking" or query.startswith("/thinking "):
+            arg = query[len("/thinking") :].strip().lower()
+            if arg in ("on", "true", "yes"):
+                thinking = True
+            elif arg in ("off", "false", "no"):
+                thinking = False
+            elif not arg:
+                thinking = not thinking
+            else:
+                print(f"Usage: /thinking [on|off] (currently {'on' if thinking else 'off'}).", file=sys.stderr)
+                continue
+            print(f"Thinking {'on' if thinking else 'off'}.")
+            if model_name == "auto":
+                print("Note: thinking applies to specific models; 'auto' routing ignores it.")
+            continue
+        if query == "/attach" or query.startswith("/attach "):
+            candidate = query[len("/attach") :].strip()
+            if not candidate:
+                if pending_files:
+                    print(f"Attached for next message: {', '.join(pending_files)}")
+                else:
+                    print("Usage: /attach PATH (attaches a file to your next message only).")
+                continue
+            if candidate == "clear":
+                pending_files = []
+                print("Cleared pending attachments.")
+                continue
+            attachment = Path(candidate).expanduser()
+            if not attachment.is_file():
+                print(f"Error: File not found: {candidate}", file=sys.stderr)
+                continue
+            pending_files.append(str(attachment))
+            print(f"Attached for next message: {', '.join(pending_files)}")
+            continue
         try:
+            turn_files = pending_files or None
             if model_name == "auto":
                 from perplexity_web_mcp.shared import smart_ask
 
-                smart_response = smart_ask(query, source_focus=source, conversation_id=conversation_id)
+                smart_response = smart_ask(
+                    query, source_focus=source, conversation_id=conversation_id, files=turn_files
+                )
                 conversation_id = smart_response.conversation_id
                 print(smart_response.format_response())
             else:
                 model = resolve_model(model_name, thinking=thinking)
-                response, conversation_id = ask_turn(query, model, source, conversation_id)
+                response, conversation_id = ask_turn(query, model, source, conversation_id, files=turn_files)
                 print(response)
+            pending_files = []
+        except (FileValidationError, FileUploadError) as error:
+            print(str(error), file=sys.stderr)
+            pending_files = []
+            continue
         except (AuthenticationError, RateLimitError) as error:
             print(str(error), file=sys.stderr)
             continue

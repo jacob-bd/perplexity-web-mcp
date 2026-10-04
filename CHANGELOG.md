@@ -4,6 +4,19 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [0.16.1] - 2026-10-04
+
+### Fixed
+
+- **Citation footer matches answer `[n]` markers on multi-step Pro searches** — on multi-step searches, the Perplexity stream emits multiple `web_results` blocks in retrieval order while the final answer's `[n]` citation markers are indexed against the merged, model-facing source list. Accumulation alone produced mismatched footer links (0/7 correct). The client now reads the authoritative source list embedded in the thread's stored `FINAL` step after a multi-step stream ends and aligns the citation results; single-search queries skip the lookup with zero latency overhead, and accumulated stream order is preserved as a fallback if the thread is temporarily unreadable. ([#48](https://github.com/jacob-bd/perplexity-web-mcp/issues/48))
+- **Test suite trace log isolation** — `test_reset_and_log_trace` now redirects `LOGS_DIR` and `TRACE_LOG_FILE` to `tmp_path`, preventing offline test runs from modifying or truncating the user's real `~/.config/perplexity-web-mcp/logs/api-trace.log`.
+
+### Credits
+
+- Thanks to [@almerickso](https://github.com/almerickso) for the detailed multi-step reproduction, verification on 0.14.14, and attaching full API traces in [#48](https://github.com/jacob-bd/perplexity-web-mcp/issues/48).
+
+---
+
 ## [0.16.0] - 2026-09-29
 
 ### Added

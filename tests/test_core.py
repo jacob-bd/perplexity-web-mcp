@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from perplexity_web_mcp.config import ClientConfig, ConversationConfig
-from perplexity_web_mcp.core import Conversation, Perplexity
+from perplexity_web_mcp.core import Conversation, Perplexity, _extract_final_sources
 from perplexity_web_mcp.enums import CitationMode, SearchFocus, SourceFocus, TimeRange
 from perplexity_web_mcp.exceptions import (
     FileValidationError,
@@ -715,3 +715,215 @@ class TestBuildResponse:
         conv._chunks = []
         resp = conv._build_response()
         assert resp.last_chunk is None
+
+
+# ============================================================================
+# 8. Citation order refresh (multi-step FINAL source order)
+# ============================================================================
+
+
+def _thread_payload(web_results: list[dict], *, backend_uuid: str = "conv-1", extra: list[dict] | None = None) -> dict:
+    """Build a stored-thread payload shaped like the Perplexity thread API."""
+    answer_json = json.dumps({"answer": "Answer [1]", "web_results": web_results, "extra_web_results": extra or []})
+    steps = [{"step_type": "FINAL", "content": {"answer": answer_json}}]
+    return {
+        "entries": [
+            {
+                "backend_uuid": backend_uuid,
+                "query_str": "q",
+                "text": json.dumps(steps),
+            }
+        ]
+    }
+
+
+class _JSONGetResponse:
+    def __init__(self, data: dict) -> None:
+        self.content = json.dumps(data).encode()
+
+
+class _MultiStepHTTP:
+    """Fake HTTP client that streams two web_results blocks and serves a thread."""
+
+    def __init__(self, thread_data: dict | None = None, get_error: Exception | None = None) -> None:
+        self.thread_data = thread_data
+        self.get_error = get_error
+        self.get_calls = 0
+
+    def init_search(self, query: str) -> None:
+        pass
+
+    def stream_ask(self, payload: dict):
+        yield f"data: {json.dumps({'backend_uuid': 'conv-1'})}".encode()
+        block_a = {
+            "intended_usage": "web_results",
+            "web_result_block": {"web_results": [{"name": "A", "url": "https://a.example", "snippet": "sa"}]},
+        }
+        yield f"data: {json.dumps({'blocks': [block_a]})}".encode()
+        block_b = {
+            "intended_usage": "web_results",
+            "web_result_block": {
+                "web_results": [
+                    {"name": "B", "url": "https://b.example", "snippet": "sb"},
+                    {"name": "C", "url": "https://c.example", "snippet": "sc"},
+                ]
+            },
+        }
+        yield f"data: {json.dumps({'blocks': [block_b]})}".encode()
+        text_block = {
+            "intended_usage": "ask_text",
+            "markdown_block": {"chunks": ["Answer [1]"], "progress": "DONE"},
+        }
+        yield f"data: {json.dumps({'blocks': [text_block], 'final': True})}".encode()
+
+    def get(self, endpoint: str) -> _JSONGetResponse:
+        self.get_calls += 1
+        if self.get_error is not None:
+            raise self.get_error
+        assert self.thread_data is not None
+        return _JSONGetResponse(self.thread_data)
+
+
+class TestExtractFinalSources:
+    """Unit tests for parsing the stored FINAL source list."""
+
+    def test_returns_ordered_items_with_metadata(self) -> None:
+        payload = _thread_payload(
+            [
+                {"name": "C", "url": "https://c.example", "snippet": "sc"},
+                {"name": "A", "url": "https://a.example", "snippet": "sa"},
+            ]
+        )
+
+        results = _extract_final_sources(payload, "conv-1")
+
+        assert results is not None
+        assert [item.url for item in results] == ["https://c.example", "https://a.example"]
+        assert [item.title for item in results] == ["C", "A"]
+        assert results[0].snippet == "sc"
+
+    def test_extra_web_results_append_and_dedupe_by_url(self) -> None:
+        payload = _thread_payload(
+            [{"name": "A", "url": "https://a.example"}],
+            extra=[{"name": "A again", "url": "https://a.example"}, {"name": "D", "url": "https://d.example"}],
+        )
+
+        results = _extract_final_sources(payload, "conv-1")
+
+        assert results is not None
+        assert [item.url for item in results] == ["https://a.example", "https://d.example"]
+
+    def test_picks_entry_matching_backend_uuid(self) -> None:
+        older = _thread_payload([{"name": "Old", "url": "https://old.example"}], backend_uuid="conv-0")["entries"][0]
+        newer = _thread_payload([{"name": "New", "url": "https://new.example"}], backend_uuid="conv-1")["entries"][0]
+
+        results = _extract_final_sources({"entries": [older, newer]}, "conv-0")
+
+        assert results is not None
+        assert [item.url for item in results] == ["https://old.example"]
+
+    def test_returns_none_for_unusable_payloads(self) -> None:
+        assert _extract_final_sources({}, "conv-1") is None
+        assert _extract_final_sources({"entries": []}, "conv-1") is None
+        assert _extract_final_sources({"entries": [{"backend_uuid": "conv-1", "text": "not-json"}]}, "conv-1") is None
+        no_final = {"entries": [{"backend_uuid": "conv-1", "text": json.dumps([{"step_type": "INITIAL_QUERY"}])}]}
+        assert _extract_final_sources(no_final, "conv-1") is None
+        empty = _thread_payload([])
+        assert _extract_final_sources(empty, "conv-1") is None
+
+    def test_handles_non_list_web_results_gracefully(self) -> None:
+        payload = {
+            "entries": [
+                {
+                    "backend_uuid": "conv-1",
+                    "text": json.dumps(
+                        [
+                            {
+                                "step_type": "FINAL",
+                                "content": {"answer": json.dumps({"web_results": 123, "extra_web_results": "string"})},
+                            }
+                        ]
+                    ),
+                }
+            ]
+        }
+        assert _extract_final_sources(payload, "conv-1") is None
+
+
+class TestCitationOrderRefresh:
+    """Multi-step streams adopt the stored FINAL order; everything else is untouched."""
+
+    def test_multi_step_stream_uses_stored_final_order(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("perplexity_web_mcp.core.sleep", lambda _: None)
+        thread = _thread_payload(
+            [
+                {"name": "C", "url": "https://c.example", "snippet": "sc"},
+                {"name": "A", "url": "https://a.example", "snippet": "sa"},
+                {"name": "B", "url": "https://b.example", "snippet": "sb"},
+            ]
+        )
+        http = _MultiStepHTTP(thread_data=thread)
+        conv = Conversation(http, ConversationConfig(citation_mode=CitationMode.DEFAULT))
+
+        conv.ask("q")
+
+        assert [item.url for item in conv.search_results] == [
+            "https://c.example",
+            "https://a.example",
+            "https://b.example",
+        ]
+        assert conv.answer == "Answer [1]"
+
+    def test_fetch_failure_keeps_accumulated_order(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("perplexity_web_mcp.core.sleep", lambda _: None)
+        http = _MultiStepHTTP(get_error=RuntimeError("network down"))
+        conv = Conversation(http, ConversationConfig(citation_mode=CitationMode.DEFAULT))
+
+        conv.ask("q")
+
+        assert [item.url for item in conv.search_results] == [
+            "https://a.example",
+            "https://b.example",
+            "https://c.example",
+        ]
+        assert http.get_calls == 2  # one retry, then fall back
+
+    def test_unusable_thread_payload_keeps_accumulated_order(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("perplexity_web_mcp.core.sleep", lambda _: None)
+        http = _MultiStepHTTP(thread_data={"entries": []})
+        conv = Conversation(http, ConversationConfig(citation_mode=CitationMode.DEFAULT))
+
+        conv.ask("q")
+
+        assert [item.url for item in conv.search_results] == [
+            "https://a.example",
+            "https://b.example",
+            "https://c.example",
+        ]
+
+    def test_single_block_stream_skips_thread_fetch(self) -> None:
+        thread = _thread_payload([{"name": "X", "url": "https://x.example"}])
+        http = _MultiStepHTTP(thread_data=thread)
+
+        def single_block_stream(payload: dict):
+            yield f"data: {json.dumps({'backend_uuid': 'conv-1'})}".encode()
+            block = {
+                "intended_usage": "web_results",
+                "web_result_block": {
+                    "web_results": [
+                        {"name": "A", "url": "https://a.example", "snippet": "sa"},
+                        {"name": "B", "url": "https://b.example", "snippet": "sb"},
+                    ]
+                },
+            }
+            yield f"data: {json.dumps({'blocks': [block]})}".encode()
+            text_block = {"intended_usage": "ask_text", "markdown_block": {"chunks": ["Answer"]}}
+            yield f"data: {json.dumps({'blocks': [text_block], 'final': True})}".encode()
+
+        http.stream_ask = single_block_stream  # type: ignore[method-assign]
+        conv = Conversation(http, ConversationConfig(citation_mode=CitationMode.DEFAULT))
+
+        conv.ask("q")
+
+        assert http.get_calls == 0
+        assert [item.url for item in conv.search_results] == ["https://a.example", "https://b.example"]

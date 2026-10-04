@@ -34,6 +34,8 @@ def test_redact_trace_line():
 
 def test_reset_and_log_trace(monkeypatch, tmp_path):
     monkeypatch.setenv("PWM_TRACE", "1")
+    monkeypatch.setattr("perplexity_web_mcp.trace.LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr("perplexity_web_mcp.trace.TRACE_LOG_FILE", tmp_path / "logs" / "api-trace.log")
     trace_path = get_trace_log_path()
 
     reset_trace_log()

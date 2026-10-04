@@ -5,6 +5,7 @@ from __future__ import annotations
 from mimetypes import guess_type
 from os import PathLike
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -84,6 +85,87 @@ def _blocks_to_answer_data(blocks: Any) -> dict[str, Any]:
                     answer_data["web_results"] = list(results)
 
     return answer_data
+
+
+def _extract_final_sources(
+    thread_data: dict[str, Any], backend_uuid: str | None = None
+) -> list[SearchResultItem] | None:
+    """Return the ordered source list stored with a thread's final answer.
+
+    The stored FINAL step embeds the same ``web_results`` payload the answer
+    model was given, in the order its ``[n]`` citation markers refer to. This
+    is the authoritative numbering for citation footers on multi-step
+    searches, where block arrival order does not match the markers. Returns
+    ``None`` when the payload cannot provide it (unknown thread, malformed
+    data, or a thread stored before the final answer was persisted).
+    """
+    entries = thread_data.get("entries")
+    if not isinstance(entries, list):
+        return None
+
+    entry: dict[str, Any] | None = None
+    if backend_uuid:
+        for candidate in reversed(entries):
+            if isinstance(candidate, dict) and candidate.get("backend_uuid") == backend_uuid:
+                entry = candidate
+                break
+    if entry is None:
+        for candidate in reversed(entries):
+            if isinstance(candidate, dict):
+                entry = candidate
+                break
+    if entry is None:
+        return None
+
+    raw_steps = entry.get("text")
+    try:
+        steps = loads(raw_steps) if isinstance(raw_steps, str) else raw_steps
+    except JSONDecodeError:
+        return None
+    if not isinstance(steps, list):
+        return None
+
+    final_step = next(
+        (step for step in reversed(steps) if isinstance(step, dict) and step.get("step_type") == "FINAL"),
+        None,
+    )
+    if final_step is None:
+        return None
+
+    content = final_step.get("content")
+    raw_answer = content.get("answer") if isinstance(content, dict) else None
+    if isinstance(raw_answer, str):
+        try:
+            answer_data = loads(raw_answer)
+        except JSONDecodeError:
+            return None
+    elif isinstance(raw_answer, dict):
+        answer_data = raw_answer
+    else:
+        return None
+    if not isinstance(answer_data, dict):
+        return None
+
+    raw_results: list[Any] = []
+    web_results = answer_data.get("web_results")
+    if isinstance(web_results, list):
+        raw_results.extend(web_results)
+    extra_web_results = answer_data.get("extra_web_results")
+    if isinstance(extra_web_results, list):
+        raw_results.extend(extra_web_results)
+
+    results: list[SearchResultItem] = []
+    seen_urls: set[str] = set()
+    for item in raw_results:
+        if not isinstance(item, dict):
+            continue
+        url = item.get("url")
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        results.append(SearchResultItem(title=item.get("name"), snippet=item.get("snippet"), url=url))
+
+    return results or None
 
 
 class Perplexity:
@@ -281,6 +363,7 @@ class Conversation:
         "_search_results",
         "_stream_generator",
         "_title",
+        "_web_results_blocks",
     )
 
     def __init__(self, http: HTTPClient, config: ConversationConfig) -> None:
@@ -296,6 +379,7 @@ class Conversation:
         self._search_results: list[SearchResultItem] = []
         self._raw_data: dict[str, Any] = {}
         self._stream_generator: Generator[Response, None, None] | None = None
+        self._web_results_blocks = 0
 
     @property
     def answer(self) -> str | None:
@@ -419,6 +503,7 @@ class Conversation:
         self._search_results = []
         self._raw_data = {}
         self._stream_generator = None
+        self._web_results_blocks = 0
 
     def _validate_files(self, files: list[str | PathLike] | None) -> list[_FileInfo]:
         if not files:
@@ -647,6 +732,8 @@ class Conversation:
         if "text" not in data:
             answer_data = _blocks_to_answer_data(data.get("blocks"))
             if answer_data:
+                if answer_data.get("web_results"):
+                    self._web_results_blocks += 1
                 self._update_state(data.get("thread_title"), answer_data)
             return None
 
@@ -773,6 +860,45 @@ class Conversation:
             raw_data=self._raw_data,
         )
 
+    def _refresh_search_results_from_thread(self) -> bool:
+        """Align the citation list with the thread's stored FINAL order.
+
+        Multi-step searches stream several ``web_results`` blocks, and the
+        answer's ``[n]`` markers follow the merged, model-facing source list
+        stored with the final answer rather than block arrival order. Fetch
+        the finished thread once and adopt that order when available; keep
+        the accumulated stream order on any failure.
+        """
+        if self._web_results_blocks <= 1 or not self._backend_uuid:
+            return False
+
+        endpoint = (
+            f"{ENDPOINT_THREAD_DETAIL}/{self._backend_uuid}"
+            f"?version={API_VERSION}&source=default&limit=100&from_first=true"
+        )
+        for attempt in (0, 1):
+            try:
+                response = self._http.get(endpoint)
+                thread_data = loads(response.content)
+                if isinstance(thread_data, dict):
+                    ordered = _extract_final_sources(thread_data, self._backend_uuid)
+                    if ordered:
+                        previous = len(self._search_results)
+                        self._search_results = ordered
+                        log_trace(
+                            f"[STAGE 3 - CITATION ORDER REFRESH] stored order applied: "
+                            f"{previous} -> {len(ordered)} sources"
+                        )
+                        return True
+            except Exception as error:  # noqa: BLE001 - best-effort refresh keeps stream order
+                logger.debug(f"Citation order refresh failed: {error}")
+                log_trace(f"[STAGE 3 - CITATION ORDER REFRESH] attempt {attempt + 1} failed: {error!r}")
+            if attempt == 0:
+                sleep(1.0)
+
+        log_trace("[STAGE 3 - CITATION ORDER REFRESH] no stored order found; keeping stream order")
+        return False
+
     def _fetch_research_report(self) -> str | None:
         """Return the full Deep Research report markdown, or ``None``.
 
@@ -859,6 +985,7 @@ class Conversation:
         finally:
             gen.close()
 
+        self._refresh_search_results_from_thread()
         self._append_research_report()
 
     def _stream(self, payload: dict[str, Any]) -> Generator[Response, None, None]:
@@ -874,5 +1001,6 @@ class Conversation:
         finally:
             gen.close()
 
+        self._refresh_search_results_from_thread()
         if self._append_research_report():
             yield self._build_response()

@@ -4,7 +4,7 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
-## [Unreleased]
+## [0.17.0] - 2026-11-13
 
 ### Added
 

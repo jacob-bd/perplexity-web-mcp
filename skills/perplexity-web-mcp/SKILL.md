@@ -2,7 +2,7 @@
 name: perplexity-web-mcp
 description: 'Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm chat, pwm research, pwm config), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions "perplexity", "pplx", "pwm", "web search with AI", "chat with Perplexity", "deep research", "search the internet", or wants to query premium models like GPT-6.1 Sol, GPT-6 Astra, Grok 4.7, Claude, Gemini, GLM, Kimi, or Nemotron through Perplexity''s web interface.'
 metadata:
-  version: "0.16.1"
+  version: "0.17.0"
   author: "Jacob BD"
 ---
 
@@ -414,7 +414,7 @@ pwm usage --refresh         # Force-refresh from server
 | `pplx_claude_opus` / `_think`         | 1 Pro                                   | Anthropic Claude Opus 5.5 (Max tier)                                                                                                                                                                                          |
 | `pplx_claude_fable52` / `_think`      | 1 Pro                                   | Anthropic Claude Fable 5.2 (Max tier)                                                                                                                                                                                         |
 | `pplx_grok47` / `_thinking`           | 1 Pro                                   | xAI Grok 4.7                                                                                                                                                                                                                  |
-| `pplx_nemotron`              | 1 Pro                                   | NVIDIA Nemotron 3.5 Super VL                                                                                                                                                                                                  |
+| `pplx_nemotron`                       | 1 Pro                                   | NVIDIA Nemotron 3.5 Super VL                                                                                                                                                                                                  |
 | `pplx_glm53`                          | 1 Pro                                   | Z.ai GLM 5.3 (thinking always on)                                                                                                                                                                                             |
 | `pplx_kimi_k3`                        | 1 Pro                                   | Moonshot Kimi K3 (thinking always on)                                                                                                                                                                                         |
 

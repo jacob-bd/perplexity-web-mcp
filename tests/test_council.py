@@ -27,8 +27,8 @@ class TestCouncilMemberResult:
     """Verify CouncilMemberResult dataclass behavior."""
 
     def test_successful_result(self) -> None:
-        result = CouncilMemberResult(model_name="GPT-5.6 Terra", answer="The answer is 42")
-        assert result.model_name == "GPT-5.6 Terra"
+        result = CouncilMemberResult(model_name="GPT-6.1 Sol", answer="The answer is 42")
+        assert result.model_name == "GPT-6.1 Sol"
         assert result.answer == "The answer is 42"
         assert result.error is None
         assert result.search_results == []
@@ -48,48 +48,48 @@ class TestCouncilResponse:
 
     def test_format_response_with_synthesis(self) -> None:
         results = [
-            CouncilMemberResult(model_name="GPT-5.6 Terra", answer="Answer A"),
+            CouncilMemberResult(model_name="GPT-6.1 Sol", answer="Answer A"),
             CouncilMemberResult(model_name="Claude", answer="Answer B"),
         ]
         response = CouncilResponse(
             individual_results=results,
             synthesis="Combined answer",
             query="test question",
-            model_names=["GPT-5.6 Terra", "Claude"],
+            model_names=["GPT-6.1 Sol", "Claude"],
         )
         formatted = response.format_response()
         assert "Model Council" in formatted
         assert "Synthesized" in formatted
         assert "Combined answer" in formatted
-        assert "GPT-5.6 Terra" in formatted
+        assert "GPT-6.1 Sol" in formatted
         assert "Claude" in formatted
         assert "Answer A" in formatted
         assert "Answer B" in formatted
 
     def test_format_response_without_synthesis(self) -> None:
         results = [
-            CouncilMemberResult(model_name="GPT-5.6 Terra", answer="Answer A"),
+            CouncilMemberResult(model_name="GPT-6.1 Sol", answer="Answer A"),
         ]
         response = CouncilResponse(
             individual_results=results,
             synthesis="",
             query="test question",
-            model_names=["GPT-5.6 Terra"],
+            model_names=["GPT-6.1 Sol"],
         )
         formatted = response.format_response()
         assert "Synthesized" not in formatted
-        assert "GPT-5.6 Terra" in formatted
+        assert "GPT-6.1 Sol" in formatted
 
     def test_format_response_marks_errors(self) -> None:
         results = [
-            CouncilMemberResult(model_name="GPT-5.6 Terra", answer="OK"),
+            CouncilMemberResult(model_name="GPT-6.1 Sol", answer="OK"),
             CouncilMemberResult(model_name="Claude", answer="[Error]", error="timeout"),
         ]
         response = CouncilResponse(
             individual_results=results,
             synthesis="",
             query="test",
-            model_names=["GPT-5.6 Terra", "Claude"],
+            model_names=["GPT-6.1 Sol", "Claude"],
         )
         formatted = response.format_response()
         assert "✅" in formatted
@@ -130,16 +130,16 @@ class TestDefaultModels:
         models_by_name = dict(COUNCIL_DEFAULT_MODELS_THINKING)
         gpt_model = next(m for n, m in COUNCIL_DEFAULT_MODELS_THINKING if "GPT" in n)
         claude_model = next(m for n, m in COUNCIL_DEFAULT_MODELS_THINKING if "Claude" in n)
-        assert gpt_model is Models.GPT_56_TERRA_THINKING
-        assert claude_model is Models.CLAUDE_50_SONNET_THINKING
-        assert Models.CLAUDE_48_OPUS_THINKING not in models_by_name.values()
+        assert gpt_model is Models.GPT_61_SOL_THINKING
+        assert claude_model is Models.CLAUDE_55_SONNET_THINKING
+        assert Models.CLAUDE_55_OPUS_THINKING not in models_by_name.values()
 
     def test_default_models_exclude_max_only_models(self) -> None:
         model_ids = {model for _, model in COUNCIL_DEFAULT_MODELS}
         assert Models.SONAR not in model_ids
-        assert Models.GPT_56_SOL not in model_ids
-        assert Models.CLAUDE_48_OPUS not in model_ids
-        assert Models.CLAUDE_50_SONNET in model_ids
+        assert Models.GPT_6_ASTRA not in model_ids
+        assert Models.CLAUDE_55_OPUS not in model_ids
+        assert Models.CLAUDE_55_SONNET in model_ids
 
     def test_thinking_defaults_are_valid_model_instances(self) -> None:
         for name, model in COUNCIL_DEFAULT_MODELS_THINKING:
@@ -243,7 +243,7 @@ class TestCouncilAsk:
 
         custom = [
             ("Sonar 2", Models.SONAR),
-            ("GPT", Models.GPT_56_TERRA),
+            ("GPT", Models.GPT_61_SOL),
         ]
         result = council_ask("test", models=custom, synthesize=False)
 
@@ -478,7 +478,7 @@ class TestCouncilAsk:
         mock_client.create_conversation.return_value = mock_conv
         mock_client_fn.return_value = mock_client
 
-        custom = [("GPT", Models.GPT_56_TERRA), ("Sonar 2", Models.SONAR)]
+        custom = [("GPT", Models.GPT_61_SOL), ("Sonar 2", Models.SONAR)]
         result = council_ask("test", models=custom, synthesize=False, thinking=True)
 
         assert result.model_names == ["GPT", "Sonar 2"]
@@ -507,10 +507,10 @@ class TestCouncilAsk:
         mock_client.create_conversation.side_effect = create_conv_side_effect
         mock_client_fn.return_value = mock_client
 
-        council_ask("test", synthesize=True, synthesis_model=Models.GPT_56_TERRA)
+        council_ask("test", synthesize=True, synthesis_model=Models.GPT_61_SOL)
 
         # Last call should be the synthesis model (GPT_56_TERRA, not SONAR)
-        assert configs_used[-1] is Models.GPT_56_TERRA
+        assert configs_used[-1] is Models.GPT_61_SOL
 
     @patch("perplexity_web_mcp.shared.check_limits_before_query", return_value=None)
     @patch("perplexity_web_mcp.shared.get_limit_cache", return_value=None)

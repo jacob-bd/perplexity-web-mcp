@@ -67,13 +67,14 @@ pwm --ai                                       # AI reference doc
 ## Models
 
 - `auto` / `sonar` (Sonar 2, API id `experimental`) / `deep_research`
-- `gpt56_terra` / `gpt6_sol` (+ thinking)
-- `gpt56_sol` (+ thinking, Max)
-- `grok45` / `grok47` (+ thinking)
-- `claude_sonnet` (+ thinking) / `claude_opus` / `claude_opus55` (+ thinking, Max)
-- `gemini_pro` (always thinking) / `gemini38` (+ thinking)
-- `nemotron` / `glm52` / `glm53` (always thinking)
-- `kimi_k26` (+ thinking) / `kimi_k3` (always thinking)
+- `gpt61_sol` (+ thinking) / `gpt6_astra` (+ thinking, Max)
+- `gemini4_hydrogen` (+ thinking) / `gemini4_carbon` (+ thinking, Max)
+- `claude_sonnet` (Sonnet 5.5, + thinking)
+- `claude_opus` / `claude_opus55` (Opus 5.5, + thinking, Max)
+- `claude_fable52` (+ thinking, Max)
+- `grok47` (+ thinking)
+- `nemotron` (Nemotron 3.5 Super VL, text-only)
+- `glm53` (always thinking) / `kimi_k3` (always thinking)
 
 ## Development
 

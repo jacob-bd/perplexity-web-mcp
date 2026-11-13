@@ -75,16 +75,19 @@ The API server accepts many model name variants:
 | `perplexity-auto`, `auto`, `best`                  | Perplexity Best (auto-select) |
 | `perplexity-sonar`, `sonar`                        | Perplexity Sonar 2            |
 | `perplexity-research`, `deep-research`             | Deep Research                 |
-| `claude-sonnet-5-0`, `claude-5-0-sonnet`, `claude` | Claude Sonnet 5             |
-| `claude-opus-4-8`, `claude-4-8-opus`, `opus`       | Claude 4.8 Opus (Max tier)    |
-| `claude-3-5-sonnet` (legacy)                       | Claude Sonnet 5             |
-| `claude-3-opus` (legacy)                           | Claude 4.8 Opus               |
-| `gpt-5.6-terra`, `gpt-5-6-terra`, `gpt56_terra`          | GPT-5.6 Terra (versatile)        |
-| `gpt-5.6-sol`, `gpt-5-6-sol`, `gpt56_sol`                | GPT-5.6 Sol (Max tier)           |
-| `grok-4.5`, `grok-4-5`, `grok45`                         | Grok 4.5                         |
-| `gemini-3.1-pro`, `gemini-3-pro`, `gemini-pro`     | Gemini 3.1 Pro                |
-| `nemotron-3-ultra`, `nemotron`                     | Nemotron 3 Ultra              |
-| `glm-5.2`, `glm-5-2`, `glm52`, `glm`               | GLM 5.2                       |
+| `claude-sonnet-5-5`, `claude-5-5-sonnet`, `claude` | Claude Sonnet 5.5             |
+| `claude-opus-5-5`, `claude-5-5-opus`, `opus`       | Claude Opus 5.5 (Max tier)    |
+| `claude-fable-5-2`, `claude-5-2-fable`             | Claude Fable 5.2 (Max tier)   |
+| `claude-sonnet-5`, `claude-3-5-sonnet` (legacy)    | Claude Sonnet 5.5             |
+| `claude-opus-4-8`, `claude-3-opus` (legacy)        | Claude Opus 5.5               |
+| `gpt-6.1-sol`, `gpt-6-1-sol`, `gpt61_sol`          | GPT-6.1 Sol (versatile)       |
+| `gpt-6-astra`, `gpt6_astra`                        | GPT-6 Astra (Max tier)        |
+| `grok-4.7`, `grok-4-7`, `grok47`                   | Grok 4.7                      |
+| `gemini-4-carbon`, `gemini4carbon`                 | Gemini 4 Carbon (Max tier)    |
+| `gemini-4-hydrogen`, `gemini4hydrogen`             | Gemini 4 Hydrogen             |
+| `nemotron-3.5-super-vl`, `nemotron`                | Nemotron 3.5 Super VL         |
+| `glm-5.3`, `glm-5-3`, `glm53`, `glm`               | GLM 5.3                       |
+| `kimi-k3`                                          | Kimi K3                       |
 
 Unknown model names fall back to `perplexity-auto`.
 

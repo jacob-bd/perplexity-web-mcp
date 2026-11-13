@@ -20,10 +20,10 @@ Claude Code Integration:
     export ANTHROPIC_API_KEY=""
 
   Then run Claude Code with any supported model:
-    claude --model claude-sonnet-5-0      # Use Claude Sonnet 5 via Perplexity
-    claude --model gpt-5.6-terra          # Use GPT-5.6 Terra via Perplexity
+    claude --model claude-sonnet-5-5      # Use Claude Sonnet 5.5 via Perplexity
+    claude --model gpt-6.1-sol            # Use GPT-6.1 Sol via Perplexity
     claude --model perplexity-auto        # Use Perplexity's auto model selection
-    claude --model claude-3-5-sonnet      # Legacy name, maps to Claude Sonnet 5
+    claude --model claude-3-5-sonnet      # Legacy name, maps to Claude Sonnet 5.5
 """
 
 from __future__ import annotations
@@ -131,7 +131,7 @@ class ServerConfig:
 
 # Map model names to Perplexity models
 # Supports Anthropic, OpenAI, and standard Claude Code model naming conventions
-# Updated Jul 2026 to match Perplexity UI offerings
+# Updated Nov 2026 to match Perplexity UI offerings
 MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     # ==========================================================================
     # Perplexity Native Models
@@ -145,140 +145,119 @@ MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     "deep-research": (Models.DEEP_RESEARCH, None),
     # ==========================================================================
     # Anthropic Claude Models (via Perplexity)
-    # Claude Sonnet 5 - supports thinking toggle
-    # Claude Opus 4.8 - supports thinking (requires Max subscription)
+    # Claude Sonnet 5.5 and Claude Opus 5.5 support thinking toggles.
+    # Claude Fable 5.2 supports thinking and requires Max.
     # ==========================================================================
-    # Current model names
-    "claude-sonnet-5-0": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-5-0-sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-sonnet-5": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-5-sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    # Legacy Sonnet aliases map to the current Perplexity Sonnet selection.
-    "claude-sonnet-4-6": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-4-6-sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-sonnet-4-6-20260217": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-sonnet-4-5": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-4-5-sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-opus-4-8": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-4-8-opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-opus-4-7": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-4-7-opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-opus-4-7-20260401": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    # Legacy Opus aliases map to the current Perplexity Opus selection.
-    "claude-opus-4-6": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-4-6-opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-opus-4-6-20260203": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-opus-4-5": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-4-5-opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-opus-4-5-20251101": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
+    "claude-sonnet-5-5": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-5-5-sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude55sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    # Older Sonnet names map to the current Perplexity Sonnet selection.
+    "claude-sonnet-5": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-5-sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-sonnet-4-6": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-4-6-sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-sonnet-4-6-20260217": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-sonnet-4-5": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-4-5-sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
     # Claude Opus 5.5 - supports thinking (requires Max subscription)
     "claude-opus-5-5": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
     "claude-5-5-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
     "claude55opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    # Older Opus names map to the current Perplexity Opus selection.
+    "claude-opus-4-8": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-4-8-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-opus-4-7": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-4-7-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-opus-4-7-20260401": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-opus-4-6": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-4-6-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-opus-4-6-20260203": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-opus-4-5": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-4-5-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-opus-4-5-20251101": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    # Claude Fable 5.2 - supports thinking (requires Max subscription)
+    "claude-fable-5-2": (Models.CLAUDE_FABLE_52, Models.CLAUDE_FABLE_52_THINKING),
+    "claude-5-2-fable": (Models.CLAUDE_FABLE_52, Models.CLAUDE_FABLE_52_THINKING),
+    "claudefable52": (Models.CLAUDE_FABLE_52, Models.CLAUDE_FABLE_52_THINKING),
     # Claude Code default model aliases (for compatibility)
     # These allow `claude --model claude-3-5-sonnet` to work
-    "claude-3-5-sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-3-5-sonnet-20241022": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "claude-3-opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-3-opus-20240229": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
-    "claude-3-5-haiku": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),  # Map to Sonnet
-    "claude-haiku-4-5-20251001": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),  # Map Haiku to Sonnet
-    "claude-haiku": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
+    "claude-3-5-sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-3-5-sonnet-20241022": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-3-opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-3-opus-20240229": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
+    "claude-3-5-haiku": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),  # Map to Sonnet
+    "claude-haiku-4-5-20251001": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "claude-haiku": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
     # Generic aliases
-    "claude": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "sonnet": (Models.CLAUDE_50_SONNET, Models.CLAUDE_50_SONNET_THINKING),
-    "opus": (Models.CLAUDE_48_OPUS, Models.CLAUDE_48_OPUS_THINKING),
+    "claude": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "sonnet": (Models.CLAUDE_55_SONNET, Models.CLAUDE_55_SONNET_THINKING),
+    "opus": (Models.CLAUDE_55_OPUS, Models.CLAUDE_55_OPUS_THINKING),
     # ==========================================================================
     # OpenAI GPT and xAI Grok Models (via Perplexity) - support thinking toggle
     # ==========================================================================
-    "gpt-5.6-terra": (Models.GPT_56_TERRA, Models.GPT_56_TERRA_THINKING),
-    "gpt-5-6-terra": (Models.GPT_56_TERRA, Models.GPT_56_TERRA_THINKING),
-    "gpt56_terra": (Models.GPT_56_TERRA, Models.GPT_56_TERRA_THINKING),
-    "gpt-5.6-sol": (Models.GPT_56_SOL, Models.GPT_56_SOL_THINKING),
-    "gpt-5-6-sol": (Models.GPT_56_SOL, Models.GPT_56_SOL_THINKING),
-    "gpt56_sol": (Models.GPT_56_SOL, Models.GPT_56_SOL_THINKING),
-    "gpt-6-sol": (Models.GPT_6_SOL, Models.GPT_6_SOL_THINKING),
-    "gpt6_sol": (Models.GPT_6_SOL, Models.GPT_6_SOL_THINKING),
-    "grok-4.5": (Models.GROK_45, Models.GROK_45_THINKING),
-    "grok-4-5": (Models.GROK_45, Models.GROK_45_THINKING),
-    "grok45": (Models.GROK_45, Models.GROK_45_THINKING),
+    "gpt-6.1-sol": (Models.GPT_61_SOL, Models.GPT_61_SOL_THINKING),
+    "gpt-6-1-sol": (Models.GPT_61_SOL, Models.GPT_61_SOL_THINKING),
+    "gpt61_sol": (Models.GPT_61_SOL, Models.GPT_61_SOL_THINKING),
+    "gpt6_1_sol": (Models.GPT_61_SOL, Models.GPT_61_SOL_THINKING),
+    "gpt-6-astra": (Models.GPT_6_ASTRA, Models.GPT_6_ASTRA_THINKING),
+    "gpt6_astra": (Models.GPT_6_ASTRA, Models.GPT_6_ASTRA_THINKING),
     "grok-4.7": (Models.GROK_47, Models.GROK_47_THINKING),
     "grok-4-7": (Models.GROK_47, Models.GROK_47_THINKING),
     "grok47": (Models.GROK_47, Models.GROK_47_THINKING),
     # ==========================================================================
     # Google Gemini Models (via Perplexity)
-    # Gemini 3.1 Pro: thinking ALWAYS enabled (no toggle in UI)
+    # Gemini 4 Carbon and Gemini 4 Hydrogen support thinking toggles.
     # ==========================================================================
-    "gemini-3.1-pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
-    "gemini-3-pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
-    "gemini-pro": (Models.GEMINI_31_PRO_THINKING, Models.GEMINI_31_PRO_THINKING),
-    # Gemini 3.8 Flash: supports thinking toggle
-    "gemini-3.8-flash": (Models.GEMINI_38_FLASH, Models.GEMINI_38_FLASH_THINKING),
-    "gemini-3-8-flash": (Models.GEMINI_38_FLASH, Models.GEMINI_38_FLASH_THINKING),
-    "gemini38flash": (Models.GEMINI_38_FLASH, Models.GEMINI_38_FLASH_THINKING),
+    "gemini-4-carbon": (Models.GEMINI_4_CARBON, Models.GEMINI_4_CARBON_THINKING),
+    "gemini4carbon": (Models.GEMINI_4_CARBON, Models.GEMINI_4_CARBON_THINKING),
+    "gemini-4-hydrogen": (Models.GEMINI_4_HYDROGEN, Models.GEMINI_4_HYDROGEN_THINKING),
+    "gemini4hydrogen": (Models.GEMINI_4_HYDROGEN, Models.GEMINI_4_HYDROGEN_THINKING),
     # ==========================================================================
-    # NVIDIA Nemotron 3 Ultra (via Perplexity)
-    # Thinking ALWAYS enabled (no toggle in UI) - reasoning only
+    # NVIDIA Nemotron 3.5 Super VL (via Perplexity)
+    # Single text-only model; no separate thinking variant.
     # ==========================================================================
-    "nemotron-3-ultra": (Models.NEMOTRON_3_ULTRA, Models.NEMOTRON_3_ULTRA),
-    "nemotron-3": (Models.NEMOTRON_3_ULTRA, Models.NEMOTRON_3_ULTRA),
-    "nemotron": (Models.NEMOTRON_3_ULTRA, Models.NEMOTRON_3_ULTRA),
+    "nemotron-3.5-super-vl": (Models.NEMOTRON_3_5_SUPER, Models.NEMOTRON_3_5_SUPER),
+    "nemotron-3-5-super-vl": (Models.NEMOTRON_3_5_SUPER, Models.NEMOTRON_3_5_SUPER),
+    "nemotron": (Models.NEMOTRON_3_5_SUPER, Models.NEMOTRON_3_5_SUPER),
     # ==========================================================================
-    # Z.ai GLM 5.2 (via Perplexity)
-    # Thinking ALWAYS enabled (no toggle in UI) - reasoning only
-    # ==========================================================================
-    "glm-5.2": (Models.GLM_5_2, Models.GLM_5_2),
-    "glm-5-2": (Models.GLM_5_2, Models.GLM_5_2),
-    "glm52": (Models.GLM_5_2, Models.GLM_5_2),
-    "glm": (Models.GLM_5_2, Models.GLM_5_2),
     # Z.ai GLM 5.3 - thinking ALWAYS enabled (no toggle in UI)
+    # ==========================================================================
     "glm-5.3": (Models.GLM_5_3, Models.GLM_5_3),
     "glm-5-3": (Models.GLM_5_3, Models.GLM_5_3),
     "glm53": (Models.GLM_5_3, Models.GLM_5_3),
+    "glm": (Models.GLM_5_3, Models.GLM_5_3),
     # ==========================================================================
-    # Moonshot Kimi Models (via Perplexity)
-    # Kimi K2.6 - supports thinking toggle
-    # ==========================================================================
-    "kimi-k2.6": (Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING),
-    "kimi-k2-6": (Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING),
-    "kimi": (Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING),
     # Moonshot Kimi K3 - thinking ALWAYS enabled (no toggle in UI)
+    # ==========================================================================
     "kimi-k3": (Models.KIMI_K3, Models.KIMI_K3),
     "kimi-k-3": (Models.KIMI_K3, Models.KIMI_K3),
 }
 
 # Models we expose via /v1/models
-# Ordered to match Perplexity UI search models (Sep 2026)
+# Ordered to match Perplexity UI search models (Nov 2026)
 AVAILABLE_MODELS = [
     # Perplexity Native
     {"id": "perplexity-auto", "description": "Best - Automatically selects optimal model"},
     {"id": "perplexity-sonar", "description": "Sonar 2 - Perplexity's latest in-house model"},
     {"id": "perplexity-research", "description": "Deep Research - In-depth reports with sources"},
     # OpenAI
-    {"id": "gpt-5.6-terra", "description": "GPT-5.6 Terra - OpenAI's versatile model, thinking toggle available"},
-    {"id": "gpt-5.6-sol", "description": "GPT-5.6 Sol - OpenAI's most powerful model, Max tier required"},
-    {"id": "gpt-6-sol", "description": "GPT-6 Sol - OpenAI's newest model, thinking toggle available"},
+    {"id": "gpt-6.1-sol", "description": "GPT-6.1 Sol - OpenAI's versatile model, thinking toggle available"},
+    {"id": "gpt-6-astra", "description": "GPT-6 Astra - OpenAI's most capable model, Max tier required"},
     # Google Gemini
-    {"id": "gemini-3.1-pro", "description": "Gemini 3.1 Pro - Advanced, thinking always on"},
-    {
-        "id": "gemini-3.8-flash",
-        "description": "Gemini 3.8 Flash - Google's newest fast model, thinking toggle available",
-    },
+    {"id": "gemini-4-carbon", "description": "Gemini 4 Carbon - Google's most powerful model, Max tier required"},
+    {"id": "gemini-4-hydrogen", "description": "Gemini 4 Hydrogen - Google's latest model, thinking toggle available"},
     # Anthropic Claude
-    {"id": "claude-sonnet-5", "description": "Claude Sonnet 5 - Fast, thinking toggle available"},
-    {"id": "claude-opus-4-8", "description": "Claude Opus 4.8 - Advanced reasoning, Max tier required"},
-    {"id": "claude-opus-5-5", "description": "Claude Opus 5.5 - Anthropic's most powerful model, Max tier required"},
+    {"id": "claude-sonnet-5-5", "description": "Claude Sonnet 5.5 - Fast, thinking toggle available"},
+    {"id": "claude-opus-5-5", "description": "Claude Opus 5.5 - Anthropic's latest model, Max tier required"},
+    {"id": "claude-fable-5-2", "description": "Claude Fable 5.2 - Anthropic's most capable model, Max tier required"},
     # Z.ai
-    {"id": "glm-5.2", "description": "GLM 5.2 - Z.ai advanced model, thinking always on"},
     {"id": "glm-5.3", "description": "GLM 5.3 - Z.ai newest model, thinking always on"},
     # Moonshot
-    {"id": "kimi-k2.6", "description": "Kimi K2.6 - Advanced, thinking toggle available"},
     {"id": "kimi-k3", "description": "Kimi K3 - Moonshot's newest model, thinking always on"},
     # xAI
-    {"id": "grok-4.5", "description": "Grok 4.5 - xAI's most advanced model, thinking toggle available"},
     {"id": "grok-4.7", "description": "Grok 4.7 - xAI's newest model, thinking toggle available"},
     # NVIDIA
-    {"id": "nemotron-3-ultra", "description": "Nemotron 3 Ultra - NVIDIA 550B, thinking always on"},
+    {"id": "nemotron-3.5-super-vl", "description": "Nemotron 3.5 Super VL - NVIDIA's newest model"},
 ]
 
 
@@ -294,7 +273,7 @@ def get_model(name: str, thinking: bool = False) -> Model:
         if thinking and thinking_model:
             return thinking_model
         return base
-    # Live catalog identifiers (e.g. gpt6_sol) resolve straight through.
+    # Live catalog identifiers (e.g. gpt6_1_sol) resolve straight through.
     live_model = cached_live_model(key, thinking=thinking)
     if live_model is not None:
         return live_model

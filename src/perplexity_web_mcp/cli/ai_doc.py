@@ -45,10 +45,10 @@ QUERYING
   pwm ask "query" --file REPORT.pdf   Attach a file (PDF or image, repeatable)
 
   Model selection examples (-m):
-    pwm ask "Compare React and Vue" -m gpt56_terra
+    pwm ask "Compare React and Vue" -m gpt61_sol
     pwm ask "Explain attention mechanism" -m claude_sonnet
     pwm ask "Prove sqrt(2) is irrational" -m claude_sonnet --thinking
-    pwm ask "Summarize this paper" -m gemini_pro
+    pwm ask "Summarize this paper" -m gemini4_hydrogen
 
   Source focus examples (-s):
     pwm ask "review this code" -s none                     # Model only, no web search
@@ -59,7 +59,7 @@ QUERYING
     pwm ask "private company funding" -s pitchbook_mcp_cashmere  # Account connector
 
   Combined:
-    pwm ask "protein folding advances" -m gemini_pro -s academic --json
+    pwm ask "protein folding advances" -m gemini4_hydrogen -s academic --json
 
 MODEL COUNCIL
   pwm council "query"                         Query default 3 models in parallel
@@ -71,15 +71,15 @@ MODEL COUNCIL
   pwm council "query" --json                  Output as JSON
 
   Each model in the council costs 1 Pro Search, plus 1 for synthesis. Default = 4 Pro Searches.
-  Available models: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3
-  Thinking toggle: -t / --thinking (gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini38, kimi_k26 support toggle;
-    gemini_pro, nemotron, glm52, glm53, and kimi_k3 are always thinking)
+  Available models: sonar, gpt61_sol, gpt6_astra, gemini4_carbon, gemini4_hydrogen, claude_sonnet, claude_opus, claude_opus55, claude_fable52, grok47, nemotron, glm53, kimi_k3
+  Thinking toggle: -t / --thinking (gpt61_sol, gpt6_astra, gemini4_carbon, gemini4_hydrogen, claude_sonnet, claude_opus, claude_opus55, claude_fable52, grok47 support toggle;
+    glm53 and kimi_k3 are always thinking)
 
   Chairman: --chairman MODEL (default: sonar / Sonar 2). Non-sonar costs 1 extra Pro Search.
 
   Examples:
     pwm council "Best practices for microservices?"
-    pwm council "Compare Rust vs Go" -m gpt56_terra,claude_sonnet
+    pwm council "Compare Rust vs Go" -m gpt61_sol,claude_sonnet
     pwm council "Quantum computing" -s academic --thinking
     pwm council "React vs Vue" --chairman claude_sonnet
     pwm council "React vs Vue" --no-synthesis --json
@@ -124,7 +124,7 @@ MODELS
 
 HACK (INTEGRATION)
   pwm hack claude                     Launch Claude Code using Perplexity models
-  pwm hack claude -m gpt56_terra            Launch Claude Code with a specific model
+  pwm hack claude -m gpt61_sol              Launch Claude Code with a specific model
   pwm hack claude --help              List all available models for Claude Code
 
 OTHER
@@ -136,32 +136,28 @@ OTHER
 MODELS
 ================================================================================
 
-Name            Identifier              Thinking   Notes
------------     ----------------------  ---------  ---------------------------
-auto            pplx_pro                No         Auto-selects best model
-sonar           experimental            No         Sonar 2 (concise search mode for grounded responses)
-deep_research   pplx_alpha              No         In-depth reports (monthly quota)
-gpt56_terra           gpt56_terra                   Yes        OpenAI GPT-5.6 Terra (versatile)
-gpt56_sol           gpt56_sol                   Yes        OpenAI GPT-5.6 Sol (latest, Max tier)
-gpt6_sol        gpt6_sol                Yes        OpenAI GPT-6 Sol
-grok45          grok45low                  Yes        xAI Grok 4.5
-grok47          grok47                  Yes        xAI Grok 4.7
-claude_sonnet   claude50sonnet          Yes        Anthropic Claude Sonnet 5
-claude_opus     claude48opus            Yes        Anthropic Claude 4.8 Opus (Max tier)
-claude_opus55   claude55opus            Yes        Anthropic Claude Opus 5.5 (Max tier)
-gemini_pro      gemini31pro_high        Always     Google Gemini 3.1 Pro (thinking only)
-gemini38        gemini38flash           Yes        Google Gemini 3.8 Flash
-nemotron        nv_nemotron_3_ultra     Always     NVIDIA Nemotron 3 Ultra 550B (thinking only)
-glm52           glm_5_2                 Always     Z.ai GLM 5.2 (thinking only)
-glm53           glm_5_3_thinking        Always     Z.ai GLM 5.3 (thinking only)
-kimi_k26        kimi_k26                Yes        Moonshot Kimi K2.6
-kimi_k3         kimik3thinking          Always     Moonshot Kimi K3 (thinking only)
-
+Name             Identifier              Thinking   Notes
+-----------      ----------------------  ---------  ---------------------------
+auto             pplx_pro                No         Auto-selects best model
+sonar            experimental            No         Sonar 2 (concise search mode for grounded responses)
+deep_research    pplx_alpha              No         In-depth reports (monthly quota)
+gpt61_sol        gpt6_1_sol              Yes        OpenAI GPT-6.1 Sol (versatile)
+gpt6_astra       gpt6_astra              Yes        OpenAI GPT-6 Astra (most capable, Max tier)
+gemini4_carbon   gemini4carbon           Yes        Google Gemini 4 Carbon (most powerful, Max tier)
+gemini4_hydrogen gemini4hydrogen         Yes        Google Gemini 4 Hydrogen (latest)
+claude_sonnet    claude55sonnet          Yes        Anthropic Claude Sonnet 5.5
+claude_opus      claude55opus            Yes        Anthropic Claude Opus 5.5 (Max tier)
+claude_opus55    claude55opus            Yes        Anthropic Claude Opus 5.5 (Max tier)
+claude_fable52   claudefable52           Yes        Anthropic Claude Fable 5.2 (Max tier)
+grok47           grok47                  Yes        xAI Grok 4.7
+nemotron         nv_nemotron_3_5_super   Always     NVIDIA Nemotron 3.5 Super VL (text-only)
+glm53            glm_5_3_thinking        Always     Z.ai GLM 5.3 (thinking only)
+kimi_k3          kimik3thinking          Always     Moonshot Kimi K3 (thinking only)
 "Thinking" = extended reasoning mode. Models marked "Always" have thinking
 permanently enabled with no non-thinking variant.
 
-Use with CLI: pwm ask "query" -m gpt56_terra -t
-Use with MCP: pplx_query(query="...", model="gpt56_terra", thinking=True)
+Use with CLI: pwm ask "query" -m gpt61_sol -t
+Use with MCP: pplx_query(query="...", model="gpt61_sol", thinking=True)
 
 ================================================================================
 SOURCE FOCUS OPTIONS
@@ -196,7 +192,7 @@ CLI examples:
 MCP examples:
   pplx_ask(query="review this code", source_focus="none")
   pplx_ask(query="transformer architecture", source_focus="academic")
-  pplx_query(query="Tesla financials", model="gpt56_terra", source_focus="finance")
+  pplx_query(query="Tesla financials", model="gpt61_sol", source_focus="finance")
   pplx_connectors(refresh=False)
   pplx_smart_query(query="private company funding", source_focus="pitchbook_mcp_cashmere")
 
@@ -224,13 +220,13 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
       Auto-selects best model. 1 PRO SEARCH per call.
       Omitted source_focus follows the saved default (pwm config), then web.
 
-  pplx_council(query, source_focus="web", models="gpt56_terra,claude_sonnet,gemini_pro",
+  pplx_council(query, source_focus="web", models="gpt61_sol,claude_sonnet,gemini4_hydrogen",
                synthesize=True, thinking=False, chairman="sonar")
       Model Council — N PRO SEARCHES (1 per model selected).
       BEFORE CALLING: You MUST ask the user which models and how many.
-      Available: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3.
-      Max-only: gpt56_sol, claude_opus, claude_opus55. Exclude these when Subscription is Pro.
-      Default: 3 Pro-compatible models (GPT-5.6 Terra, Claude Sonnet, Gemini Pro) + synthesis = 4 Pro Searches.
+      Available: sonar, gpt61_sol, gpt6_astra, gemini4_carbon, gemini4_hydrogen, claude_sonnet, claude_opus, claude_opus55, claude_fable52, grok47, nemotron, glm53, kimi_k3.
+      Max-only: gpt6_astra, gemini4_carbon, claude_opus, claude_opus55, claude_fable52. Exclude these when Subscription is Pro.
+      Default: 3 Pro-compatible models (GPT-6.1 Sol, Claude Sonnet 5.5, Gemini 4 Hydrogen) + synthesis = 4 Pro Searches.
       Synthesis uses Sonar 2 by default. Set chairman to override.
       Non-sonar chairman costs 1 extra Pro Search.
       Set synthesize=False to skip synthesis entirely.
@@ -241,21 +237,25 @@ QUERY TOOLS (each call costs 1 Pro Search query unless noted):
       ONLY use when user explicitly requests deep research.
 
   pplx_sonar(query, source_focus="web")          Perplexity Sonar 2 (plan limits apply)
-  pplx_gpt56_terra(query, source_focus="web")          GPT-5.6 Terra — 1 Pro
-  pplx_gpt56_terra_thinking(query, source_focus="web") GPT-5.6 Terra + thinking — 1 Pro
-  pplx_gpt56_sol(query, source_focus="web")          GPT-5.6 Sol — 1 Pro (Max tier)
-  pplx_gpt56_sol_thinking(query, source_focus="web") GPT-5.6 Sol + thinking — 1 Pro (Max tier)
-  pplx_grok45(query, source_focus="web")            Grok 4.5 — 1 Pro
-  pplx_grok45_thinking(query, source_focus="web")   Grok 4.5 + thinking — 1 Pro
-  pplx_claude_sonnet(query, source_focus="web")   Claude Sonnet 5 — 1 Pro
-  pplx_claude_sonnet_think(query, source_focus)   Claude Sonnet 5 + thinking — 1 Pro
-  pplx_claude_opus(query, source_focus="web")     Claude 4.8 Opus — 1 Pro (Max tier)
-  pplx_claude_opus_think(query, source_focus)     Claude 4.8 Opus + thinking — 1 Pro (Max tier)
-  pplx_gemini_pro_think(query, source_focus)      Gemini 3.1 Pro (thinking) — 1 Pro
-  pplx_nemotron_thinking(query, source_focus)     Nemotron 3 Ultra (thinking) — 1 Pro
-  pplx_glm52(query, source_focus="web")           GLM 5.2 (thinking) — 1 Pro
-  pplx_kimi_k26(query, source_focus="web")        Kimi K2.6 — 1 Pro
-  pplx_kimi_k26_thinking(query, source_focus)     Kimi K2.6 + thinking — 1 Pro
+  pplx_gpt61_sol(query, source_focus="web")           GPT-6.1 Sol — 1 Pro
+  pplx_gpt61_sol_thinking(query, source_focus="web")  GPT-6.1 Sol + thinking — 1 Pro
+  pplx_gpt6_astra(query, source_focus="web")          GPT-6 Astra — 1 Pro (Max tier)
+  pplx_gpt6_astra_thinking(query, source_focus="web") GPT-6 Astra + thinking — 1 Pro (Max tier)
+  pplx_gemini4_carbon(query, source_focus="web")      Gemini 4 Carbon — 1 Pro (Max tier)
+  pplx_gemini4_carbon_thinking(query, source_focus)   Gemini 4 Carbon + thinking — 1 Pro (Max tier)
+  pplx_gemini4_hydrogen(query, source_focus="web")    Gemini 4 Hydrogen — 1 Pro
+  pplx_gemini4_hydrogen_thinking(query, source_focus) Gemini 4 Hydrogen + thinking — 1 Pro
+  pplx_claude_sonnet(query, source_focus="web")   Claude Sonnet 5.5 — 1 Pro
+  pplx_claude_sonnet_think(query, source_focus)   Claude Sonnet 5.5 + thinking — 1 Pro
+  pplx_claude_opus(query, source_focus="web")     Claude Opus 5.5 — 1 Pro (Max tier)
+  pplx_claude_opus_think(query, source_focus)     Claude Opus 5.5 + thinking — 1 Pro (Max tier)
+  pplx_claude_fable52(query, source_focus="web")  Claude Fable 5.2 — 1 Pro (Max tier)
+  pplx_claude_fable52_think(query, source_focus)  Claude Fable 5.2 + thinking — 1 Pro (Max tier)
+  pplx_grok47(query, source_focus="web")          Grok 4.7 — 1 Pro
+  pplx_grok47_thinking(query, source_focus="web") Grok 4.7 + thinking — 1 Pro
+  pplx_nemotron(query, source_focus)     Nemotron 3.5 Super VL — 1 Pro
+  pplx_glm53(query, source_focus="web")           GLM 5.3 (thinking) — 1 Pro
+  pplx_kimi_k3(query, source_focus="web")         Kimi K3 (thinking) — 1 Pro
 
   All query tools accept source_focus: "none", "web", "academic", "social",
   "finance", "all", or a connector source ID from pplx_connectors().
@@ -355,7 +355,8 @@ MANDATORY PROTOCOL:
      'detailed' for complex analysis, 'research' only when user requests it.
   4. NEVER USE DEEP RESEARCH AUTONOMOUSLY — always ask the user first.
   5. SUBSCRIPTION-AWARE MODELS: Read the Subscription line from pplx_usage().
-     If it is Pro, exclude Max-only models: gpt56_sol and claude_opus.
+     If it is Pro, exclude Max-only models: gpt6_astra, gemini4_carbon, claude_opus,
+     claude_opus55, and claude_fable52.
   6. COUNCIL: Before calling pplx_council, ASK the user which models and how
      many. Each model = 1 Pro Search. List available models for them to choose.
 
@@ -407,13 +408,13 @@ Model-only query (no web search):
   pwm ask "Write a retry decorator" -m claude_sonnet -s none
 
 Specific model:
-  pwm ask "Compare React and Vue" -m gpt56_terra
+  pwm ask "Compare React and Vue" -m gpt61_sol
 
 Model with thinking:
   pwm ask "Prove sqrt(2) is irrational" -m claude_sonnet -t
 
 Academic research:
-  pwm ask "transformer improvements 2025" -m gemini_pro -s academic
+  pwm ask "transformer improvements 2025" -m gemini4_hydrogen -s academic
 
 Financial analysis:
   pwm ask "Apple revenue Q4 2025" -s finance
@@ -422,7 +423,7 @@ Model council (3 models, synthesized):
   pwm council "What are the best practices for microservices?"
 
 Model council (custom 2 models):
-  pwm council "Compare Rust vs Go" -m gpt56_terra,claude_sonnet
+  pwm council "Compare Rust vs Go" -m gpt61_sol,claude_sonnet
 
 Model council with thinking:
   pwm council "Prove the Pythagorean theorem" --thinking

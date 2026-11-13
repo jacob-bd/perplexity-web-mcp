@@ -603,7 +603,7 @@ class TestSmartRouterDetailed:
     def test_detailed_healthy_uses_premium(self) -> None:
         limits = RateLimits(remaining_pro=200, remaining_research=8)
         decision = self.router.route(Intent.DETAILED, limits)
-        assert decision.model == Models.CLAUDE_50_SONNET
+        assert decision.model == Models.CLAUDE_55_SONNET
         assert decision.model_name == "claude_sonnet"
         assert decision.search_type == "pro"
         assert decision.was_downgraded is False
@@ -611,7 +611,7 @@ class TestSmartRouterDetailed:
     def test_detailed_low_uses_premium(self) -> None:
         limits = RateLimits(remaining_pro=45, remaining_research=8)
         decision = self.router.route(Intent.DETAILED, limits)
-        assert decision.model == Models.CLAUDE_50_SONNET
+        assert decision.model == Models.CLAUDE_55_SONNET
         assert decision.model_name == "claude_sonnet"
         assert decision.was_downgraded is False
 
@@ -678,7 +678,7 @@ class TestSmartRouterResearch:
     def test_research_exhausted_pro_available_uses_premium(self) -> None:
         limits = RateLimits(remaining_pro=200, remaining_research=0)
         decision = self.router.route(Intent.RESEARCH, limits)
-        assert decision.model == Models.CLAUDE_50_SONNET
+        assert decision.model == Models.CLAUDE_55_SONNET
         assert decision.model_name == "claude_sonnet"
         assert decision.search_type == "pro"
         assert decision.was_downgraded is True
@@ -686,7 +686,7 @@ class TestSmartRouterResearch:
     def test_research_exhausted_pro_critical_uses_premium(self) -> None:
         limits = RateLimits(remaining_pro=15, remaining_research=0)
         decision = self.router.route(Intent.RESEARCH, limits)
-        assert decision.model == Models.CLAUDE_50_SONNET
+        assert decision.model == Models.CLAUDE_55_SONNET
         assert decision.model_name == "claude_sonnet"
         assert decision.was_downgraded is True
 
@@ -740,7 +740,7 @@ class TestSmartRouterOptimistic:
 
     def test_optimistic_detailed(self) -> None:
         decision = self.router.route(Intent.DETAILED, limits=None)
-        assert decision.model == Models.CLAUDE_50_SONNET
+        assert decision.model == Models.CLAUDE_55_SONNET
         assert decision.model_name == "claude_sonnet"
         assert decision.search_type == "pro"
         assert decision.was_downgraded is False
@@ -777,7 +777,7 @@ class TestSmartRouterCustomMax:
         router = SmartRouter(pro_max=100)
         limits = RateLimits(remaining_pro=15, remaining_research=8)
         decision = router.route(Intent.DETAILED, limits)
-        assert decision.model == Models.CLAUDE_50_SONNET
+        assert decision.model == Models.CLAUDE_55_SONNET
         assert decision.was_downgraded is False
 
     def test_custom_research_max(self) -> None:

@@ -1,10 +1,9 @@
 ---
 name: perplexity-web-mcp
-description: 'Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm chat, pwm research, pwm config), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions "perplexity", "pplx", "pwm", "web search with AI", "chat with Perplexity", "deep research", "search the internet", or wants to query premium models like GPT-6 Sol, GPT-5.6 Terra, Grok 4.7, Claude, Gemini, GLM, Kimi, or Nemotron through Perplexity''s web interface.'
+description: 'Search the web and query AI models via Perplexity AI using perplexity-web-mcp-cli. Supports CLI commands (pwm ask, pwm chat, pwm research, pwm config), MCP tools (pplx_*), and Anthropic/OpenAI-compatible API server. Use when the user mentions "perplexity", "pplx", "pwm", "web search with AI", "chat with Perplexity", "deep research", "search the internet", or wants to query premium models like GPT-6.1 Sol, GPT-6 Astra, Grok 4.7, Claude, Gemini, GLM, Kimi, or Nemotron through Perplexity''s web interface.'
 metadata:
   version: "0.16.1"
   author: "Jacob BD"
-
 ---
 
 # Perplexity Web MCP
@@ -48,7 +47,7 @@ the weekly pool fast, leaving nothing for questions that actually need it.
 
 1. **Check quota first**: Call `pplx_usage()` (MCP) or `pwm usage` (CLI) before your first query.
 2. Review the remaining Pro and Research counts and the `Subscription` line.
-3. If Subscription is Pro, exclude Max-only models (`gpt56_sol`, `claude_opus`, `claude_opus55`) from model selection and councils.
+3. If Subscription is Pro, exclude Max-only models (`gpt6_astra`, `gemini4_carbon`, `claude_opus`, `claude_opus55`, `claude_fable52`) from model selection and councils.
 4. If Pro < 20% remaining, restrict yourself to quick/Sonar 2 for everything except user-requested Pro queries.
 
 ### Before Every Query: Choose the Lowest Sufficient Tier
@@ -90,10 +89,10 @@ Ask yourself: **"Can Sonar 2 answer this?"** If yes, use `quick`. Only escalate 
 - The user needs high-confidence answers validated across multiple AI providers
 - Important decisions, fact-checking, or complex analysis
 - BEFORE calling: ASK the user which models and how many (each = 1 Pro Search)
-- Available models: sonar, gpt56_terra, gpt56_sol, gpt6_sol, grok45, grok47, claude_sonnet, claude_opus, claude_opus55, gemini_pro, gemini38, nemotron, glm52, glm53, kimi_k26, kimi_k3
-- Max-only models: gpt56_sol, claude_opus, claude_opus55. Do not use these for Pro subscriptions.
+- Available models: sonar, gpt61_sol, gpt6_astra, gemini4_carbon, gemini4_hydrogen, claude_sonnet, claude_opus, claude_opus55, claude_fable52, grok47, nemotron, glm53, kimi_k3
+- Max-only models: gpt6_astra, gemini4_carbon, claude_opus, claude_opus55, claude_fable52. Do not use these for Pro subscriptions.
 - The catalog is server-driven: `pwm models` prints the live list (free, no query quota) and every identifier it shows works with `-m`.
-- Default: 3 Pro-compatible models (GPT-5.6 Terra, Claude Sonnet, Gemini Pro) + synthesis = 4 Pro Searches
+- Default: 3 Pro-compatible models (GPT-6.1 Sol, Claude Sonnet 5.5, Gemini 4 Hydrogen) + synthesis = 4 Pro Searches
 
 ### Decision Flowchart
 
@@ -143,7 +142,7 @@ The smart router automatically protects you:
 
 ### When to Use Explicit Models Instead
 
-Only use model-specific tools (pplx_gpt56_terra, pplx_claude_sonnet, etc.) when:
+Only use model-specific tools (pplx_gpt61_sol, pplx_claude_sonnet, etc.) when:
 
 - The user explicitly requests a specific model
 - You're comparing outputs across models
@@ -175,7 +174,7 @@ User wants to...
 +-- Search the web / ask a question (RECOMMENDED: smart routing)
 |   +-- CLI:  pwm ask "query"                    # smart routing (default)
 |   +-- MCP:  pplx_smart_query(query)            # smart routing (default)
-|   +-- Explicit model: pwm ask "query" -m gpt56_terra  or  pplx_query(query, model="gpt56_terra")
+|   +-- Explicit model: pwm ask "query" -m gpt61_sol  or  pplx_query(query, model="gpt61_sol")
 |
 +-- Chat interactively in the terminal (one thread per session)
 |   +-- CLI:  pwm chat                              # sonar default; /model switches, /new resets, /exit quits
@@ -197,7 +196,7 @@ User wants to...
 |
 +-- Query multiple models at once (Model Council)
 |   +-- CLI:  pwm council "query"                         # default 3 models
-|   +-- CLI:  pwm council "query" -m gpt56_terra,claude_sonnet  # custom models
+|   +-- CLI:  pwm council "query" -m gpt61_sol,claude_sonnet  # custom models
 |   +-- MCP:  pplx_council(query)                         # ASK USER which models first!
 |
 +-- Deep research on a topic
@@ -205,8 +204,8 @@ User wants to...
 |   +-- MCP:  pplx_deep_research(query)
 |
 +-- Use a specific model
-|   +-- CLI:  pwm ask "query" -m gpt56_terra --thinking
-|   +-- MCP:  pplx_gpt56_terra_thinking(query)  or  pplx_query(query, model="gpt56_terra", thinking=True)
+|   +-- CLI:  pwm ask "query" -m gpt61_sol --thinking
+|   +-- MCP:  pplx_gpt61_sol_thinking(query)  or  pplx_query(query, model="gpt61_sol", thinking=True)
 |
 +-- Check remaining quotas
 |   +-- CLI:  pwm usage
@@ -235,7 +234,7 @@ pwm ask "What is quantum computing?"
 Choose a specific model with `-m`:
 
 ```bash
-pwm ask "Compare React and Vue" -m gpt56_terra
+pwm ask "Compare React and Vue" -m gpt61_sol
 pwm ask "Explain attention mechanism" -m claude_sonnet
 ```
 
@@ -258,6 +257,7 @@ pwm ask "private company funding" -s pitchbook_mcp_cashmere
 ```
 
 Connector source IDs:
+
 - CLI: run `pwm connectors list`, then pass the source ID with `-s`.
 - MCP: call `pplx_connectors()`, then pass the source ID as `source_focus`.
 - Do not guess connector IDs. If no connector is listed, use normal source focus values.
@@ -276,7 +276,7 @@ pwm ask "What is Rust?" --no-citations    # Answer only, no URLs
 Combine flags:
 
 ```bash
-pwm ask "protein folding advances" -m gemini_pro -s academic --json
+pwm ask "protein folding advances" -m gemini4_hydrogen -s academic --json
 ```
 
 Read long prompts from stdin or a file, and attach files:
@@ -333,11 +333,11 @@ address unless you put an authenticated reverse proxy in front of it.
 
 Query multiple models in parallel and get a synthesized consensus.
 Each model in the council costs 1 Pro Search, plus 1 for Sonar 2 synthesis. Default: 3 Pro-compatible models + synthesis = 4 Pro Searches.
-Before selecting models, check `pplx_usage()` or `pwm usage`. If the subscription is Pro, exclude Max-only models (`gpt56_sol`, `claude_opus`).
+Before selecting models, check `pplx_usage()` or `pwm usage`. If the subscription is Pro, exclude Max-only models (`gpt6_astra`, `gemini4_carbon`, `claude_opus`, `claude_opus55`, `claude_fable52`).
 
 ```bash
 pwm council "What are the best practices for microservices?"           # default 3 models
-pwm council "Compare Rust and Go for backend" -m gpt56_terra,claude_sonnet  # custom 2 models
+pwm council "Compare Rust and Go for backend" -m gpt61_sol,claude_sonnet  # custom 2 models
 pwm council "Explain quantum computing" -s academic                   # with source focus
 pwm council "Prove the Pythagorean theorem" --thinking                # extended thinking
 pwm council "AI trends 2026" --chairman claude_sonnet                 # premium synthesis (+1 Pro)
@@ -397,30 +397,26 @@ pwm usage --refresh         # Force-refresh from server
 
 ## MCP Tools Summary
 
-| Tool                            | Cost                                    | Purpose                                                                                                                                                                                |
-| ------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pplx_smart_query`              | **Varies by intent**                    | **USE THIS BY DEFAULT** — quota-aware auto routing                                                                                                                                     |
-| `pplx_list_threads`             | **FREE**                                | Browse past conversations — paginated, searchable. Use before spending quota.                                                                                                          |
-| `pplx_get_thread`               | **FREE**                                | Full history for any past thread. Also enables conversation resumption via conversation_id.                                                                                             |
-| `pplx_sonar`                    | 1 Pro Search                            | Perplexity Sonar 2                                                                                                                                                                     |
-| `pplx_query`                    | 1 Pro                                   | Explicit model selection with thinking toggle; omitted arguments follow saved `pwm config` defaults                                                                                                                                          |
-| `pplx_ask`                      | 1 Pro                                   | Quick Q&A (auto model)                                                                                                                                                                 |
-| `pplx_council`                  | **N+1 Pro** (1 per model + 1 synthesis) | Model Council — **ASK USER which models first!** Check subscription first; exclude Max-only `gpt56_sol`/`claude_opus` on Pro. Supports `thinking=True` and `chairman` for synthesis model. |
-| `pplx_gpt56_terra` / `_thinking`      | 1 Pro                                   | OpenAI GPT-5.6 Terra (versatile)                                                                                                                                                             |
-| `pplx_gpt56_sol` / `_thinking`      | 1 Pro                                   | OpenAI GPT-5.6 Sol (latest, Max tier)                                                                                                                                                      |
-| `pplx_grok45` / `_thinking`         | 1 Pro                                   | xAI Grok 4.5                                                                                                                                                                               |
-| `pplx_claude_sonnet` / `_think` | 1 Pro                                   | Anthropic Claude Sonnet 5                                                                                                                                                            |
-| `pplx_claude_opus` / `_think`   | 1 Pro                                   | Anthropic Claude 4.8 Opus                                                                                                                                                              |
-| `pplx_gemini_pro_think`         | 1 Pro                                   | Google Gemini 3.1 Pro (thinking always on)                                                                                                                                             |
-| `pplx_nemotron_thinking`        | 1 Pro                                   | NVIDIA Nemotron 3 Ultra (thinking always on)                                                                                                                                           |
-| `pplx_glm52`                    | 1 Pro                                   | Z.ai GLM 5.2 (thinking always on)                                                                                                                                                      |
-| `pplx_kimi_k26` / `_thinking`   | 1 Pro                                   | Moonshot Kimi K2.6                                                                                                                                                                     |
-| `pplx_deep_research`            | 1 Research                              | In-depth reports (**scarce monthly quota**)                                                                                                                                            |
-| `pplx_usage`                    | FREE                                    | Check remaining quotas                                                                                                                                                                 |
-| `pplx_connectors`               | FREE                                    | List account connector source IDs for `source_focus`                                                                                                                                   |
-| `pplx_auth_status`              | FREE                                    | Check auth status                                                                                                                                                                      |
-| `pplx_auth_request_code`        | FREE                                    | Send verification code                                                                                                                                                                 |
-| `pplx_auth_complete`            | FREE                                    | Complete email and optional TOTP authentication                                                                                                                                         |
+| Tool                                  | Cost                                    | Purpose                                                                                                                                                                                                                       |
+| ------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pplx_smart_query`                    | **Varies by intent**                    | **USE THIS BY DEFAULT** — quota-aware auto routing                                                                                                                                                                            |
+| `pplx_list_threads`                   | **FREE**                                | Browse past conversations — paginated, searchable. Use before spending quota.                                                                                                                                                 |
+| `pplx_get_thread`                     | **FREE**                                | Full history for any past thread. Also enables conversation resumption via conversation_id.                                                                                                                                   |
+| `pplx_sonar`                          | 1 Pro Search                            | Perplexity Sonar 2                                                                                                                                                                                                            |
+| `pplx_query`                          | 1 Pro                                   | Explicit model selection with thinking toggle; omitted arguments follow saved `pwm config` defaults                                                                                                                           |
+| `pplx_ask`                            | 1 Pro                                   | Quick Q&A (auto model)                                                                                                                                                                                                        |
+| `pplx_council`                        | **N+1 Pro** (1 per model + 1 synthesis) | Model Council — **ASK USER which models first!** Check subscription first; exclude Max-only `gpt6_astra`/`gemini4_carbon`/`claude_opus`/`claude_fable52` on Pro. Supports `thinking=True` and `chairman` for synthesis model. |
+| `pplx_gpt61_sol` / `_thinking`        | 1 Pro                                   | OpenAI GPT-6.1 Sol (versatile)                                                                                                                                                                                                |
+| `pplx_gpt6_astra` / `_thinking`       | 1 Pro                                   | OpenAI GPT-6 Astra (most capable, Max tier)                                                                                                                                                                                   |
+| `pplx_gemini4_carbon` / `_thinking`   | 1 Pro                                   | Google Gemini 4 Carbon (Max tier)                                                                                                                                                                                             |
+| `pplx_gemini4_hydrogen` / `_thinking` | 1 Pro                                   | Google Gemini 4 Hydrogen (latest)                                                                                                                                                                                             |
+| `pplx_claude_sonnet` / `_think`       | 1 Pro                                   | Anthropic Claude Sonnet 5.5                                                                                                                                                                                                   |
+| `pplx_claude_opus` / `_think`         | 1 Pro                                   | Anthropic Claude Opus 5.5 (Max tier)                                                                                                                                                                                          |
+| `pplx_claude_fable52` / `_think`      | 1 Pro                                   | Anthropic Claude Fable 5.2 (Max tier)                                                                                                                                                                                         |
+| `pplx_grok47` / `_thinking`           | 1 Pro                                   | xAI Grok 4.7                                                                                                                                                                                                                  |
+| `pplx_nemotron`              | 1 Pro                                   | NVIDIA Nemotron 3.5 Super VL                                                                                                                                                                                                  |
+| `pplx_glm53`                          | 1 Pro                                   | Z.ai GLM 5.3 (thinking always on)                                                                                                                                                                                             |
+| `pplx_kimi_k3`                        | 1 Pro                                   | Moonshot Kimi K3 (thinking always on)                                                                                                                                                                                         |
 
 All query tools accept `source_focus`: `"none"`, `"web"`, `"academic"`, `"social"`, `"finance"`, `"all"`, or a connector source ID from `pplx_connectors()`.
 Use `source_focus="none"` for model-only queries without web search.
@@ -431,26 +427,23 @@ For full MCP tool parameters: See [references/mcp-tools.md](references/mcp-tools
 
 ## Models
 
-| CLI Name      | Provider   | Thinking | Notes                                                                |
-| ------------- | ---------- | -------- | -------------------------------------------------------------------- |
-| auto          | Perplexity | No       | Auto-selects best                                                    |
-| sonar         | Perplexity | No       | Sonar 2 (API id `experimental`); concise mode keeps answers grounded |
-| deep_research | Perplexity | No       | Monthly quota                                                        |
-| gpt56_terra   | OpenAI     | Toggle   | GPT-5.6 Terra                                                        |
-| gpt56_sol     | OpenAI     | Toggle   | GPT-5.6 Sol (Max tier)                                               |
-| gpt6_sol      | OpenAI     | Toggle   | GPT-6 Sol                                                            |
-| grok45        | xAI        | Toggle   | Grok 4.5                                                             |
-| grok47        | xAI        | Toggle   | Grok 4.7                                                             |
-| claude_sonnet | Anthropic  | Toggle   | Claude Sonnet 5                                                      |
-| claude_opus   | Anthropic  | Toggle   | Claude Opus 4.8 (Max tier)                                           |
-| claude_opus55 | Anthropic  | Toggle   | Claude Opus 5.5 (Max tier)                                           |
-| gemini_pro    | Google     | Always   | Gemini 3.1 Pro (thinking only)                                       |
-| gemini38      | Google     | Toggle   | Gemini 3.8 Flash                                                     |
-| nemotron      | NVIDIA     | Always   | Nemotron 3 Ultra 550B (thinking only)                                |
-| glm52         | Z.ai       | Always   | GLM 5.2 (thinking only)                                              |
-| glm53         | Z.ai       | Always   | GLM 5.3 (thinking only)                                              |
-| kimi_k26      | Moonshot   | Toggle   | Kimi K2.6                                                            |
-| kimi_k3       | Moonshot   | Always   | Kimi K3 (thinking only)                                              |
+| CLI Name         | Provider   | Thinking | Notes                                                                |
+| ---------------- | ---------- | -------- | -------------------------------------------------------------------- |
+| auto             | Perplexity | No       | Auto-selects best                                                    |
+| sonar            | Perplexity | No       | Sonar 2 (API id `experimental`); concise mode keeps answers grounded |
+| deep_research    | Perplexity | No       | Monthly quota                                                        |
+| gpt61_sol        | OpenAI     | Toggle   | GPT-6.1 Sol                                                          |
+| gpt6_astra       | OpenAI     | Toggle   | GPT-6 Astra (Max tier)                                               |
+| gemini4_carbon   | Google     | Toggle   | Gemini 4 Carbon (Max tier)                                           |
+| gemini4_hydrogen | Google     | Toggle   | Gemini 4 Hydrogen (latest)                                           |
+| claude_sonnet    | Anthropic  | Toggle   | Claude Sonnet 5.5                                                    |
+| claude_opus      | Anthropic  | Toggle   | Claude Opus 5.5 (Max tier)                                           |
+| claude_opus55    | Anthropic  | Toggle   | Explicit alias for Claude Opus 5.5 (Max tier)                        |
+| claude_fable52   | Anthropic  | Toggle   | Claude Fable 5.2 (Max tier)                                          |
+| grok47           | xAI        | Toggle   | Grok 4.7                                                             |
+| nemotron         | NVIDIA     | No       | Nemotron 3.5 Super VL (text-only)                                    |
+| glm53            | Z.ai       | Always   | GLM 5.3 (thinking only)                                              |
+| kimi_k3          | Moonshot   | Always   | Kimi K3 (thinking only)                                              |
 
 For full model details: See [references/models.md](references/models.md)
 
@@ -534,7 +527,7 @@ pwm ask "Write a Python decorator for retry logic" -m claude_sonnet -s none
 ### Specific model
 
 ```bash
-pwm ask "Compare React and Vue" -m gpt56_terra
+pwm ask "Compare React and Vue" -m gpt61_sol
 ```
 
 ### Model with thinking
@@ -546,7 +539,7 @@ pwm ask "Prove sqrt(2) is irrational" -m claude_sonnet -t
 ### Academic research
 
 ```bash
-pwm ask "transformer improvements 2025" -m gemini_pro -s academic
+pwm ask "transformer improvements 2025" -m gemini4_hydrogen -s academic
 ```
 
 ### Financial analysis

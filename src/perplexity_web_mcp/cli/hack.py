@@ -149,7 +149,7 @@ def _hack_claude(args: list[str]) -> int:
             claude_args.extend(["--model", "perplexity-auto"])
 
         # 6. Guard Claude's settings.json against /model corruption.
-        #    Claude Code persists /model selections (e.g. "gpt56_terra") to
+        #    Claude Code persists /model selections (e.g. "gpt61_sol") to
         #    ~/.claude/settings.json. Those non-Anthropic model names break
         #    Claude when launched normally. We memorize the original file
         #    content and restore it after the session ends.

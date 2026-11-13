@@ -5,7 +5,7 @@ Get up and running with Perplexity Web MCP in under 5 minutes.
 ## Prerequisites
 
 - **Python 3.10–3.13**
-- **Perplexity account** — Free accounts can use supported basic features; Pro or Max is required for premium models such as GPT-5.6 Terra, Claude Sonnet 5, Gemini 3.1 Pro, and Nemotron 3 Ultra
+- **Perplexity account** — Free accounts can use supported basic features; Pro or Max is required for premium models such as GPT-6.1 Sol, Claude Sonnet 5.5, Gemini 4 Hydrogen, and Nemotron 3.5 Super VL
 
 ## 1. Install
 
@@ -65,7 +65,7 @@ pwm ask "What is quantum computing?"
 The CLI auto-selects the best model based on your quota. You can also pick a specific model:
 
 ```bash
-pwm ask "Compare React and Vue" -m gpt56_terra
+pwm ask "Compare React and Vue" -m gpt61_sol
 pwm ask "Explain attention" -m claude_sonnet --thinking
 ```
 
@@ -89,7 +89,7 @@ Get perspectives from multiple models at once:
 pwm council "Compare Rust and Go for backend development"
 ```
 
-Each model costs 1 Pro Search. The default council uses GPT-5.6 Terra, Claude Sonnet 5, and Gemini 3.1 Pro, followed by Sonar 2 synthesis.
+Each model costs 1 Pro Search. The default council uses GPT-6.1 Sol, Claude Sonnet 5.5, and Gemini 4 Hydrogen, followed by Sonar 2 synthesis.
 
 ## 4. Check Your Quotas
 
@@ -162,20 +162,22 @@ pwm --version
 
 ## Available Models
 
-| Name             | Provider   | Thinking  | Tier          |
-| ---------------- | ---------- | --------- | ------------- |
-| `auto`           | Perplexity | No        | Account quota |
-| `sonar`          | Perplexity | No        | Account quota |
-| `deep_research`  | Perplexity | No        | Monthly quota |
-| `gpt56_terra`    | OpenAI     | Toggle    | Pro           |
-| `gpt56_sol`      | OpenAI     | Toggle    | Max           |
-| `grok45`         | xAI        | Toggle    | Pro           |
-| `claude_sonnet`  | Anthropic  | Toggle    | Pro           |
-| `claude_opus`    | Anthropic  | Toggle    | Max           |
-| `gemini_pro`     | Google     | Always on | Pro           |
-| `nemotron`       | NVIDIA     | Always on | Pro           |
-| `glm52`          | Z.ai       | Always on | Pro           |
-| `kimi_k26`       | Moonshot   | Toggle    | Pro           |
+| Name               | Provider   | Thinking  | Tier          |
+| ------------------ | ---------- | --------- | ------------- |
+| `auto`             | Perplexity | No        | Account quota |
+| `sonar`            | Perplexity | No        | Account quota |
+| `deep_research`    | Perplexity | No        | Monthly quota |
+| `gpt61_sol`        | OpenAI     | Toggle    | Pro           |
+| `gpt6_astra`       | OpenAI     | Toggle    | Max           |
+| `gemini4_carbon`   | Google     | Toggle    | Max           |
+| `gemini4_hydrogen` | Google     | Toggle    | Pro           |
+| `claude_sonnet`    | Anthropic  | Toggle    | Pro           |
+| `claude_opus`      | Anthropic  | Toggle    | Max           |
+| `claude_fable52`   | Anthropic  | Toggle    | Max           |
+| `grok47`           | xAI        | Toggle    | Pro           |
+| `nemotron`         | NVIDIA     | No        | Pro           |
+| `glm53`            | Z.ai       | Always on | Pro           |
+| `kimi_k3`          | Moonshot   | Always on | Pro           |
 
 ## Source Focus
 
@@ -201,6 +203,7 @@ pwm export                          # export full history to JSON
 ```
 
 For AI agents via MCP:
+
 ```
 pplx_list_threads()                          # browse history
 pplx_list_threads(search_term="topic")       # check if already researched

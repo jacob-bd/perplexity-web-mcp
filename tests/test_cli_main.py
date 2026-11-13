@@ -95,7 +95,7 @@ class TestCmdAsk:
         assert "requires a query" in capsys.readouterr().err
 
     def test_flag_as_first_arg_returns_1(self, capsys: pytest.CaptureFixture) -> None:
-        code = _cmd_ask(["--model", "gpt56_terra"])
+        code = _cmd_ask(["--model", "gpt61_sol"])
         assert code == 1
         assert "requires a query" in capsys.readouterr().err
 
@@ -139,8 +139,8 @@ class TestCmdAsk:
     @patch("perplexity_web_mcp.cli.main.resolve_model")
     def test_model_and_thinking_flags(self, mock_resolve: MagicMock, mock_ask: MagicMock) -> None:
         mock_resolve.return_value = MagicMock()
-        _cmd_ask(["query", "-m", "gpt56_terra", "-t"])
-        mock_resolve.assert_called_once_with("gpt56_terra", thinking=True)
+        _cmd_ask(["query", "-m", "gpt61_sol", "-t"])
+        mock_resolve.assert_called_once_with("gpt61_sol", thinking=True)
 
     @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
     def test_source_flag(self, mock_ask: MagicMock) -> None:
@@ -413,18 +413,18 @@ class TestCmdCouncil:
 
         mock_council.return_value = CouncilResponse(
             individual_results=[
-                CouncilMemberResult(model_name="GPT-5.6 Terra", answer="Answer A"),
+                CouncilMemberResult(model_name="GPT-6.1 Sol", answer="Answer A"),
                 CouncilMemberResult(model_name="Claude", answer="Answer B"),
             ],
             synthesis="Combined answer",
             query="test",
-            model_names=["GPT-5.6 Terra", "Claude"],
+            model_names=["GPT-6.1 Sol", "Claude"],
         )
         code = _cmd_council(["What is AI?"])
         assert code == 0
         out = capsys.readouterr().out
         assert "Model Council" in out
-        assert "GPT-5.6 Terra" in out
+        assert "GPT-6.1 Sol" in out
 
     def test_no_query_returns_1(self, capsys: pytest.CaptureFixture) -> None:
         code = _cmd_council([])
@@ -432,12 +432,12 @@ class TestCmdCouncil:
         assert "requires a query" in capsys.readouterr().err
 
     def test_flag_as_first_arg_returns_1(self, capsys: pytest.CaptureFixture) -> None:
-        code = _cmd_council(["--models", "gpt56_terra,claude_sonnet"])
+        code = _cmd_council(["--models", "gpt61_sol,claude_sonnet"])
         assert code == 1
         assert "requires a query" in capsys.readouterr().err
 
     def test_unknown_model_returns_1(self, capsys: pytest.CaptureFixture) -> None:
-        code = _cmd_council(["query", "--models", "nonexistent,gpt56_terra"])
+        code = _cmd_council(["query", "--models", "nonexistent,gpt61_sol"])
         assert code == 1
         assert "Unknown council model" in capsys.readouterr().err
 
@@ -454,7 +454,7 @@ class TestCmdCouncil:
         assert "Unknown option" in capsys.readouterr().err
 
     def test_single_model_returns_1(self, capsys: pytest.CaptureFixture) -> None:
-        code = _cmd_council(["query", "--models", "gpt56_terra"])
+        code = _cmd_council(["query", "--models", "gpt61_sol"])
         assert code == 1
         assert "at least 2 models" in capsys.readouterr().err
 
@@ -507,11 +507,11 @@ class TestCmdCouncil:
             model_names=["Sonar 2"],
         )
 
-        code = _cmd_council(["query", "--models", "sonar,gpt56_terra", "--no-synthesis"])
+        code = _cmd_council(["query", "--models", "sonar,gpt61_sol", "--no-synthesis"])
 
         assert code == 0
         model_list = mock_council.call_args.kwargs["models"]
-        assert model_list == [("Sonar 2", Models.SONAR), ("GPT-5.6 Terra", Models.GPT_56_TERRA)]
+        assert model_list == [("Sonar 2", Models.SONAR), ("GPT-6.1 Sol", Models.GPT_61_SOL)]
 
     @patch("perplexity_web_mcp.council.council_ask")
     def test_thinking_flag(self, mock_council: MagicMock) -> None:
@@ -670,8 +670,8 @@ class TestCmdAskPreferences:
         self, mock_prefs: MagicMock, mock_ask: MagicMock, mock_resolve: MagicMock
     ) -> None:
         mock_resolve.return_value = MagicMock()
-        assert _cmd_ask(["question", "-m", "gpt56_terra"]) == 0
-        mock_resolve.assert_called_once_with("gpt56_terra", thinking=True)
+        assert _cmd_ask(["question", "-m", "gpt61_sol"]) == 0
+        mock_resolve.assert_called_once_with("gpt61_sol", thinking=True)
 
     @patch("perplexity_web_mcp.cli.main.resolve_model")
     @patch("perplexity_web_mcp.cli.main.ask", return_value="response")
@@ -680,8 +680,8 @@ class TestCmdAskPreferences:
         self, mock_prefs: MagicMock, mock_ask: MagicMock, mock_resolve: MagicMock
     ) -> None:
         mock_resolve.return_value = MagicMock()
-        assert _cmd_ask(["question", "-m", "gpt56_terra", "--no-thinking"]) == 0
-        mock_resolve.assert_called_once_with("gpt56_terra", thinking=False)
+        assert _cmd_ask(["question", "-m", "gpt61_sol", "--no-thinking"]) == 0
+        mock_resolve.assert_called_once_with("gpt61_sol", thinking=False)
 
 
 class TestCmdAskIntentWarning:
@@ -692,7 +692,7 @@ class TestCmdAskIntentWarning:
     def test_warns_when_intent_set_with_explicit_model(
         self, mock_prefs: MagicMock, mock_ask: MagicMock, capsys: pytest.CaptureFixture
     ) -> None:
-        assert _cmd_ask(["question", "-m", "gpt56_terra", "--intent", "detailed"]) == 0
+        assert _cmd_ask(["question", "-m", "gpt61_sol", "--intent", "detailed"]) == 0
         err = capsys.readouterr().err
         assert "--intent" in err
         assert "detailed" in err
@@ -702,7 +702,7 @@ class TestCmdAskIntentWarning:
     def test_no_warning_when_intent_left_default(
         self, mock_prefs: MagicMock, mock_ask: MagicMock, capsys: pytest.CaptureFixture
     ) -> None:
-        assert _cmd_ask(["question", "-m", "gpt56_terra"]) == 0
+        assert _cmd_ask(["question", "-m", "gpt61_sol"]) == 0
         assert "--intent" not in capsys.readouterr().err
 
     @patch("perplexity_web_mcp.shared.smart_ask")

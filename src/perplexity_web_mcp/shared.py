@@ -90,37 +90,48 @@ MODEL_METADATA: dict[str, ModelDefinition] = {
         "Perplexity",
         council_eligible=False,
     ),
-    "gpt56_terra": ModelDefinition(
-        Models.GPT_56_TERRA,
-        Models.GPT_56_TERRA_THINKING,
-        "GPT-5.6 Terra",
+    "gpt61_sol": ModelDefinition(
+        Models.GPT_61_SOL,
+        Models.GPT_61_SOL_THINKING,
+        "GPT-6.1 Sol",
         "OpenAI",
     ),
-    "gpt56_sol": ModelDefinition(
-        Models.GPT_56_SOL,
-        Models.GPT_56_SOL_THINKING,
-        "GPT-5.6 Sol",
+    "gpt6_astra": ModelDefinition(
+        Models.GPT_6_ASTRA,
+        Models.GPT_6_ASTRA_THINKING,
+        "GPT-6 Astra",
         "OpenAI",
         minimum_tier="max",
     ),
-    "gpt6_sol": ModelDefinition(
-        Models.GPT_6_SOL,
-        Models.GPT_6_SOL_THINKING,
-        "GPT-6 Sol",
-        "OpenAI",
+    "gemini4_carbon": ModelDefinition(
+        Models.GEMINI_4_CARBON,
+        Models.GEMINI_4_CARBON_THINKING,
+        "Gemini 4 Carbon",
+        "Google",
+        minimum_tier="max",
     ),
-    "grok45": ModelDefinition(Models.GROK_45, Models.GROK_45_THINKING, "Grok 4.5", "xAI"),
-    "grok47": ModelDefinition(Models.GROK_47, Models.GROK_47_THINKING, "Grok 4.7", "xAI"),
+    "gemini4_hydrogen": ModelDefinition(
+        Models.GEMINI_4_HYDROGEN,
+        Models.GEMINI_4_HYDROGEN_THINKING,
+        "Gemini 4 Hydrogen",
+        "Google",
+    ),
+    "gemini_pro": ModelDefinition(
+        Models.GEMINI_4_HYDROGEN_THINKING,
+        Models.GEMINI_4_HYDROGEN_THINKING,
+        "Gemini 4 Hydrogen",
+        "Google",
+    ),
     "claude_sonnet": ModelDefinition(
-        Models.CLAUDE_50_SONNET,
-        Models.CLAUDE_50_SONNET_THINKING,
-        "Claude Sonnet 5",
+        Models.CLAUDE_55_SONNET,
+        Models.CLAUDE_55_SONNET_THINKING,
+        "Claude Sonnet 5.5",
         "Anthropic",
     ),
     "claude_opus": ModelDefinition(
-        Models.CLAUDE_48_OPUS,
-        Models.CLAUDE_48_OPUS_THINKING,
-        "Claude Opus 4.8",
+        Models.CLAUDE_55_OPUS,
+        Models.CLAUDE_55_OPUS_THINKING,
+        "Claude Opus 5.5",
         "Anthropic",
         minimum_tier="max",
     ),
@@ -131,29 +142,19 @@ MODEL_METADATA: dict[str, ModelDefinition] = {
         "Anthropic",
         minimum_tier="max",
     ),
-    "gemini_pro": ModelDefinition(
-        Models.GEMINI_31_PRO_THINKING,
-        Models.GEMINI_31_PRO_THINKING,
-        "Gemini 3.1 Pro",
-        "Google",
+    "claude_fable52": ModelDefinition(
+        Models.CLAUDE_FABLE_52,
+        Models.CLAUDE_FABLE_52_THINKING,
+        "Claude Fable 5.2",
+        "Anthropic",
+        minimum_tier="max",
     ),
-    "gemini38": ModelDefinition(
-        Models.GEMINI_38_FLASH,
-        Models.GEMINI_38_FLASH_THINKING,
-        "Gemini 3.8 Flash",
-        "Google",
-    ),
+    "grok47": ModelDefinition(Models.GROK_47, Models.GROK_47_THINKING, "Grok 4.7", "xAI"),
     "nemotron": ModelDefinition(
-        Models.NEMOTRON_3_ULTRA,
-        Models.NEMOTRON_3_ULTRA,
-        "Nemotron 3 Ultra",
+        Models.NEMOTRON_3_5_SUPER,
+        Models.NEMOTRON_3_5_SUPER,
+        "Nemotron 3.5 Super VL",
         "NVIDIA",
-    ),
-    "glm52": ModelDefinition(
-        Models.GLM_5_2,
-        Models.GLM_5_2,
-        "GLM 5.2",
-        "Z.ai",
     ),
     "glm53": ModelDefinition(
         Models.GLM_5_3,
@@ -161,10 +162,8 @@ MODEL_METADATA: dict[str, ModelDefinition] = {
         "GLM 5.3",
         "Z.ai",
     ),
-    "kimi_k26": ModelDefinition(Models.KIMI_K2_6, Models.KIMI_K2_6_THINKING, "Kimi K2.6", "Moonshot"),
     "kimi_k3": ModelDefinition(Models.KIMI_K3, Models.KIMI_K3, "Kimi K3", "Moonshot"),
 }
-"""User-facing model metadata. Update this table when model names or tier availability changes."""
 
 MODEL_MAP: dict[str, tuple[Model, Model | None]] = {
     name: (definition.base_model, definition.thinking_model) for name, definition in MODEL_METADATA.items()
@@ -175,20 +174,18 @@ ModelName = Literal[
     "auto",
     "sonar",
     "deep_research",
-    "gpt56_terra",
-    "gpt56_sol",
-    "gpt6_sol",
-    "grok45",
-    "grok47",
+    "gpt61_sol",
+    "gpt6_astra",
+    "gemini4_carbon",
+    "gemini4_hydrogen",
+    "gemini_pro",
     "claude_sonnet",
     "claude_opus",
     "claude_opus55",
-    "gemini_pro",
-    "gemini38",
+    "claude_fable52",
+    "grok47",
     "nemotron",
-    "glm52",
     "glm53",
-    "kimi_k26",
     "kimi_k3",
 ]
 
@@ -233,7 +230,7 @@ COUNCIL_ELIGIBLE_MODEL_NAMES: tuple[str, ...] = tuple(
     name for name, definition in MODEL_METADATA.items() if definition.council_eligible
 )
 
-COUNCIL_DEFAULT_MODEL_NAMES: tuple[str, ...] = ("gpt56_terra", "claude_sonnet", "gemini_pro")
+COUNCIL_DEFAULT_MODEL_NAMES: tuple[str, ...] = ("gpt61_sol", "claude_sonnet", "gemini4_hydrogen")
 COUNCIL_DEFAULT_MODELS_STR = ",".join(COUNCIL_DEFAULT_MODEL_NAMES)
 
 
@@ -307,8 +304,8 @@ def resolve_model(name: str, thinking: bool = False) -> Model:
     degrades to Models.BEST so a valid-but-uncached name is never rejected.
 
     Args:
-        name: Model name key (e.g. "gpt56_terra", "claude_sonnet") or a live
-            catalog identifier (e.g. "gpt6_sol").
+        name: Model name key (e.g. "gpt61_sol", "claude_sonnet") or a live
+            catalog identifier (e.g. "gpt6_1_sol").
         thinking: Whether to use the thinking variant if available.
 
     Returns:
@@ -952,7 +949,7 @@ def council_ask(
     Args:
         query: The question to ask all models.
         models: List of (display_name, Model) tuples. Defaults to
-                GPT-5.6 Terra, Claude Opus 4.8, and Gemini 3.1 Pro.
+                GPT-6.1 Sol, Claude Sonnet 5.5, and Gemini 4 Hydrogen.
         source_focus: Source focus for all queries.
         synthesize: Whether to run Sonar 2 synthesis (default chairman; still a web query).
         thinking: Use thinking model variants for default council members.

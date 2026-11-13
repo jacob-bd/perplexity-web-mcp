@@ -48,20 +48,18 @@ class TestMappings:
             "auto",
             "sonar",
             "deep_research",
-            "gpt56_terra",
-            "gpt56_sol",
-            "gpt6_sol",
-            "grok45",
+            "gpt61_sol",
+            "gpt6_astra",
+            "gemini4_carbon",
+            "gemini4_hydrogen",
+            "gemini_pro",
+            "claude_fable52",
             "grok47",
             "claude_sonnet",
             "claude_opus",
             "claude_opus55",
-            "gemini_pro",
-            "gemini38",
             "nemotron",
-            "glm52",
             "glm53",
-            "kimi_k26",
             "kimi_k3",
         }
         assert set(MODEL_MAP.keys()) == expected
@@ -96,45 +94,49 @@ class TestMappings:
 
     def test_default_council_is_pro_compatible(self) -> None:
         assert getattr(shared, "COUNCIL_DEFAULT_MODEL_NAMES", None) == (
-            "gpt56_terra",
+            "gpt61_sol",
             "claude_sonnet",
-            "gemini_pro",
+            "gemini4_hydrogen",
         )
-        assert getattr(shared, "COUNCIL_DEFAULT_MODELS_STR", None) == "gpt56_terra,claude_sonnet,gemini_pro"
+        assert getattr(shared, "COUNCIL_DEFAULT_MODELS_STR", None) == "gpt61_sol,claude_sonnet,gemini4_hydrogen"
         assert not set(shared.COUNCIL_DEFAULT_MODEL_NAMES) & shared.MAX_ONLY_MODEL_NAMES
 
     def test_max_only_model_names_come_from_metadata(self) -> None:
-        assert getattr(shared, "MAX_ONLY_MODEL_NAMES", None) == {"gpt56_sol", "claude_opus", "claude_opus55"}
+        assert getattr(shared, "MAX_ONLY_MODEL_NAMES", None) == {
+            "gpt6_astra",
+            "gemini4_carbon",
+            "claude_opus",
+            "claude_opus55",
+            "claude_fable52",
+        }
         assert all(shared.MODEL_METADATA[name].minimum_tier == "max" for name in shared.MAX_ONLY_MODEL_NAMES)
 
     def test_council_eligible_models_are_derived_from_metadata(self) -> None:
         assert getattr(shared, "COUNCIL_ELIGIBLE_MODEL_NAMES", None) == (
             "sonar",
-            "gpt56_terra",
-            "gpt56_sol",
-            "gpt6_sol",
-            "grok45",
-            "grok47",
+            "gpt61_sol",
+            "gpt6_astra",
+            "gemini4_carbon",
+            "gemini4_hydrogen",
+            "gemini_pro",
             "claude_sonnet",
             "claude_opus",
             "claude_opus55",
-            "gemini_pro",
-            "gemini38",
+            "claude_fable52",
+            "grok47",
             "nemotron",
-            "glm52",
             "glm53",
-            "kimi_k26",
             "kimi_k3",
         )
 
     def test_build_council_model_list_uses_metadata_display_names(self) -> None:
         assert hasattr(shared, "build_council_model_list")
-        models = shared.build_council_model_list(("sonar", "gpt56_terra", "claude_sonnet"))
-        assert [name for name, _ in models] == ["Sonar 2", "GPT-5.6 Terra", "Claude Sonnet 5"]
+        models = shared.build_council_model_list(("sonar", "gpt61_sol", "claude_sonnet"))
+        assert [name for name, _ in models] == ["Sonar 2", "GPT-6.1 Sol", "Claude Sonnet 5.5"]
         assert [model for _, model in models] == [
             Models.SONAR,
-            Models.GPT_56_TERRA,
-            Models.CLAUDE_50_SONNET,
+            Models.GPT_61_SOL,
+            Models.CLAUDE_55_SONNET,
         ]
 
 
@@ -262,30 +264,33 @@ class TestResolveModel:
         assert resolve_model("auto", thinking=True) is Models.AUTO
 
     def test_nemotron_base(self) -> None:
-        assert resolve_model("nemotron") is Models.NEMOTRON_3_ULTRA
+        assert resolve_model("nemotron") is Models.NEMOTRON_3_5_SUPER
 
     def test_nemotron_thinking(self) -> None:
-        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_ULTRA
+        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_5_SUPER
 
     def test_claude_sonnet_base(self) -> None:
-        assert resolve_model("claude_sonnet") is Models.CLAUDE_50_SONNET
+        assert resolve_model("claude_sonnet") is Models.CLAUDE_55_SONNET
 
     def test_claude_sonnet_thinking(self) -> None:
-        assert resolve_model("claude_sonnet", thinking=True) is Models.CLAUDE_50_SONNET_THINKING
+        assert resolve_model("claude_sonnet", thinking=True) is Models.CLAUDE_55_SONNET_THINKING
 
-    def test_glm52_always_thinking(self) -> None:
-        assert resolve_model("glm52") is Models.GLM_5_2
-        assert resolve_model("glm52", thinking=True) is Models.GLM_5_2
+    def test_glm53_always_thinking(self) -> None:
+        assert resolve_model("glm53") is Models.GLM_5_3
+        assert resolve_model("glm53", thinking=True) is Models.GLM_5_3
 
     def test_gemini_pro_always_thinking(self) -> None:
         # gemini_pro has no non-thinking variant
-        assert resolve_model("gemini_pro") is Models.GEMINI_31_PRO_THINKING
+        assert resolve_model("gemini_pro") is Models.GEMINI_4_HYDROGEN_THINKING
 
     def test_new_generation_static_keys(self) -> None:
-        assert resolve_model("gpt6_sol") is Models.GPT_6_SOL
-        assert resolve_model("gpt6_sol", thinking=True) is Models.GPT_6_SOL_THINKING
-        assert resolve_model("gemini38") is Models.GEMINI_38_FLASH
-        assert resolve_model("gemini38", thinking=True) is Models.GEMINI_38_FLASH_THINKING
+        assert resolve_model("gpt61_sol") is Models.GPT_61_SOL
+        assert resolve_model("gpt61_sol", thinking=True) is Models.GPT_61_SOL_THINKING
+        assert resolve_model("gemini4_hydrogen") is Models.GEMINI_4_HYDROGEN
+        assert resolve_model("gemini4_hydrogen", thinking=True) is Models.GEMINI_4_HYDROGEN_THINKING
+        assert resolve_model("gemini4_carbon") is Models.GEMINI_4_CARBON
+        assert resolve_model("claude_fable52", thinking=True) is Models.CLAUDE_FABLE_52_THINKING
+        assert resolve_model("gpt6_astra", thinking=True) is Models.GPT_6_ASTRA_THINKING
         assert resolve_model("claude_opus55") is Models.CLAUDE_55_OPUS
         assert resolve_model("grok47", thinking=True) is Models.GROK_47_THINKING
         assert resolve_model("glm53", thinking=True) is Models.GLM_5_3
@@ -333,12 +338,12 @@ class TestResolveModel:
         monkeypatch.setattr(catalog, "CATALOG_CACHE_FILE", tmp_path / "missing.json")
         monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: False)  # offline
         assert resolve_model("definitely_not_a_model") is Models.BEST
-        assert resolve_model("gemini_pro", thinking=True) is Models.GEMINI_31_PRO_THINKING
+        assert resolve_model("gemini_pro", thinking=True) is Models.GEMINI_4_HYDROGEN_THINKING
 
     def test_nemotron_always_thinking(self) -> None:
         # nemotron is reasoning-only, always thinking
-        assert resolve_model("nemotron") is Models.NEMOTRON_3_ULTRA
-        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_ULTRA
+        assert resolve_model("nemotron") is Models.NEMOTRON_3_5_SUPER
+        assert resolve_model("nemotron", thinking=True) is Models.NEMOTRON_3_5_SUPER
 
     def test_unknown_model_falls_back_to_best(self, monkeypatch) -> None:
         monkeypatch.setattr(shared, "_lazy_refresh_catalog", lambda: False)  # offline
@@ -391,7 +396,7 @@ class TestStrictModelResolution:
     def test_known_static_name_never_triggers_fetch(self, monkeypatch) -> None:
         refresh = MagicMock(return_value=True)
         monkeypatch.setattr(shared, "_lazy_refresh_catalog", refresh)
-        assert resolve_model("claude_sonnet") is Models.CLAUDE_50_SONNET
+        assert resolve_model("claude_sonnet") is Models.CLAUDE_55_SONNET
         refresh.assert_not_called()
 
     def test_cached_live_name_never_triggers_fetch(self, monkeypatch) -> None:

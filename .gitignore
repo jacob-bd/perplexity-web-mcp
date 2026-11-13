@@ -12,6 +12,26 @@ build/
 *.egg-info/
 .debug/
 .chrome-debug-profile/
+
+# Browser profiles and session data (never commit)
+.chrome-debug-profile*/
+.chromium-debug-profile*/
+chrome-debug-profile*/
+chrome-profile*/
+chromium-profile*/
+**/User Data/
+**/Guest Profile/
+**/System Profile/
+**/Profile [0-9]*/
+**/Default/Cookies*
+**/Default/Login Data*
+**/Default/Local State*
+**/Default/Network/
+**/Default/Local Storage/
+**/Default/Session Storage/
+**/Default/Preferences
+**/Default/Secure Preferences
+**/Singleton*
 tools
 .planning/
 plan/

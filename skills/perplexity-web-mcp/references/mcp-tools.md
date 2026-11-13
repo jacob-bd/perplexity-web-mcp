@@ -15,7 +15,7 @@ Complete parameter reference for all MCP tools in the `pplx_*` namespace.
 | `pplx_sonar`                                       | 1 Pro Search                     |
 | `pplx_ask`, `pplx_query`, all model-specific tools | 1 Pro Search                     |
 | `pplx_deep_research`                               | 1 Deep Research (scarce monthly) |
-| `pplx_usage`, `pplx_connectors`, auth tools         | FREE                             |
+| `pplx_usage`, `pplx_connectors`, auth tools        | FREE                             |
 
 ## Thread Library (FREE — no quota cost)
 
@@ -85,7 +85,6 @@ perplexity://library                  # Most recent 50 threads (formatted list)
 perplexity://thread/<slug>            # Full conversation history for a specific thread
 ```
 
-
 ## Smart Query (RECOMMENDED DEFAULT)
 
 ## Source Focus and Connectors
@@ -128,9 +127,9 @@ Prefer `pplx_smart_query` unless you need a specific model.
 ```
 pplx_query(
     query: str,                    # Required. The question to ask.
-    model: str = "auto",           # auto, sonar, deep_research, gpt56_terra, gpt56_sol, grok45, claude_sonnet,
-                                   # claude_opus, gemini_pro, nemotron, glm52, kimi_k26 (newer identifiers from
-                                   # `pwm models` also work: gpt6_sol, gemini38, claude_opus55, grok47, glm53, kimi_k3)
+    model: str = "auto",           # auto, sonar, deep_research, gpt61_sol, gpt6_astra, gemini4_carbon,
+                                   # gemini4_hydrogen, claude_sonnet, claude_opus, claude_opus55, claude_fable52,
+                                   # grok47, nemotron, glm53, kimi_k3 (any live identifier from `pwm models` also works)
     thinking: bool = False,        # Enable extended thinking (where supported)
     source_focus: str = "web",     # none, web, academic, social, finance, all, or connector ID from pplx_connectors()
     conversation_id: str = None,   # Optional. Pass ID from previous turn to persist context.
@@ -177,24 +176,28 @@ pplx_<model>(
 ) -> str
 ```
 
-| Tool                       | Model                      | Thinking     | Cost  |
-| -------------------------- | -------------------------- | ------------ | ----- |
-| `pplx_sonar`               | Perplexity Sonar 2         | No           | 1 Pro |
-| `pplx_gpt56_terra`               | GPT-5.6 Terra (versatile)        | No           | 1 Pro |
-| `pplx_gpt56_terra_thinking`      | GPT-5.6 Terra (versatile)        | Yes          | 1 Pro |
-| `pplx_gpt56_sol`               | GPT-5.6 Sol (latest, Max tier) | No           | 1 Pro |
-| `pplx_gpt56_sol_thinking`      | GPT-5.6 Sol (latest, Max tier) | Yes          | 1 Pro |
-| `pplx_grok45`                  | Grok 4.5                      | No           | 1 Pro |
-| `pplx_grok45_thinking`         | Grok 4.5                      | Yes          | 1 Pro |
-| `pplx_claude_sonnet`       | Claude Sonnet 5          | No           | 1 Pro |
-| `pplx_claude_sonnet_think` | Claude Sonnet 5          | Yes          | 1 Pro |
-| `pplx_claude_opus`         | Claude 4.8 Opus (Max tier) | No           | 1 Pro |
-| `pplx_claude_opus_think`   | Claude 4.8 Opus (Max tier) | Yes          | 1 Pro |
-| `pplx_gemini_pro_think`    | Gemini 3.1 Pro             | Yes (always) | 1 Pro |
-| `pplx_nemotron_thinking`   | Nemotron 3 Ultra           | Yes (always) | 1 Pro |
-| `pplx_glm52`               | GLM 5.2                    | Yes (always) | 1 Pro |
-| `pplx_kimi_k26`            | Kimi K2.6                  | No           | 1 Pro |
-| `pplx_kimi_k26_thinking`   | Kimi K2.6                  | Yes          | 1 Pro |
+| Tool                             | Model                       | Thinking     | Cost  |
+| -------------------------------- | --------------------------- | ------------ | ----- |
+| `pplx_sonar`                     | Perplexity Sonar 2          | No           | 1 Pro |
+| `pplx_gpt61_sol`                 | GPT-6.1 Sol                 | No           | 1 Pro |
+| `pplx_gpt61_sol_thinking`        | GPT-6.1 Sol                 | Yes          | 1 Pro |
+| `pplx_gpt6_astra`                | GPT-6 Astra (Max tier)      | No           | 1 Pro |
+| `pplx_gpt6_astra_thinking`       | GPT-6 Astra (Max tier)      | Yes          | 1 Pro |
+| `pplx_gemini4_carbon`            | Gemini 4 Carbon (Max tier)  | No           | 1 Pro |
+| `pplx_gemini4_carbon_thinking`   | Gemini 4 Carbon (Max tier)  | Yes          | 1 Pro |
+| `pplx_gemini4_hydrogen`          | Gemini 4 Hydrogen           | No           | 1 Pro |
+| `pplx_gemini4_hydrogen_thinking` | Gemini 4 Hydrogen           | Yes          | 1 Pro |
+| `pplx_claude_sonnet`             | Claude Sonnet 5.5           | No           | 1 Pro |
+| `pplx_claude_sonnet_think`       | Claude Sonnet 5.5           | Yes          | 1 Pro |
+| `pplx_claude_opus`               | Claude Opus 5.5 (Max tier)  | No           | 1 Pro |
+| `pplx_claude_opus_think`         | Claude Opus 5.5 (Max tier)  | Yes          | 1 Pro |
+| `pplx_claude_fable52`            | Claude Fable 5.2 (Max tier) | No           | 1 Pro |
+| `pplx_claude_fable52_think`      | Claude Fable 5.2 (Max tier) | Yes          | 1 Pro |
+| `pplx_grok47`                    | Grok 4.7                    | No           | 1 Pro |
+| `pplx_grok47_thinking`           | Grok 4.7                    | Yes          | 1 Pro |
+| `pplx_nemotron`         | Nemotron 3.5 Super VL       | No           | 1 Pro |
+| `pplx_glm53`                     | GLM 5.3                     | Yes (always) | 1 Pro |
+| `pplx_kimi_k3`                   | Kimi K3                     | Yes (always) | 1 Pro |
 
 ## Usage Tool
 

@@ -216,7 +216,7 @@ def council_ask(
     Args:
         query: The question to ask all models.
         models: List of (display_name, Model) tuples. Defaults to
-                COUNCIL_DEFAULT_MODELS (GPT-5.6 Terra, Claude Sonnet, Gemini Pro).
+                COUNCIL_DEFAULT_MODELS (GPT-6.1 Sol, Claude Sonnet 5.5, Gemini 4 Hydrogen).
         source_focus: Source focus for all queries (none/web/academic/social/finance/all).
         synthesize: Whether to produce a synthesized consensus (adds 1 Sonar 2 synthesis query by default).
         thinking: Use thinking model variants for default council members.

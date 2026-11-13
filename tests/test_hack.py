@@ -43,7 +43,7 @@ class TestSettingsGuard:
 
         # Simulate Claude Code changing the model during the session
         def simulate_model_change(*args, **kwargs):
-            settings_path.write_text(json.dumps({"model": "gpt56_terra"}))
+            settings_path.write_text(json.dumps({"model": "gpt61_sol"}))
             return MagicMock(returncode=0)
 
         mock_run.side_effect = simulate_model_change
@@ -66,7 +66,7 @@ class TestSettingsGuard:
         settings_path = self._make_settings(tmp_path, original)
 
         def simulate_crash(*args, **kwargs):
-            settings_path.write_text(json.dumps({"model": "gpt56_terra"}))
+            settings_path.write_text(json.dumps({"model": "gpt61_sol"}))
             raise RuntimeError("Claude crashed")
 
         mock_run.side_effect = simulate_crash
@@ -131,7 +131,7 @@ class TestSettingsGuard:
         settings_path.write_bytes(raw_content)
 
         def simulate_model_change(*args, **kwargs):
-            settings_path.write_text(json.dumps({"model": "gpt56_terra"}))
+            settings_path.write_text(json.dumps({"model": "gpt61_sol"}))
             return MagicMock(returncode=0)
 
         mock_run.side_effect = simulate_model_change

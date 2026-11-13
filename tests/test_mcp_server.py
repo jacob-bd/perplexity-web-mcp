@@ -19,12 +19,25 @@ from perplexity_web_mcp.shared import resolve_model
 
 def test_current_model_tools_route_to_live_identifiers() -> None:
     cases = (
-        (server.pplx_gpt56_terra, Models.GPT_56_TERRA),
-        (server.pplx_gpt56_terra_thinking, Models.GPT_56_TERRA_THINKING),
-        (server.pplx_gpt56_sol, Models.GPT_56_SOL),
-        (server.pplx_gpt56_sol_thinking, Models.GPT_56_SOL_THINKING),
-        (server.pplx_grok45, Models.GROK_45),
-        (server.pplx_grok45_thinking, Models.GROK_45_THINKING),
+        (server.pplx_gpt61_sol, Models.GPT_61_SOL),
+        (server.pplx_gpt61_sol_thinking, Models.GPT_61_SOL_THINKING),
+        (server.pplx_gpt6_astra, Models.GPT_6_ASTRA),
+        (server.pplx_gpt6_astra_thinking, Models.GPT_6_ASTRA_THINKING),
+        (server.pplx_gemini4_carbon, Models.GEMINI_4_CARBON),
+        (server.pplx_gemini4_carbon_thinking, Models.GEMINI_4_CARBON_THINKING),
+        (server.pplx_gemini4_hydrogen, Models.GEMINI_4_HYDROGEN),
+        (server.pplx_gemini4_hydrogen_thinking, Models.GEMINI_4_HYDROGEN_THINKING),
+        (server.pplx_claude_sonnet, Models.CLAUDE_55_SONNET),
+        (server.pplx_claude_sonnet_think, Models.CLAUDE_55_SONNET_THINKING),
+        (server.pplx_claude_opus, Models.CLAUDE_55_OPUS),
+        (server.pplx_claude_opus_think, Models.CLAUDE_55_OPUS_THINKING),
+        (server.pplx_claude_fable52, Models.CLAUDE_FABLE_52),
+        (server.pplx_claude_fable52_think, Models.CLAUDE_FABLE_52_THINKING),
+        (server.pplx_grok47, Models.GROK_47),
+        (server.pplx_grok47_thinking, Models.GROK_47_THINKING),
+        (server.pplx_nemotron, Models.NEMOTRON_3_5_SUPER),
+        (server.pplx_glm53, Models.GLM_5_3),
+        (server.pplx_kimi_k3, Models.KIMI_K3),
     )
 
     with patch.object(server, "ask", return_value="ok") as mock_ask:
@@ -45,11 +58,21 @@ def test_smart_query_forwards_conversation_id() -> None:
         )
 
 
-def test_removed_gpt_tools_are_not_exposed() -> None:
-    assert not hasattr(server, "pplx_gpt54")
-    assert not hasattr(server, "pplx_gpt54_thinking")
-    assert not hasattr(server, "pplx_gpt55")
-    assert not hasattr(server, "pplx_gpt55_thinking")
+def test_removed_model_tools_are_not_exposed() -> None:
+    for name in (
+        "pplx_gpt54",
+        "pplx_gpt54_thinking",
+        "pplx_gpt55",
+        "pplx_gpt55_thinking",
+        "pplx_gpt56_terra",
+        "pplx_gpt56_sol",
+        "pplx_grok45",
+        "pplx_gemini_pro_think",
+        "pplx_glm52",
+        "pplx_kimi_k26",
+        "pplx_nemotron_thinking",
+    ):
+        assert not hasattr(server, name), name
 
 
 def test_council_docstring_lists_every_eligible_and_max_only_model() -> None:
@@ -316,8 +339,8 @@ class TestPplxQueryPreferences:
             patch.object(server, "load_preferences", return_value=prefs),
             patch.object(server, "ask", return_value="ok") as mock_ask,
         ):
-            assert server.pplx_query.fn("question", model="gpt56_terra") == "ok"
-        assert mock_ask.call_args.args[1] == resolve_model("gpt56_terra", thinking=True)
+            assert server.pplx_query.fn("question", model="gpt61_sol") == "ok"
+        assert mock_ask.call_args.args[1] == resolve_model("gpt61_sol", thinking=True)
         assert mock_ask.call_args.args[2] == "academic"
 
     def test_explicit_model_beats_saved_preference(self) -> None:

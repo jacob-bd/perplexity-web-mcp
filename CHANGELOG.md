@@ -4,6 +4,25 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **November 2026 model roster** — adds GPT-6.1 Sol, GPT-6 Astra, Gemini 4 Carbon, Gemini 4 Hydrogen, Claude Sonnet 5.5, Claude Fable 5.2, and Nemotron 3.5 Super VL. Claude Sonnet tracks 5.5, and `claude_opus` / `claude_opus55` both resolve to Claude Opus 5.5. GPT-6 Astra, Gemini 4 Carbon, Claude Opus 5.5, and Claude Fable 5.2 are marked Max-only.
+- **New MCP model tools** — `pplx_gpt61_sol`, `pplx_gpt6_astra`, `pplx_gemini4_carbon`, `pplx_gemini4_hydrogen`, `pplx_claude_fable52`, `pplx_grok47`, `pplx_glm53`, `pplx_kimi_k3`, and `pplx_nemotron`, each with a thinking variant where the picker offers one. `pplx_nemotron_thinking` is now `pplx_nemotron` because the model has no thinking variant.
+- **Browser profile leak guard** — a pre-commit hook and test fail when Chrome or Chromium profile directories, cookies, saved logins, or local session state would be committed.
+
+### Changed
+
+- **Model Council default** — now GPT-6.1 Sol, Claude Sonnet 5.5, and Gemini 4 Hydrogen, so the default stays Pro-compatible.
+- **API compatibility aliases** — older Claude names route to the current Sonnet and Opus models; Gemini, GPT, GLM, Kimi, Grok, and Nemotron aliases follow the November picker.
+
+### Removed
+
+- **Stale model keys** — `gpt56_terra`, `gpt56_sol`, `gpt6_sol`, `grok45`, `gemini38`, `glm52`, and `kimi_k26` are no longer built-in keys. Raw identifiers from the live catalog still work with `-m` and `pplx_query`.
+
+---
+
 ## [0.16.1] - 2026-10-04
 
 ### Fixed
@@ -167,7 +186,6 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ## [0.14.5] - 2026-07-25
 
-
 ### Fixed
 
 - **API server retries** — The Anthropic-compatible `/v1/messages` endpoint now retries transient Perplexity backend error frames (e.g. `Error in processing query.`) instead of failing the request immediately; the non-streaming path previously had no retry at all. ([#17](https://github.com/jacob-bd/perplexity-web-mcp/issues/17))
@@ -276,7 +294,7 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
   - **MCP Tools**: `pplx_list_threads` and `pplx_get_thread`.
   - **MCP Resources**: `perplexity://library` and `perplexity://thread/{slug}`.
   - **Resume Conversations**: Any past conversation can now be resumed by passing the thread slug as `conversation_id` to any query tool.
-  - *Special thanks and credit to Kyle Brodeur for the endpoint discovery in [kylebrodeur/perplexity-exporter](https://github.com/kylebrodeur/perplexity-exporter) which inspired this feature! We decided to grab the thread aspect from his repo and implement it directly against the REST API for maximum performance.*
+  - _Special thanks and credit to Kyle Brodeur for the endpoint discovery in [kylebrodeur/perplexity-exporter](https://github.com/kylebrodeur/perplexity-exporter) which inspired this feature! We decided to grab the thread aspect from his repo and implement it directly against the REST API for maximum performance._
 
 ## [0.12.5] - 2026-06-25
 

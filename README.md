@@ -24,14 +24,14 @@
 
 MCP server, CLI, and API-compatible interface for Perplexity AI's web interface.
 
-Use your Perplexity Pro/Max subscription to access premium models (Sonar 2, GPT-6 Sol, GPT-5.6 Terra, Gemini 3.8 Flash, Claude Sonnet 5, Claude Opus 5.5, Kimi K3, GLM 5.3, Grok 4.7, and Nemotron 3 Ultra) from the terminal, through MCP tools, or as an API endpoint.
+Use your Perplexity Pro/Max subscription to access premium models (GPT-6.1 Sol, GPT-6 Astra, Gemini 4 Carbon, Gemini 4 Hydrogen, Claude Sonnet 5.5, Claude Opus 5.5, Claude Fable 5.2, Grok 4.7, GLM 5.3, Kimi K3, and Nemotron 3.5 Super VL) from the terminal, through MCP tools, or as an API endpoint.
 
 ## Features
 
 - **CLI**: Query Perplexity models directly from the terminal (`pwm ask`, `pwm chat`, `pwm council`, `pwm research`, `pwm config`)
 - **MCP Server**: MCP tools for AI agents with citations, rate limit checking, and multi-turn context
 - **API Server**: Drop-in Anthropic Messages API and OpenAI Chat Completions API
-- **10 Models**: Sonar 2, GPT-5.6 Terra, GPT-5.6 Sol, Gemini 3.1 Pro, Claude Sonnet 5, Claude Opus 4.8, GLM 5.2, Kimi K2.6, Grok 4.5, and Nemotron 3 Ultra
+- **Premium Models**: GPT-6.1 Sol, GPT-6 Astra, Gemini 4 Carbon, Gemini 4 Hydrogen, Claude Sonnet 5.5, Claude Opus 5.5, Claude Fable 5.2, Grok 4.7, GLM 5.3, Kimi K3, and Nemotron 3.5 Super VL
 - **Thinking Mode**: Extended thinking support for all compatible models
 - **Deep Research**: Full support for Perplexity's Deep Research mode
 - **Multi-Turn Conversations**: State-preserved threaded conversations for both MCP and CLI REPL
@@ -139,7 +139,7 @@ pwm ask "What is quantum computing?"
 **Choose a specific model** with `-m` (see [Models](#models) for the full list):
 
 ```bash
-pwm ask "Compare React and Vue" -m gpt56_terra
+pwm ask "Compare React and Vue" -m gpt61_sol
 ```
 
 ```bash
@@ -185,7 +185,7 @@ pwm ask "What is Rust?" --no-citations
 **Combine flags** for full control:
 
 ```bash
-pwm ask "recent advances in protein folding" -m gemini_pro -s academic --json
+pwm ask "recent advances in protein folding" -m gemini4_hydrogen -s academic --json
 ```
 
 **Long prompts and attachments:**
@@ -244,13 +244,13 @@ pwm research "NVIDIA competitive landscape" -s finance --json
 Query multiple models in parallel and get a synthesized consensus. Each model costs 1 Pro Search. Default synthesis uses Sonar 2 (also 1 Pro Search).
 
 ```bash
-# Default: GPT-5.6 Terra, Claude Sonnet, Gemini Pro + Sonar 2 synthesis (4 Pro Searches)
+# Default: GPT-6.1 Sol, Claude Sonnet 5.5, Gemini 4 Hydrogen + Sonar 2 synthesis (4 Pro Searches)
 pwm council "What are best practices for microservices?"
 ```
 
 ```bash
 # Custom model selection
-pwm council "Compare Rust and Go" -m gpt56_terra,claude_sonnet
+pwm council "Compare Rust and Go" -m gpt61_sol,claude_sonnet
 ```
 
 ```bash
@@ -299,7 +299,7 @@ Seamlessly launch external AI tools connected to the Perplexity API server. This
 
 ```bash
 pwm hack claude            # Launch Claude Code
-pwm hack claude -m gpt56_terra   # Launch Claude Code with a specific model
+pwm hack claude -m gpt61_sol     # Launch Claude Code with a specific model
 ```
 
 ### MCP Setup
@@ -360,26 +360,23 @@ pwm --ai                   # Print comprehensive AI-optimized reference
 
 ## Models
 
-| CLI Name        | Provider   | Thinking | Notes                                            |
-| --------------- | ---------- | -------- | ------------------------------------------------ |
-| `auto`          | Perplexity | No       | Auto-selects best model                          |
-| `sonar`         | Perplexity | No       | Sonar 2 (latest in-house; API id `experimental`) |
-| `deep_research` | Perplexity | No       | Monthly quota, in-depth reports                  |
-| `gpt56_terra`   | OpenAI     | Toggle   | GPT-5.6 Terra                                    |
-| `gpt56_sol`     | OpenAI     | Toggle   | GPT-5.6 Sol (Max tier required)                  |
-| `gpt6_sol`      | OpenAI     | Toggle   | GPT-6 Sol                                        |
-| `grok45`        | xAI        | Toggle   | Grok 4.5                                         |
-| `grok47`        | xAI        | Toggle   | Grok 4.7                                         |
-| `claude_sonnet` | Anthropic  | Toggle   | Claude Sonnet 5                                |
-| `claude_opus`   | Anthropic  | Toggle   | Claude Opus 4.8 (Max tier required)              |
-| `claude_opus55` | Anthropic  | Toggle   | Claude Opus 5.5 (Max tier required)              |
-| `gemini_pro`    | Google     | Always   | Gemini 3.1 Pro                                   |
-| `gemini38`      | Google     | Toggle   | Gemini 3.8 Flash                                 |
-| `nemotron`      | NVIDIA     | Always   | Nemotron 3 Ultra 550B                            |
-| `glm52`         | Z.ai       | Always   | GLM 5.2                                          |
-| `glm53`         | Z.ai       | Always   | GLM 5.3                                          |
-| `kimi_k26`      | Moonshot   | Toggle   | Kimi K2.6                                        |
-| `kimi_k3`       | Moonshot   | Always   | Kimi K3                                          |
+| CLI Name           | Provider   | Thinking | Notes                                            |
+| ------------------ | ---------- | -------- | ------------------------------------------------ |
+| `auto`             | Perplexity | No       | Auto-selects best model                          |
+| `sonar`            | Perplexity | No       | Sonar 2 (latest in-house; API id `experimental`) |
+| `deep_research`    | Perplexity | No       | Monthly quota, in-depth reports                  |
+| `gpt61_sol`        | OpenAI     | Toggle   | GPT-6.1 Sol                                      |
+| `gpt6_astra`       | OpenAI     | Toggle   | GPT-6 Astra (Max tier required)                  |
+| `gemini4_carbon`   | Google     | Toggle   | Gemini 4 Carbon (Max tier required)              |
+| `gemini4_hydrogen` | Google     | Toggle   | Gemini 4 Hydrogen                                |
+| `claude_sonnet`    | Anthropic  | Toggle   | Claude Sonnet 5.5                                |
+| `claude_opus`      | Anthropic  | Toggle   | Claude Opus 5.5 (Max tier required)              |
+| `claude_opus55`    | Anthropic  | Toggle   | Alias for Claude Opus 5.5 (Max tier required)    |
+| `claude_fable52`   | Anthropic  | Toggle   | Claude Fable 5.2 (Max tier required)             |
+| `grok47`           | xAI        | Toggle   | Grok 4.7                                         |
+| `nemotron`         | NVIDIA     | No       | Nemotron 3.5 Super VL (text-only)                |
+| `glm53`            | Z.ai       | Always   | GLM 5.3                                          |
+| `kimi_k3`          | Moonshot   | Always   | Kimi K3                                          |
 
 The catalog is server-driven: run `pwm models` to see the live model list (free, no query quota),
 and any identifier it shows can be passed to `pwm ask -m <identifier>`.
@@ -457,21 +454,23 @@ claude mcp add perplexity pwm-mcp
 
 **Query tools:**
 
-| Tool                                              | Description                                 |
-| ------------------------------------------------- | ------------------------------------------- |
-| `pplx_query`                                      | Flexible: model selection + thinking toggle |
-| `pplx_ask`                                        | Quick Q&A (auto-selects best model)         |
-| `pplx_deep_research`                              | In-depth reports with sources               |
-| `pplx_sonar`                                      | Perplexity Sonar 2 (1 Pro Search)           |
-| `pplx_gpt56_terra` / `pplx_gpt56_terra_thinking`              | GPT-5.6 Terra                                     |
-| `pplx_gpt56_sol` / `pplx_gpt56_sol_thinking`              | GPT-5.6 Sol (Max tier)                          |
-| `pplx_grok45` / `pplx_grok45_thinking`                    | Grok 4.5                                        |
-| `pplx_claude_sonnet` / `pplx_claude_sonnet_think` | Claude Sonnet 5                           |
-| `pplx_claude_opus` / `pplx_claude_opus_think`     | Claude Opus 4.8 (Max tier)                  |
-| `pplx_gemini_pro_think`                           | Gemini 3.1 Pro (thinking always on)         |
-| `pplx_nemotron_thinking`                          | Nemotron 3 Ultra (thinking always on)       |
-| `pplx_glm52`                                      | GLM 5.2 (thinking always on)                |
-| `pplx_kimi_k26` / `pplx_kimi_k26_thinking`         | Kimi K2.6                                   |
+| Tool                                                   | Description                                 |
+| ------------------------------------------------------ | ------------------------------------------- |
+| `pplx_query`                                           | Flexible: model selection + thinking toggle |
+| `pplx_ask`                                             | Quick Q&A (auto-selects best model)         |
+| `pplx_deep_research`                                   | In-depth reports with sources               |
+| `pplx_sonar`                                           | Perplexity Sonar 2 (1 Pro Search)           |
+| `pplx_gpt61_sol` / `pplx_gpt61_sol_thinking`           | GPT-6.1 Sol                                 |
+| `pplx_gpt6_astra` / `pplx_gpt6_astra_thinking`         | GPT-6 Astra (Max tier)                      |
+| `pplx_gemini4_carbon` / `pplx_gemini4_carbon_thinking` | Gemini 4 Carbon (Max tier)                  |
+| `pplx_gemini4_hydrogen` / `..._thinking`               | Gemini 4 Hydrogen                           |
+| `pplx_claude_sonnet` / `pplx_claude_sonnet_think`      | Claude Sonnet 5.5                           |
+| `pplx_claude_opus` / `pplx_claude_opus_think`          | Claude Opus 5.5 (Max tier)                  |
+| `pplx_claude_fable52` / `pplx_claude_fable52_think`    | Claude Fable 5.2 (Max tier)                 |
+| `pplx_grok47` / `pplx_grok47_thinking`                 | Grok 4.7                                    |
+| `pplx_nemotron`                               | Nemotron 3.5 Super VL                       |
+| `pplx_glm53`                                           | GLM 5.3 (thinking always on)                |
+| `pplx_kimi_k3`                                         | Kimi K3 (thinking always on)                |
 
 **Smart routing (1):**
 
@@ -487,12 +486,12 @@ claude mcp add perplexity pwm-mcp
 
 **Usage, connectors & auth tools (5):**
 
-| Tool                     | Description                     |
-| ------------------------ | ------------------------------- |
-| `pplx_usage`             | Check remaining quotas          |
-| `pplx_connectors`        | List connector source IDs       |
-| `pplx_auth_status`       | Check authentication status     |
-| `pplx_auth_request_code` | Send verification code to email |
+| Tool                     | Description                            |
+| ------------------------ | -------------------------------------- |
+| `pplx_usage`             | Check remaining quotas                 |
+| `pplx_connectors`        | List connector source IDs              |
+| `pplx_auth_status`       | Check authentication status            |
+| `pplx_auth_request_code` | Send verification code to email        |
 | `pplx_auth_complete`     | Complete email and TOTP authentication |
 
 All query tools support `source_focus`: `none`, `web`, `academic`, `social`, `finance`, `all`, or a connector source ID returned by `pplx_connectors()`.
@@ -554,21 +553,23 @@ export OPENAI_API_KEY=dummy
 codex -m sonar --local-provider lmstudio
 ```
 
-Our server's `MODEL_MAP` will seamlessly intercept `sonar` (or any other mapped names like `gemini-pro`, `nemotron`, `glm-5.2`, `claude-sonnet-5`) and correctly route it to Perplexity's API. You can also create an alias in your shell to make this easier: `alias codex-pplx="codex --local-provider lmstudio"`.
+Our server's `MODEL_MAP` will seamlessly intercept `sonar` (or any other mapped names like `gemini-4-hydrogen`, `nemotron`, `glm-5.3`, `claude-sonnet-5-5`) and correctly route it to Perplexity's API. You can also create an alias in your shell to make this easier: `alias codex-pplx="codex --local-provider lmstudio"`.
 
 ### API Model Names
 
-| API Name                        | Perplexity Model   | Thinking |
-| ------------------------------- | ------------------ | -------- |
-| `perplexity-auto`               | Best (auto-select) | No       |
-| `gpt-5.6-terra`                 | GPT-5.6 Terra      | Toggle   |
-| `gpt-5.6-sol`                   | GPT-5.6 Sol        | Toggle   |
-| `grok-4.5`                      | Grok 4.5           | Toggle   |
-| `claude-sonnet-5`               | Claude Sonnet 5    | Toggle   |
-| `claude-opus-4-8`               | Claude Opus 4.8    | Toggle   |
-| `gemini-3.1-pro`                | Gemini 3.1 Pro     | Always   |
-| `glm-5.2` / `glm52`             | GLM 5.2            | Always   |
-| `nemotron-3-ultra` / `nemotron` | Nemotron 3 Ultra   | Always   |
+| API Name                | Perplexity Model      | Thinking |
+| ----------------------- | --------------------- | -------- |
+| `perplexity-auto`       | Best (auto-select)    | No       |
+| `gpt-6.1-sol`           | GPT-6.1 Sol           | Toggle   |
+| `gpt-6-astra`           | GPT-6 Astra           | Toggle   |
+| `gemini-4-carbon`       | Gemini 4 Carbon       | Toggle   |
+| `gemini-4-hydrogen`     | Gemini 4 Hydrogen     | Toggle   |
+| `claude-sonnet-5-5`     | Claude Sonnet 5.5     | Toggle   |
+| `claude-opus-5-5`       | Claude Opus 5.5       | Toggle   |
+| `claude-fable-5-2`      | Claude Fable 5.2      | Toggle   |
+| `grok-4.7`              | Grok 4.7              | Toggle   |
+| `glm-5.3` / `glm53`     | GLM 5.3               | Always   |
+| `nemotron-3.5-super-vl` | Nemotron 3.5 Super VL | No       |
 
 Legacy aliases (`claude-3-5-sonnet`, `claude-3-opus`) are supported for compatibility.
 

@@ -17,10 +17,10 @@ from perplexity_web_mcp.catalog import (
 
 FIXTURE = {
     "models": {
-        "gpt6_sol": {"label": "GPT-6 Sol", "mode": "search", "provider": "OPENAI"},
-        "gpt6_sol_thinking": {"label": "GPT-6 Sol Thinking", "mode": "search", "provider": "OPENAI"},
+        "gpt6_1_sol": {"label": "GPT-6.1 Sol", "mode": "search", "provider": "OPENAI"},
+        "gpt6_1_sol_thinking": {"label": "GPT-6.1 Sol Thinking", "mode": "search", "provider": "OPENAI"},
         "comet_browser_agent_sonnet": {"label": "Claude Sonnet 5", "mode": "browser_agent", "provider": "ANTHROPIC"},
-        "pplx_asi_gpt_6_sol": {"label": "GPT-6 Sol", "mode": "asi", "provider": "OPENAI"},
+        "pplx_asi_gpt_6_sol": {"label": "GPT-6.1 Sol", "mode": "asi", "provider": "OPENAI"},
         "pplx_alpha": {"label": "Deep research", "mode": "research", "provider": "PERPLEXITY"},
     },
     "config": [
@@ -30,11 +30,11 @@ FIXTURE = {
             "non_reasoning_model": "comet_browser_agent_sonnet",
         },
         {
-            "label": "GPT-6 Sol",
+            "label": "GPT-6.1 Sol",
             "subscription_tier": "pro",
             "has_new_tag": False,
-            "non_reasoning_model": "gpt6_sol",
-            "reasoning_model": "gpt6_sol_thinking",
+            "non_reasoning_model": "gpt6_1_sol",
+            "reasoning_model": "gpt6_1_sol_thinking",
         },
         {
             "label": "GPT-6 Astra",
@@ -48,14 +48,14 @@ FIXTURE = {
 def test_parse_models_config_filters_non_search_rows() -> None:
     entries = parse_models_config(FIXTURE)
 
-    assert [entry.identifier for entry in entries] == ["gpt6_sol", "gpt6_sol_thinking"]
-    assert entries[0].row_label == "GPT-6 Sol"
-    assert entries[0].label == "GPT-6 Sol"
+    assert [entry.identifier for entry in entries] == ["gpt6_1_sol", "gpt6_1_sol_thinking"]
+    assert entries[0].row_label == "GPT-6.1 Sol"
+    assert entries[0].label == "GPT-6.1 Sol"
     assert entries[0].mode == "search"
     assert entries[0].provider == "OPENAI"
     assert entries[0].tier == "pro"
     assert entries[0].is_new is False
-    assert entries[1].label == "GPT-6 Sol Thinking"
+    assert entries[1].label == "GPT-6.1 Sol Thinking"
 
 
 def test_parse_models_config_marks_new_rows() -> None:
@@ -96,16 +96,16 @@ def test_cached_identifiers_and_live_model(tmp_path, monkeypatch) -> None:
     assert save_catalog(parse_models_config(FIXTURE), path=path)
     monkeypatch.setattr(catalog, "CATALOG_CACHE_FILE", path)
 
-    assert cached_search_identifiers() == ["gpt6_sol", "gpt6_sol_thinking"]
+    assert cached_search_identifiers() == ["gpt6_1_sol", "gpt6_1_sol_thinking"]
 
-    live = cached_live_model("gpt6_sol")
+    live = cached_live_model("gpt6_1_sol")
     assert live is not None
-    assert live.identifier == "gpt6_sol"
+    assert live.identifier == "gpt6_1_sol"
     assert live.mode == "copilot"
 
-    live_thinking = cached_live_model("gpt6_sol", thinking=True)
+    live_thinking = cached_live_model("gpt6_1_sol", thinking=True)
     assert live_thinking is not None
-    assert live_thinking.identifier == "gpt6_sol_thinking"
+    assert live_thinking.identifier == "gpt6_1_sol_thinking"
 
     assert cached_live_model("not_a_model") is None
 

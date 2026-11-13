@@ -711,7 +711,7 @@ def council(query, models_str, thinking, source, no_synthesis, chairman, json_ou
     \b
     Examples:
       pwm council "What are best practices for microservices?"
-      pwm council "Compare Rust and Go" -m gpt56_terra,claude_sonnet
+      pwm council "Compare Rust and Go" -m gpt61_sol,claude_sonnet
       pwm council "Explain quantum computing" -s academic --thinking
       pwm council "React vs Vue" --chairman claude_sonnet
       pwm council "React vs Vue" --no-synthesis --json

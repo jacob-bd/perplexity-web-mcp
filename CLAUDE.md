@@ -89,6 +89,10 @@ uv run --group tests pytest tests/ -v
 uv run --group tests pytest tests/ -v -m integration --run-live-tests
 ```
 
+## Releases
+
+Never tag or publish on offline tests alone. Run `python scripts/release_check.py` on the exact commit being tagged; it must pass live `sonar` and `auto` smoke queries. Follow `RELEASING.md`. If authentication or quota prevents the live gate, fix that before tagging.
+
 ## Credits
 
 Based on [perplexity-webui-scraper](https://github.com/henrique-coder/perplexity-webui-scraper) by henrique-coder.

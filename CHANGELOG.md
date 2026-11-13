@@ -4,6 +4,14 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **Live release gate** — `python scripts/release_check.py` (also `just release-check`) runs Ruff, the offline suite, and live `sonar` and `auto` queries that must return a known marker. Releases must pass it on the exact commit being tagged. See `RELEASING.md`.
+
+---
+
 ## [0.17.0] - 2026-11-13
 
 ### Added

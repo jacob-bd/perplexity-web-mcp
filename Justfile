@@ -16,3 +16,6 @@ install:
 
 test:
     uv run pytest -v --xfail-tb
+
+release-check:
+    uv run python scripts/release_check.py

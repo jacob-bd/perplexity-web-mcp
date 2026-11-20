@@ -23,7 +23,7 @@ def test_dry_run_resolves_free_tier_cases(capsys) -> None:
     assert live_smoke.main(["live_smoke.py", "--dry-run"]) == 0
     output = capsys.readouterr().out
     assert "sonar -> experimental" in output
-    assert "auto -> auto" in output
+    assert "auto -> turbo" in output
 
 
 def test_all_cases_pass_when_marker_returns(monkeypatch) -> None:
@@ -48,7 +48,7 @@ def test_exception_fails_without_stopping_other_cases(monkeypatch, capsys) -> No
 
     monkeypatch.setattr(live_smoke, "ask", _ask)
     assert live_smoke.main(["live_smoke.py"]) == 1
-    assert calls == ["experimental", "auto"]
+    assert calls == ["experimental", "turbo"]
     assert "expired session" in capsys.readouterr().out
 
 

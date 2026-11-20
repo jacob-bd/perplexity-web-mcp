@@ -9,6 +9,7 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 ### Fixed
 
 - **Anthropic streaming retry, semaphore, and disconnect handling** — `stream_response()` in the local API server (`POST /v1/messages`) now retries only before any text delta has been sent to the client, closes each attempt's stream and client before releasing the single-request semaphore from a single owner, and cancels the background producer when the client disconnects so the slot is freed immediately without extra retries. ([#62](https://github.com/jacob-bd/perplexity-web-mcp/issues/62))
+- **`auto` model selection on Perplexity** — `Models.AUTO` now sends Perplexity's current default search identifier (`turbo`) instead of the retired `auto` identifier, which Perplexity began rejecting with `"There was an issue with the model selection."`.
 
 ### Changed
 

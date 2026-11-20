@@ -16,8 +16,8 @@ class Model:
 class Models:
     """Available AI models (all use copilot mode with web search)."""
 
-    AUTO = Model(identifier="auto", mode="concise")
-    """Standard Free Search — Unlimited concise search mode for free accounts."""
+    AUTO = Model(identifier="turbo", mode="concise")
+    """Standard Free Search — Unlimited concise search mode for free accounts (backend id: turbo)."""
 
     DEEP_RESEARCH = Model(identifier="pplx_alpha")
     """Deep Research - Create in-depth reports with more sources, charts, and advanced reasoning."""

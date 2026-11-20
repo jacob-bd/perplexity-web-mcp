@@ -1055,171 +1055,210 @@ async def stream_response(
 
     # Acquire semaphore to serialize Perplexity requests
     await perplexity_semaphore.acquire()
-    semaphore_released = False
+    cancelled = threading.Event()
+    producer_started = False
 
-    # 1. message_start event
-    message_start = {
-        "type": "message_start",
-        "message": {
-            "id": response_id,
-            "type": "message",
-            "role": "assistant",
-            "content": [],
-            "model": model_name,
-            "stop_reason": None,
-            "stop_sequence": None,
-            "usage": {"input_tokens": input_tokens, "output_tokens": 0},
-        },
-    }
-    yield f"event: message_start\ndata: {json.dumps(message_start)}\n\n"
+    try:
+        # 1. message_start event
+        message_start = {
+            "type": "message_start",
+            "message": {
+                "id": response_id,
+                "type": "message",
+                "role": "assistant",
+                "content": [],
+                "model": model_name,
+                "stop_reason": None,
+                "stop_sequence": None,
+                "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+            },
+        }
+        yield f"event: message_start\ndata: {json.dumps(message_start)}\n\n"
 
-    # 2. content_block_start event for text
-    content_block_start = {
-        "type": "content_block_start",
-        "index": 0,
-        "content_block": {"type": "text", "text": ""},
-    }
-    yield f"event: content_block_start\ndata: {json.dumps(content_block_start)}\n\n"
+        # 2. content_block_start event for text
+        content_block_start = {
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {"type": "text", "text": ""},
+        }
+        yield f"event: content_block_start\ndata: {json.dumps(content_block_start)}\n\n"
 
-    # Stream content deltas from Perplexity
-    queue: asyncio.Queue[tuple[str, str]] = asyncio.Queue()
-    loop = asyncio.get_running_loop()
+        # Stream content deltas from Perplexity
+        queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
+        loop = asyncio.get_running_loop()
 
-    def release_semaphore():
-        nonlocal semaphore_released
-        if not semaphore_released:
-            semaphore_released = True
-            loop.call_soon_threadsafe(perplexity_semaphore.release)
+        def safe_call(fn: Any, *args: Any) -> None:
+            if not loop.is_closed():
+                try:
+                    loop.call_soon_threadsafe(fn, *args)
+                except RuntimeError:
+                    pass
 
-    def producer():
-        """Background thread to stream from Perplexity with retry."""
-        global last_request_time
+        def producer() -> None:
+            """Background thread to stream from Perplexity with retry."""
+            global last_request_time
 
-        # Rate limiting: ensure minimum interval since LAST REQUEST COMPLETED
-        now = time_module.time()
-        wait_needed = MIN_REQUEST_INTERVAL - (now - last_request_time)
-        if wait_needed > 0:
-            logging.info(f"Rate limiting: waiting {wait_needed:.1f}s before next Perplexity request")
-            time_module.sleep(wait_needed)
+            semaphore_released = False
 
-        last = ""
-        max_retries = 3
+            def release_semaphore() -> None:
+                nonlocal semaphore_released
+                if not semaphore_released:
+                    semaphore_released = True
+                    safe_call(perplexity_semaphore.release)
 
-        for attempt in range(max_retries):
             try:
-                # Create fresh client for each request to avoid curl_cffi Session issues
-                fresh_client = Perplexity(session_token=config.session_token)
-                conversation = fresh_client.create_conversation(
-                    ConversationConfig(model=model, citation_mode=CitationMode.DEFAULT)
-                )
+                # Rate limiting: ensure minimum interval since LAST REQUEST COMPLETED
+                now = time_module.time()
+                wait_needed = MIN_REQUEST_INTERVAL - (now - last_request_time)
+                if wait_needed > 0:
+                    logging.info(f"Rate limiting: waiting {wait_needed:.1f}s before next Perplexity request")
+                    if cancelled.wait(wait_needed):
+                        return
 
-                # Single ask with prepended system context
-                for resp in conversation.ask(query, stream=True, init_query=init_query):
-                    current = resp.answer or ""
-                    if len(current) > len(last):
-                        delta = current[len(last) :]
-                        last = current
-                        loop.call_soon_threadsafe(queue.put_nowait, ("delta", delta))
+                last = ""
+                max_retries = 3
 
-                # Get citations from search results
-                citations = format_citations(conversation.search_results)
-                loop.call_soon_threadsafe(queue.put_nowait, ("done", (last, citations)))
-                fresh_client.close()
-                # Update last_request_time AFTER completion
-                last_request_time = time_module.time()
-                break  # Success
-            except Exception as e:
-                error_str = str(e)
-                last_request_time = time_module.time()  # Update even on error
-                if _is_retryable_error(e) and attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 2
-                    logging.warning(
-                        f"Retryable error (attempt {attempt + 1}/{max_retries}): {error_str}. Retrying in {wait_time}s"
+                for attempt in range(max_retries):
+                    if cancelled.is_set():
+                        return
+
+                    fresh_client = None
+                    stream_iter = None
+                    citations = ""
+                    attempt_error: Exception | None = None
+                    try:
+                        # Create fresh client for each request to avoid curl_cffi Session issues
+                        fresh_client = Perplexity(session_token=config.session_token)
+                        conversation = fresh_client.create_conversation(
+                            ConversationConfig(model=model, citation_mode=CitationMode.DEFAULT)
+                        )
+
+                        # Single ask with prepended system context
+                        stream_iter = iter(conversation.ask(query, stream=True, init_query=init_query))
+                        for resp in stream_iter:
+                            if cancelled.is_set():
+                                break
+                            current = resp.answer or ""
+                            if len(current) > len(last):
+                                delta = current[len(last) :]
+                                last = current
+                                safe_call(queue.put_nowait, ("delta", delta))
+
+                        if not cancelled.is_set():
+                            # Get citations from search results before closing client
+                            citations = format_citations(conversation.search_results)
+                    except Exception as e:
+                        attempt_error = e
+                    finally:
+                        if stream_iter is not None and hasattr(stream_iter, "close"):
+                            stream_iter.close()
+                        if fresh_client is not None:
+                            fresh_client.close()
+
+                    # Update last_request_time AFTER completion and client cleanup
+                    last_request_time = time_module.time()
+                    if cancelled.is_set():
+                        return
+
+                    if attempt_error is None:
+                        release_semaphore()
+                        safe_call(queue.put_nowait, ("done", (last, citations)))
+                        return
+
+                    error_str = str(attempt_error)
+                    if not last and _is_retryable_error(attempt_error) and attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2
+                        logging.warning(
+                            f"Retryable error (attempt {attempt + 1}/{max_retries}): {error_str}. "
+                            f"Retrying in {wait_time}s"
+                        )
+                        if cancelled.wait(wait_time):
+                            return
+                        continue
+
+                    release_semaphore()
+                    safe_call(queue.put_nowait, ("error", error_str))
+                    return
+            finally:
+                release_semaphore()
+
+        threading.Thread(target=producer, daemon=True).start()
+        producer_started = True
+
+        # 3. content_block_delta events
+        total_output = ""
+        citations_text = ""
+        delta_count = 0
+
+        while True:
+            kind, payload = await queue.get()
+            if kind == "delta":
+                total_output += payload
+                delta_count += 1
+
+                delta_event = {
+                    "type": "content_block_delta",
+                    "index": 0,
+                    "delta": {"type": "text_delta", "text": payload},
+                }
+                yield f"event: content_block_delta\ndata: {json.dumps(delta_event)}\n\n"
+
+                # 4. Send periodic ping events for keepalive
+                if delta_count % 10 == 0:
+                    yield f"event: ping\ndata: {json.dumps({'type': 'ping'})}\n\n"
+
+            elif kind == "error":
+                logging.error(f"Stream error: {payload}")
+                log_trace(f"[STAGE 4 - STREAM ERROR] {payload}")
+                # Strip wrapper prefixes for cleaner client-facing messages
+                error_msg = payload.removeprefix("Failed to parse API response: ")
+                if "403" in payload or "forbidden" in payload.lower():
+                    error_msg = (
+                        "Session token expired (403). "
+                        "Re-authenticate: pwm login --email EMAIL, then pwm login --email EMAIL --code CODE"
                     )
-                    time_module.sleep(wait_time)
-                    last = ""
-                    continue
-                loop.call_soon_threadsafe(queue.put_nowait, ("error", error_str))
+                error_delta = {
+                    "type": "content_block_delta",
+                    "index": 0,
+                    "delta": {"type": "text_delta", "text": f"\n\n[Error: {error_msg}]"},
+                }
+                yield f"event: content_block_delta\ndata: {json.dumps(error_delta)}\n\n"
                 break
 
-        release_semaphore()
+            else:  # done - payload is (answer, citations)
+                total_output, citations_text = payload
+                break
 
-    threading.Thread(target=producer, daemon=True).start()
-
-    # 3. content_block_delta events
-    total_output = ""
-    citations_text = ""
-    delta_count = 0
-
-    while True:
-        kind, payload = await queue.get()
-        if kind == "delta":
-            total_output += payload
-            delta_count += 1
-
-            delta_event = {
+        # Stream citations if available
+        if citations_text:
+            citation_delta = {
                 "type": "content_block_delta",
                 "index": 0,
-                "delta": {"type": "text_delta", "text": payload},
+                "delta": {"type": "text_delta", "text": citations_text},
             }
-            yield f"event: content_block_delta\ndata: {json.dumps(delta_event)}\n\n"
+            yield f"event: content_block_delta\ndata: {json.dumps(citation_delta)}\n\n"
+            total_output += citations_text
 
-            # 4. Send periodic ping events for keepalive
-            if delta_count % 10 == 0:
-                yield f"event: ping\ndata: {json.dumps({'type': 'ping'})}\n\n"
+        # 5. content_block_stop event
+        yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': 0})}\n\n"
 
-        elif kind == "error":
-            logging.error(f"Stream error: {payload}")
-            log_trace(f"[STAGE 4 - STREAM ERROR] {payload}")
-            # Strip wrapper prefixes for cleaner client-facing messages
-            error_msg = payload.removeprefix("Failed to parse API response: ")
-            if "403" in payload or "forbidden" in payload.lower():
-                error_msg = (
-                    "Session token expired (403). "
-                    "Re-authenticate: pwm login --email EMAIL, then pwm login --email EMAIL --code CODE"
-                )
-            error_delta = {
-                "type": "content_block_delta",
-                "index": 0,
-                "delta": {"type": "text_delta", "text": f"\n\n[Error: {error_msg}]"},
-            }
-            yield f"event: content_block_delta\ndata: {json.dumps(error_delta)}\n\n"
-            break
-
-        else:  # done - payload is (answer, citations)
-            total_output, citations_text = payload
-            break
-
-    # Stream citations if available
-    if citations_text:
-        citation_delta = {
-            "type": "content_block_delta",
-            "index": 0,
-            "delta": {"type": "text_delta", "text": citations_text},
+        # 6. message_delta event (final usage)
+        output_tokens = estimate_tokens(total_output)
+        message_delta = {
+            "type": "message_delta",
+            "delta": {"stop_reason": "end_turn", "stop_sequence": None},
+            "usage": {"output_tokens": output_tokens},
         }
-        yield f"event: content_block_delta\ndata: {json.dumps(citation_delta)}\n\n"
-        total_output += citations_text
+        yield f"event: message_delta\ndata: {json.dumps(message_delta)}\n\n"
 
-    # 5. content_block_stop event
-    yield f"event: content_block_stop\ndata: {json.dumps({'type': 'content_block_stop', 'index': 0})}\n\n"
+        # 7. message_stop event
+        yield f"event: message_stop\ndata: {json.dumps({'type': 'message_stop'})}\n\n"
 
-    # 6. message_delta event (final usage)
-    output_tokens = estimate_tokens(total_output)
-    message_delta = {
-        "type": "message_delta",
-        "delta": {"stop_reason": "end_turn", "stop_sequence": None},
-        "usage": {"output_tokens": output_tokens},
-    }
-    yield f"event: message_delta\ndata: {json.dumps(message_delta)}\n\n"
-
-    # 7. message_stop event
-    yield f"event: message_stop\ndata: {json.dumps({'type': 'message_stop'})}\n\n"
-
-    # Ensure semaphore is released
-    if not semaphore_released:
-        perplexity_semaphore.release()
-
-    logging.info(f"Stream complete: {output_tokens} output tokens")
+        logging.info(f"Stream complete: {output_tokens} output tokens")
+    finally:
+        cancelled.set()
+        if not producer_started:
+            perplexity_semaphore.release()
 
 
 # =============================================================================

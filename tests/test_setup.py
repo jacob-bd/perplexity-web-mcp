@@ -345,8 +345,9 @@ class TestDetectTool:
 class TestIsAlreadyConfigured:
     """Test configuration status check."""
 
+    @patch("shutil.which", return_value=None)
     @patch("perplexity_web_mcp.cli.setup._codex_config_path")
-    def test_codex_not_configured_without_binary_or_toml(self, mock_path: MagicMock) -> None:
+    def test_codex_not_configured_without_binary_or_toml(self, mock_path: MagicMock, _mock_which: MagicMock) -> None:
         from perplexity_web_mcp.cli.setup import _is_already_configured
 
         mock_path.return_value = Path("/nonexistent/.codex")

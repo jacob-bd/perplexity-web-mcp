@@ -4,11 +4,19 @@ All notable changes to **perplexity-web-mcp-cli** are documented in this file.
 
 ---
 
-## [Unreleased]
+## [0.17.1] - 2026-11-19
+
+### Fixed
+
+- **Anthropic streaming retry, semaphore, and disconnect handling** — `stream_response()` in the local API server (`POST /v1/messages`) now retries only before any text delta has been sent to the client, closes each attempt's stream and client before releasing the single-request semaphore from a single owner, and cancels the background producer when the client disconnects so the slot is freed immediately without extra retries. ([#62](https://github.com/jacob-bd/perplexity-web-mcp/issues/62))
 
 ### Changed
 
 - **Live release gate** — `python scripts/release_check.py` (also `just release-check`) runs Ruff, the offline suite, and live `sonar` and `auto` queries that must return a known marker. Releases must pass it on the exact commit being tagged. See `RELEASING.md`.
+
+### Credits
+
+- Thanks to [@Tsukieomie](https://github.com/Tsukieomie) for reporting all three streaming bugs with a self-contained reproduction script and timing measurements in [#62](https://github.com/jacob-bd/perplexity-web-mcp/issues/62).
 
 ---
 
